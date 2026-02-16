@@ -11,6 +11,13 @@ const ApplicationSchema = new mongoose.Schema(
     },
     appliedAt: { type: Date, default: Date.now },
     
+    // ✅ ADD COVER LETTER FIELD
+    coverLetter: {
+      type: String,
+      default: '',
+      maxlength: 5000 // Optional: limit length
+    },
+    
     // ✅ TRACK SUBMITTED RESUME (local file storage)
     submittedResume: {
       url: {                         // Path to file: /uploads/resumes/filename.pdf

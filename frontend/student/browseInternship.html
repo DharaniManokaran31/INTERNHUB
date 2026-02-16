@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Internships - InternHub</title>
+    <link rel="stylesheet" href="browseInternship.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                        </svg>
+                    </div>
+                    <span class="sidebar-logo-text">InternHub</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span class="nav-item-text">Dashboard</span>
+                </a>
+                <a href="browseInternships.html" class="nav-item active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <span class="nav-item-text">Browse Internships</span>
+                </a>
+                <a href="myApplication.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="nav-item-text">My Applications</span>
+                </a>
+                <a href="myResume.html" class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span class="nav-item-text">My Resume</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-sidebar">
+                    <div class="user-avatar-sidebar">DS</div>
+                    <div class="user-info-sidebar">
+                        <div class="user-name-sidebar">Demo Student</div>
+                        <div class="user-role-sidebar">Student</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="search-bar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input type="text" placeholder="Search internships..." id="searchInput" aria-label="Search internships">
+                        <span class="keyboard-hint" id="keyboardHint">Press / to search</span>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button class="notification-btn" id="notificationBtn" aria-label="Notifications">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        <span class="notification-badge" aria-label="New notifications"></span>
+                    </button>
+                    <button class="logout-btn" onclick="handleLogout()">
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1 class="page-title">Browse Internships</h1>
+                    <p class="page-subtitle">Find your perfect internship opportunity</p>
+                </div>
+
+                <!-- Active Filters -->
+                <div class="active-filters hidden" id="activeFilters">
+                    <!-- Active filter chips will be dynamically added here -->
+                </div>
+
+                <!-- Browse Layout -->
+                <div class="browse-layout">
+                    <!-- Filters Sidebar -->
+                    <aside class="filters-sidebar">
+                        <div class="filters-header">
+                            <h3 class="filters-title">Filters</h3>
+                            <button class="clear-filters-btn" onclick="clearAllFilters()">Clear All</button>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Location</label>
+                            <select class="filter-select" id="locationFilter" onchange="applyFilters()">
+                                <option value="">All Locations</option>
+                                <option value="remote">Remote</option>
+                                <option value="bangalore">Bangalore</option>
+                                <option value="mumbai">Mumbai</option>
+                                <option value="delhi">Delhi</option>
+                                <option value="pune">Pune</option>
+                                <option value="hyderabad">Hyderabad</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Internship Type</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="fullTime" value="full-time" onchange="applyFilters()">
+                                    <label for="fullTime">Full-time</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="partTime" value="part-time" onchange="applyFilters()">
+                                    <label for="partTime">Part-time</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="remoteType" value="remote" onchange="applyFilters()">
+                                    <label for="remoteType">Remote</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Duration</label>
+                            <select class="filter-select" id="durationFilter" onchange="applyFilters()">
+                                <option value="">Any Duration</option>
+                                <option value="1-3">1-3 months</option>
+                                <option value="3-6">3-6 months</option>
+                                <option value="6+">6+ months</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Category</label>
+                            <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+                                <option value="">All Categories</option>
+                                <option value="technology">Technology</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="design">Design</option>
+                                <option value="finance">Finance</option>
+                                <option value="hr">Human Resources</option>
+                                <option value="sales">Sales</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Minimum Stipend (₹/month)</label>
+                            <input type="number" class="filter-input" id="stipendFilter" placeholder="e.g., 10000"
+                                onchange="applyFilters()" min="0">
+                        </div>
+
+                        <div class="filter-group">
+                            <label class="filter-label">Skill Level</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="levelBeginner" value="beginner" onchange="applyFilters()">
+                                    <label for="levelBeginner">Beginner</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="levelIntermediate" value="intermediate" onchange="applyFilters()">
+                                    <label for="levelIntermediate">Intermediate</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="levelAdvanced" value="advanced" onchange="applyFilters()">
+                                    <label for="levelAdvanced">Advanced</label>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Internships List -->
+                    <div class="internships-container">
+                        <div class="results-header">
+                            <div class="results-count" id="resultsCount">Loading...</div>
+                            <div class="sort-dropdown">
+                                <label for="sortBy">Sort by:</label>
+                                <select id="sortBy" onchange="sortInternships()">
+                                    <option value="recent">Most Recent</option>
+                                    <option value="stipend-high">Highest Stipend</option>
+                                    <option value="stipend-low">Lowest Stipend</option>
+                                    <option value="duration">Duration</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="internshipsList">
+                            <!-- Skeleton loading -->
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+
+                        <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+                            <button class="load-more-btn" onclick="loadMore()" id="loadMoreBtn">Load More Internships</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="browseInternship.js"></script>
+</body>
+
+</html>

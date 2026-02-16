@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentBrowseInternships.css';
+import NotificationBell from '../../components/common/NotificationBell';
 
 const BrowseInternshipsPage = () => {
   const navigate = useNavigate();
@@ -403,7 +404,7 @@ const BrowseInternshipsPage = () => {
     setDisplayedInternships(filtered.slice(0, itemsPerPage));
   }, [internships, searchQuery, activeFilters, sortBy]);
 
-  // ===== HANDLE APPLY - FIXED (added await) =====
+  // ===== HANDLE APPLY - WITH COVER LETTER =====
   const handleApply = async () => {
     if (!selectedInternship) return;
 
@@ -411,8 +412,26 @@ const BrowseInternshipsPage = () => {
       setApplying(true);
       const token = localStorage.getItem('authToken');
 
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      // ✅ Get user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        showNotification('Please login again', 'error');
+        return;
+      }
+
+      const user = JSON.parse(userStr);
       const studentId = user.id || user._id;
+
+      if (!studentId) {
+        showNotification('User ID not found. Please login again.', 'error');
+        return;
+      }
+
+      console.log('📝 Applying with:', {
+        studentId,
+        internshipId: selectedInternship._id,
+        coverLetterLength: coverLetter.length
+      });
 
       const response = await fetch('http://localhost:5000/api/applications', {
         method: 'POST',
@@ -421,13 +440,14 @@ const BrowseInternshipsPage = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          studentId,
+          studentId: studentId,
           internshipId: selectedInternship._id,
-          coverLetter
+          coverLetter: coverLetter // ✅ Send cover letter to backend
         })
       });
 
       const data = await response.json();
+      console.log('✅ Apply response:', data);
 
       if (data.success || data.message === 'Application submitted successfully') {
         showNotification('Application submitted successfully!', 'success');
@@ -441,7 +461,7 @@ const BrowseInternshipsPage = () => {
         throw new Error(data.message || 'Failed to apply');
       }
     } catch (error) {
-      console.error('Error applying:', error);
+      console.error('❌ Error applying:', error);
       showNotification(error.message || 'Failed to submit application', 'error');
     } finally {
       setApplying(false);
@@ -793,18 +813,8 @@ const BrowseInternshipsPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            <button
-              className="notification-btn"
-              onClick={handleNotificationClick}
-              aria-label="Notifications"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span className="notification-badge"></span>
-            </button>
+            {/* NEW CODE - ADD THIS */}
+            <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
             </button>

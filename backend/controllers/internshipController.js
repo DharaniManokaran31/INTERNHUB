@@ -194,6 +194,32 @@ const getAllInternships = async (req, res) => {
 };
 
 // ----------------------
+// Get internships posted by a specific recruiter
+// ----------------------
+const getRecruiterInternships = async (req, res) => {
+  try {
+    const recruiterId = req.user.id; // From auth middleware
+
+    console.log('🔍 Getting internships for recruiter:', recruiterId);
+
+    const internships = await Internship.find({ postedBy: recruiterId })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: { internships }
+    });
+  } catch (error) {
+    console.error("Error in getRecruiterInternships:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching recruiter internships",
+      error: error.message
+    });
+  }
+};
+
+// ----------------------
 // Get Single Internship by ID - UPDATED
 // ----------------------
 const getInternshipById = async (req, res) => {
@@ -287,6 +313,7 @@ module.exports = {
   createInternship,
   getAllInternships,
   getInternshipById,
+  getRecruiterInternships,
   updateInternship,    // ✅ NEW
   deleteInternship,    // ✅ NEW
   closeInternship,     // ✅ NEW

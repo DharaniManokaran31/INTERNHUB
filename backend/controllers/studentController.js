@@ -797,3 +797,44 @@ exports.getStudentApplications = async (req, res) => {
     });
   }
 };
+
+// ----------------------
+// Get Student by ID (for recruiters)
+// ----------------------
+exports.getStudentById = async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.studentId)
+      .select("-password -resetPasswordToken -resetPasswordExpires");
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found"
+      });
+    }
+
+    // Generate full URLs for files (same as profile)
+    const studentObj = student.toObject();
+    if (studentObj.resume?.resumeFile) {
+      studentObj.resume.resumeUrl = `${req.protocol}://${req.get('host')}${studentObj.resume.resumeFile}`;
+    }
+    
+    if (studentObj.resume?.certifications) {
+      studentObj.resume.certifications = studentObj.resume.certifications.map(cert => ({
+        ...cert,
+        certificateUrl: cert.certificateUrl ? `${req.protocol}://${req.get('host')}${cert.certificateUrl}` : null
+      }));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { student: studentObj }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

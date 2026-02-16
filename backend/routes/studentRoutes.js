@@ -15,6 +15,9 @@ router.post("/reset-password/:token", studentController.resetPassword);
 router.get("/profile", authMiddleware, studentController.getStudentProfile);
 router.put("/profile", authMiddleware, studentController.updateStudentProfile);
 
+// ===== GET STUDENT BY ID (for recruiters) =====
+router.get("/:studentId", authMiddleware, studentController.getStudentById);
+
 // ===== RESUME TEXT DATA ROUTES =====
 router.put("/resume", authMiddleware, studentController.updateResume);
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentApplications.css';
+import NotificationBell from '../../components/common/NotificationBell';
 
 const MyApplicationsPage = () => {
   const navigate = useNavigate();
@@ -100,8 +101,7 @@ const MyApplicationsPage = () => {
       total: apps.length,
       shortlisted: apps.filter(app => app.status === 'shortlisted').length,
       pending: apps.filter(app => app.status === 'pending' || app.status === 'applied').length,
-      rejected: apps.filter(app => app.status === 'rejected').length,
-      interview: apps.filter(app => app.status === 'interview').length
+      rejected: apps.filter(app => app.status === 'rejected').length
     };
     setStats(stats);
   };
@@ -248,7 +248,7 @@ const MyApplicationsPage = () => {
       showNotification('No resume available', 'error');
       return;
     }
-    
+
     // Use Google Docs Viewer - 100% reliable!
     const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     window.open(googleViewerUrl, '_blank');
@@ -328,7 +328,6 @@ const MyApplicationsPage = () => {
     if (status === 'all') return stats.total;
     if (status === 'pending') return stats.pending;
     if (status === 'shortlisted') return stats.shortlisted;
-    if (status === 'interview') return stats.interview;
     if (status === 'rejected') return stats.rejected;
     return 0;
   };
@@ -475,18 +474,8 @@ const MyApplicationsPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            <button
-              className="notification-btn"
-              onClick={handleNotificationClick}
-              aria-label="Notifications"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span className="notification-badge"></span>
-            </button>
+            {/* NEW CODE - ADD THIS */}
+            <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
             </button>
@@ -551,23 +540,6 @@ const MyApplicationsPage = () => {
               </div>
             </div>
 
-            <div className="stat-card-small" onClick={() => filterApplications('interview')}>
-              <div className="stat-card-content">
-                <div className="stat-card-info">
-                  <h4>Interview</h4>
-                  <div className="stat-card-value">{stats.interview}</div>
-                </div>
-                <div className="stat-card-icon blue">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 10.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8.5"></path>
-                    <path d="M16 2v4"></path>
-                    <path d="M8 2v4"></path>
-                    <path d="M3 10h18"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
             <div className="stat-card-small" onClick={() => filterApplications('rejected')}>
               <div className="stat-card-content">
                 <div className="stat-card-info">
@@ -607,13 +579,6 @@ const MyApplicationsPage = () => {
             >
               Shortlisted
               <span className="tab-badge">{getBadgeCount('shortlisted')}</span>
-            </button>
-            <button
-              className={`status-tab ${activeStatus === 'interview' ? 'active' : ''}`}
-              onClick={() => filterApplications('interview')}
-            >
-              Interview
-              <span className="tab-badge">{getBadgeCount('interview')}</span>
             </button>
             <button
               className={`status-tab ${activeStatus === 'rejected' ? 'active' : ''}`}
@@ -963,7 +928,7 @@ const MyApplicationsPage = () => {
                     <div className="detail-row">
                       <span className="detail-label">Resume</span>
                       <div className="detail-value">
-                        <button 
+                        <button
                           className="resume-view-btn"
                           onClick={() => handleViewResume(selectedApplication.resume)}
                         >

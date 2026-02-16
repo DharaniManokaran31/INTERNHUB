@@ -31,6 +31,7 @@ import RecruiterManageInternships from './pages/recruiter/ManageInternshipsPage'
 import RecruiterPostInternship from './pages/recruiter/PostInternshipPage';
 import RecruiterProfile from './pages/recruiter/ProfilePage';
 import RecruiterViewApplicants from './pages/recruiter/ViewApplicantsPage';
+import StudentProfileViewPage from './pages/recruiter/StudentProfileViewPage';
 
 // Admin Dashboard Pages
 import AdminDashboard from './pages/admin/DashboardPage';
@@ -178,6 +179,15 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* ✅ ADD THIS NEW ROUTE HERE - Edit Internship */}
+          <Route path="/recruiter/edit-internship/:internshipId" element={
+            <ProtectedRoute allowedRoles={['recruiter']}>
+              <DashboardLayout role="recruiter">
+                <RecruiterPostInternship />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
           <Route path="/recruiter/applicants" element={
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
@@ -190,6 +200,14 @@ function App() {
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
                 <RecruiterProfile />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/recruiter/student/:studentId" element={
+            <ProtectedRoute allowedRoles={['recruiter']}>
+              <DashboardLayout role="recruiter">
+                <StudentProfileViewPage />
               </DashboardLayout>
             </ProtectedRoute>
           } />
