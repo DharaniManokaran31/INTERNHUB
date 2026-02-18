@@ -49,6 +49,15 @@ const recruiterSchema = new mongoose.Schema({
     linkedin: {
         type: String,
         default: ''
+    },
+    // ✅ ADD THESE TWO LINES FOR PASSWORD RESET
+    resetPasswordToken: {
+        type: String,
+        default: null
+    },
+    resetPasswordExpires: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true

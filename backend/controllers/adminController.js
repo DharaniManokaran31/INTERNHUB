@@ -6,6 +6,7 @@ const Application = require('../models/Application');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 // ----------------------
 // Register Admin
@@ -478,18 +479,30 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    
-    // In production, store this token in database with expiry
-    // For now, just return success message
-    
+    // Generate JWT token (valid for 15 minutes)
+    const resetToken = jwt.sign(
+      { id: admin._id },
+      process.env.JWT_SECRET + admin.password,
+      { expiresIn: '15m' }
+    );
+
+    // Store token in database with expiry
+    admin.resetPasswordToken = resetToken;
+    admin.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await admin.save();
+
+    // Create reset URL
+    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+
+    // Send email
+    await sendPasswordResetEmail(email, resetUrl);
+
     res.status(200).json({
       success: true,
       message: 'If an account exists with this email, password reset instructions have been sent.'
     });
   } catch (error) {
-    console.error(error);
+    console.error('Forgot password error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'
@@ -503,27 +516,44 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
-    const { password, email } = req.body;
+    const { password } = req.body;
 
-    const admin = await Admin.findOne({ email });
-    
+    // Find admin with valid token (not expired)
+    const admin = await Admin.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
     if (!admin) {
       return res.status(400).json({
         success: false,
-        message: 'Admin not found'
+        message: 'Invalid or expired reset token'
       });
     }
 
+    // Validate password
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
+      });
+    }
+
+    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update password and clear reset fields
     admin.password = hashedPassword;
+    admin.resetPasswordToken = undefined;
+    admin.resetPasswordExpires = undefined;
     await admin.save();
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successful'
+      message: 'Password reset successful. You can now login with your new password.'
     });
   } catch (error) {
-    console.error(error);
+    console.error('Reset password error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'

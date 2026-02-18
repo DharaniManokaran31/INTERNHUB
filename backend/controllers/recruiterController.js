@@ -2,6 +2,7 @@ const Recruiter = require('../models/Recruiter');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../services/emailService');
 // REMOVED: const sendEmail = require('../utils/sendEmail');
 
 // Register Recruiter
@@ -103,7 +104,7 @@ const loginRecruiter = async (req, res) => {
 const getRecruiterProfile = async (req, res) => {
     try {
         const recruiter = await Recruiter.findById(req.user.id).select('-password');
-        
+
         if (!recruiter) {
             return res.status(404).json({
                 success: false,
@@ -129,7 +130,7 @@ const getRecruiterProfile = async (req, res) => {
 const updateRecruiterProfile = async (req, res) => {
     try {
         const updates = req.body;
-        
+
         // Remove fields that shouldn't be updated
         delete updates.password;
         delete updates.email;
@@ -189,67 +190,95 @@ const changePassword = async (req, res) => {
     }
 };
 
-// Forgot Password (Simplified - no email)
+// Forgot Password - FULL IMPLEMENTATION with email
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
         const recruiter = await Recruiter.findOne({ email });
         if (!recruiter) {
-            return res.status(404).json({
-                success: false,
-                message: 'Recruiter not found with this email'
+            return res.status(200).json({
+                success: true,
+                message: 'If an account exists with this email, password reset instructions have been sent.'
             });
         }
 
-        // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        
-        // In production, store this token in database with expiry
-        // For now, just return success message
+        // Generate JWT token (valid for 15 minutes)
+        const resetToken = jwt.sign(
+            { id: recruiter._id },
+            process.env.JWT_SECRET + recruiter.password,
+            { expiresIn: '15m' }
+        );
+
+        // Store token in database with expiry
+        recruiter.resetPasswordToken = resetToken;
+        recruiter.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+        await recruiter.save();
+
+        // Create reset URL
+        const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+
+        // Send email
+        await sendPasswordResetEmail(email, resetUrl);
+
         res.status(200).json({
             success: true,
-            message: 'Password reset functionality - Please contact admin for password reset',
-            // In development, you can return the token for testing
-            devToken: resetToken
+            message: 'If an account exists with this email, password reset instructions have been sent.'
         });
     } catch (error) {
+        console.error('Forgot password error:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Server error'
         });
     }
 };
 
-// Reset Password (Simplified)
+// Reset Password - FULL IMPLEMENTATION with token validation
 const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
-        const { password, email } = req.body;
+        const { password } = req.body;
 
-        // Simple implementation - find by email
-        const recruiter = await Recruiter.findOne({ email });
-        
+        // Find recruiter with valid token (not expired)
+        const recruiter = await Recruiter.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
         if (!recruiter) {
             return res.status(400).json({
                 success: false,
-                message: 'Recruiter not found'
+                message: 'Invalid or expired reset token'
+            });
+        }
+
+        // Validate password
+        if (!password || password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters'
             });
         }
 
         // Hash new password
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update password and clear reset fields
         recruiter.password = hashedPassword;
+        recruiter.resetPasswordToken = undefined;
+        recruiter.resetPasswordExpires = undefined;
         await recruiter.save();
 
         res.status(200).json({
             success: true,
-            message: 'Password reset successful'
+            message: 'Password reset successful. You can now login with your new password.'
         });
     } catch (error) {
+        console.error('Reset password error:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Server error'
         });
     }
 };
