@@ -8,6 +8,7 @@ const recruiterRoutes = require("./routes/recruiterRoutes");
 const internshipRoutes = require("./routes/internshipRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const adminRoutes = require("./routes/adminRoutes"); 
 
 dotenv.config();
 connectDB();
@@ -27,6 +28,7 @@ app.use("/api/recruiters", recruiterRoutes);
 app.use("/api/internships", internshipRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

@@ -38,6 +38,7 @@ import AdminDashboard from './pages/admin/DashboardPage';
 import AdminManageUsers from './pages/admin/ManageUsersPage';
 import AdminManageInternships from './pages/admin/ManageInternshipsPage';
 import AdminReports from './pages/admin/ReportsPage';
+import AdminProfilePage from './pages/admin/ProfilePage';
 
 // Placeholder Pages (for development)
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -245,6 +246,14 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/admin/profile" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <DashboardLayout role="admin">
+                <AdminProfilePage /> {/* You'll need to import this */}
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
           {/* Placeholder Routes - Protected */}
           <Route path="/student/settings" element={
             <ProtectedRoute allowedRoles={['student']}>
@@ -258,14 +267,6 @@ function App() {
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
                 <PlaceholderPage title="Recruiter Settings" />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/admin/settings" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <DashboardLayout role="admin">
-                <PlaceholderPage title="Admin Settings" />
               </DashboardLayout>
             </ProtectedRoute>
           } />

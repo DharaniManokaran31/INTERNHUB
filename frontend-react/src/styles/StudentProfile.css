@@ -691,3 +691,133 @@ body {
     font-size: 1.75rem;
   }
 }
+
+
+/* Admin Profile Specific Styles */
+.admin-gradient {
+  background: linear-gradient(135deg, #2440F0 0%, #1a2fa3 100%);
+}
+
+.admin-avatar {
+  background: linear-gradient(135deg, #4f6af5, #2a3fb3);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin-edit-btn {
+  background: linear-gradient(135deg, #2440F0, #1a2fa3);
+  color: white;
+}
+
+.admin-edit-btn:hover {
+  background: linear-gradient(135deg, #1a2fa3, #0f1a70);
+}
+
+.admin-password-btn {
+  background: #f3f4f6;
+  color: #2440F0 !important;
+  border: 1px solid #2440F0;
+}
+
+.admin-password-btn:hover {
+  background: #EEF2FF;
+}
+
+.admin-save-btn {
+  background: linear-gradient(135deg, #2440F0, #1a2fa3);
+}
+
+.admin-stat-card .profile-stat-value {
+  color: #2440F0;
+}
+
+.admin-icon-blue {
+  background: #EEF2FF;
+  color: #2440F0;
+}
+
+.admin-icon-green {
+  background: #E6F7E6;
+  color: #10b981;
+}
+
+.admin-icon-purple {
+  background: #F3E8FF;
+  color: #8b5cf6;
+}
+
+.admin-section-card .profile-section-title svg {
+  color: #2440F0;
+}
+
+.admin-input:focus {
+  border-color: #2440F0;
+  box-shadow: 0 0 0 3px rgba(36, 64, 240, 0.1);
+}
+
+.admin-role-badge {
+  background: #EEF2FF;
+  color: #2440F0;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.admin-value {
+  color: #2440F0;
+  font-weight: 600;
+}
+
+.admin-modal .modal-header {
+  background: linear-gradient(135deg, #2440F0, #1a2fa3);
+}
+
+.admin-primary-btn {
+  background: linear-gradient(135deg, #2440F0, #1a2fa3);
+}
+
+.admin-primary-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1a2fa3, #0f1a70);
+}
+
+/* Role badge in display mode */
+.role-badge {
+  padding: 0.25rem 0;
+}
+
+/* Info grid for account section */
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.profile-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+@media (max-width: 768px) {
+  .profile-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

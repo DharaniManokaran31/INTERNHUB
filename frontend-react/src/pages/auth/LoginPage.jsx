@@ -97,7 +97,7 @@ const LoginPage = () => {
     // Show loading state
     setIsLoading(true);
 
-    // TRY BOTH STUDENT AND RECRUITER LOGIN
+    // TRY STUDENT, RECRUITER, AND ADMIN LOGIN
     try {
       // First try student login
       let response = await fetch('http://localhost:5000/api/students/login', {
@@ -114,6 +114,19 @@ const LoginPage = () => {
       // If student login fails, try recruiter login
       if (!data.success) {
         response = await fetch('http://localhost:5000/api/recruiters/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        });
+        data = await response.json();
+      }
+
+      // ✅ ADDED: If recruiter login fails, try admin login
+      if (!data.success) {
+        response = await fetch('http://localhost:5000/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -142,6 +155,8 @@ const LoginPage = () => {
             navigate('/student/dashboard');
           } else if (data.data.user.role === 'recruiter') {
             navigate('/recruiter/dashboard');
+          } else if (data.data.user.role === 'admin') {  // ✅ ADDED admin redirect
+            navigate('/admin/dashboard');
           } else {
             navigate('/dashboard');
           }
