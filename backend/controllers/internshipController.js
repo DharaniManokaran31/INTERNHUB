@@ -5,6 +5,7 @@ const Internship = require("../models/Internship");
 // ----------------------
 const createInternship = async (req, res) => {
   try {
+
     const {
       title,
       companyName,
@@ -67,7 +68,7 @@ const createInternship = async (req, res) => {
       requirements: requirements || [],  // ✅ NEW
       perks: perks || [],               // ✅ NEW
       deadline: deadlineDate,
-      postedBy: postedBy || null,
+      postedBy: req.user.id,
       status: status || 'active'        // ✅ NEW
     });
 

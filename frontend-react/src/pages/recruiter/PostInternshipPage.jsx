@@ -276,7 +276,6 @@ const PostInternshipPage = () => {
         },
         body: JSON.stringify({
           ...formData,
-          postedBy: user.id
         })
       });
 

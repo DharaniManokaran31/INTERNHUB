@@ -178,6 +178,77 @@ const ReportsPage = () => {
     }
   };
 
+  // 👇👇👇 ADD THE TOOLTIP useEffect RIGHT HERE 👇👇👇
+
+// Add this useEffect for tooltip positioning
+useEffect(() => {
+  // Small delay to ensure DOM is ready
+  const timer = setTimeout(() => {
+    const bars = document.querySelectorAll('.enhanced-bar');
+    
+    const handleMouseEnter = (e) => {
+      const bar = e.currentTarget;
+      const wrapper = bar.closest('.enhanced-bar-wrapper');
+      if (!wrapper) return;
+      
+      const tooltip = wrapper.querySelector('.enhanced-bar-tooltip');
+      if (!tooltip) return;
+      
+      const rect = bar.getBoundingClientRect();
+      
+      tooltip.style.position = 'fixed';
+      tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+      tooltip.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+      tooltip.style.transform = 'translateX(-50%)';
+      tooltip.style.opacity = '1';
+      tooltip.style.visibility = 'visible';
+      tooltip.style.zIndex = '999999';
+    };
+    
+    const handleMouseLeave = (e) => {
+      const bar = e.currentTarget;
+      const wrapper = bar.closest('.enhanced-bar-wrapper');
+      if (!wrapper) return;
+      
+      const tooltip = wrapper.querySelector('.enhanced-bar-tooltip');
+      if (!tooltip) return;
+      
+      tooltip.style.opacity = '0';
+      tooltip.style.visibility = 'hidden';
+    };
+    
+    bars.forEach(bar => {
+      bar.addEventListener('mouseenter', handleMouseEnter);
+      bar.addEventListener('mouseleave', handleMouseLeave);
+    });
+    
+    const handleScroll = () => {
+      bars.forEach(bar => {
+        const wrapper = bar.closest('.enhanced-bar-wrapper');
+        if (!wrapper) return;
+        
+        const tooltip = wrapper.querySelector('.enhanced-bar-tooltip');
+        if (!tooltip) return;
+        
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+      });
+    };
+    
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      bars.forEach(bar => {
+        bar.removeEventListener('mouseenter', handleMouseEnter);
+        bar.removeEventListener('mouseleave', handleMouseLeave);
+      });
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, 500);
+  
+  return () => clearTimeout(timer);
+}, [stats.timeline]);
+
   // Add fallback function
   const generateFallbackTimeline = (range) => {
     let points = range === 'week' ? 7 : range === 'month' ? 30 : 12;
