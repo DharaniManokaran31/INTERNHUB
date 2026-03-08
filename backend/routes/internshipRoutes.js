@@ -5,36 +5,25 @@ const {
   createInternship,
   getAllInternships,
   getInternshipById,
-  getRecruiterInternships,  // ✅ Make sure this is imported
+  getRecruiterInternships,
   updateInternship,
   deleteInternship,
   closeInternship,
 } = require("../controllers/internshipController");
 
-// ===== PUBLIC ROUTES (No auth required for viewing) =====
-
-// Route to get all internships (with filters)
+// ===== PUBLIC ROUTES =====
 router.get("/", getAllInternships);
 
-// ✅ MOVE THIS UP - BEFORE the /:id route
+// ✅ IMPORTANT: This MUST come BEFORE the /:id route
 router.get("/recruiter", authMiddleware, getRecruiterInternships);
 
-// Route to get a single internship by ID
-router.get("/:id", getInternshipById);
+// ===== PUBLIC ROUTE WITH PARAM =====
+router.get("/:id", getInternshipById);  // This catches ANY /:id, including "recruiter"!
 
-
-// ===== PROTECTED ROUTES (Require authentication) =====
-
-// Route to create a new internship - Recruiters only
+// ===== PROTECTED ROUTES =====
 router.post("/", authMiddleware, createInternship);
-
-// Route to update an internship - Recruiters only
 router.put("/:id", authMiddleware, updateInternship);
-
-// Route to delete an internship - Recruiters only
 router.delete("/:id", authMiddleware, deleteInternship);
-
-// Route to close an internship - Recruiters only
 router.patch("/:id/close", authMiddleware, closeInternship);
 
 module.exports = router;

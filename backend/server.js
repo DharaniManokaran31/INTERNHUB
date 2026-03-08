@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -9,6 +10,8 @@ const internshipRoutes = require("./routes/internshipRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes"); 
+const companyRoutes = require("./routes/companyRoutes");
+const interviewRoutes = require("./routes/interviewRoutes"); // ✅ ADD THIS
 
 dotenv.config();
 connectDB();
@@ -29,6 +32,8 @@ app.use("/api/internships", internshipRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/company", companyRoutes);
+app.use("/api/interviews", interviewRoutes); // ✅ ADD THIS
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

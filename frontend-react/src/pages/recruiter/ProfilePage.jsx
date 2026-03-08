@@ -11,13 +11,19 @@ const RecruiterProfilePage = () => {
   const [profileData, setProfileData] = useState({
     fullName: '',
     email: '',
-    company: '',
+    company: 'Zoyaraa', // Default to Zoyaraa
+    department: '',
+    designation: '',
     position: '',
     phone: '',
     companyDescription: '',
     website: '',
-    linkedin: ''
+    linkedin: '',
+    permissions: {
+      maxInterns: 3
+    }
   });
+  const [menteesCount, setMenteesCount] = useState(0);
   const [originalData, setOriginalData] = useState({});
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -29,44 +35,66 @@ const RecruiterProfilePage = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        const response = await fetch('http://localhost:5000/api/recruiters/profile', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-          const user = data.data.user;
-          const profile = {
-            fullName: user.fullName || '',
-            email: user.email || '',
-            company: user.company || '',
-            position: user.position || '',
-            phone: user.phone || '',
-            companyDescription: user.companyDescription || '',
-            website: user.website || '',
-            linkedin: user.linkedin || ''
-          };
-          setProfileData(profile);
-          setOriginalData(profile);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        showNotification('Failed to load profile', 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProfile();
+    fetchMenteesCount();
   }, [navigate]);
+
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const user = data.data.user;
+        const profile = {
+          fullName: user.fullName || '',
+          email: user.email || '',
+          company: 'Zoyaraa', // Force Zoyaraa
+          department: user.department || '',
+          designation: user.designation || '',
+          position: user.position || '',
+          phone: user.phone || '',
+          companyDescription: user.companyDescription || '',
+          website: user.website || '',
+          linkedin: user.linkedin || '',
+          permissions: user.permissions || { maxInterns: 3 }
+        };
+        setProfileData(profile);
+        setOriginalData(profile);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      showNotification('Failed to load profile', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMenteesCount = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/recruiters/mentees', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setMenteesCount(data.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching mentees count:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -164,7 +192,7 @@ const RecruiterProfilePage = () => {
         
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         user.fullName = profileData.fullName;
-        user.company = profileData.company;
+        user.department = profileData.department;
         localStorage.setItem('user', JSON.stringify(user));
         
         showNotification('Profile updated successfully!', 'success');
@@ -286,7 +314,7 @@ const RecruiterProfilePage = () => {
         <div className="profile-header-content">
           <div className="profile-title-section">
             <h1>Recruiter Profile</h1>
-            <p>Manage your company information and recruiter details</p>
+            <p>Manage your information and recruiter settings</p>
           </div>
           <div className="profile-avatar-large">
             <span className="avatar-initials">{getInitials(profileData.fullName)}</span>
@@ -387,7 +415,36 @@ const RecruiterProfilePage = () => {
             </div>
             <div className="profile-stat-info">
               <span className="profile-stat-label">Company</span>
-              <span className="profile-stat-value">{profileData.company || 'Not set'}</span>
+              <span className="profile-stat-value">Zoyaraa</span>
+            </div>
+          </div>
+
+          {/* NEW: Department Card */}
+          <div className="profile-stat-card">
+            <div className="profile-stat-icon purple" style={{ background: '#f3e8ff' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+            </div>
+            <div className="profile-stat-info">
+              <span className="profile-stat-label">Department</span>
+              <span className="profile-stat-value">{profileData.department || 'Not assigned'}</span>
+            </div>
+          </div>
+
+          {/* NEW: Mentors Limit Card */}
+          <div className="profile-stat-card">
+            <div className="profile-stat-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+            <div className="profile-stat-info">
+              <span className="profile-stat-label">Mentor Capacity</span>
+              <span className="profile-stat-value">
+                {menteesCount}/{profileData.permissions?.maxInterns || 3}
+              </span>
             </div>
           </div>
         </div>
@@ -431,6 +488,50 @@ const RecruiterProfilePage = () => {
                   <span>{profileData.email}</span>
                   <small>Email cannot be changed</small>
                 </div>
+              </div>
+
+              <div className="profile-form-field">
+                <label>DEPARTMENT</label>
+                {isEditMode ? (
+                  <select
+                    name="department"
+                    value={profileData.department}
+                    onChange={handleInputChange}
+                    className="profile-input"
+                  >
+                    <option value="">Select Department</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Backend">Backend</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="HR">HR</option>
+                    <option value="Sales">Sales</option>
+                    <option value="UI/UX">UI/UX</option>
+                    <option value="Mobile">Mobile</option>
+                  </select>
+                ) : (
+                  <div className="profile-field-display">
+                    <span>{profileData.department || 'Not assigned'}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="profile-form-field">
+                <label>DESIGNATION</label>
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    name="designation"
+                    value={profileData.designation}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Tech Lead, Senior Recruiter"
+                    className="profile-input"
+                  />
+                ) : (
+                  <div className="profile-field-display">
+                    <span>{profileData.designation || 'Not provided'}</span>
+                  </div>
+                )}
               </div>
 
               <div className="profile-form-field">
@@ -481,26 +582,15 @@ const RecruiterProfilePage = () => {
                 </svg>
                 <h2>Company Information</h2>
               </div>
-              <p className="profile-section-subtitle">Details about your organization</p>
+              <p className="profile-section-subtitle">Zoyaraa - Your organization</p>
             </div>
 
             <div className="profile-form-grid">
               <div className="profile-form-field full-width">
                 <label>COMPANY NAME</label>
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    name="company"
-                    value={profileData.company}
-                    onChange={handleInputChange}
-                    placeholder="Enter your company name"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.company || 'Not provided'}</span>
-                  </div>
-                )}
+                <div className="profile-field-display">
+                  <span>Zoyaraa</span>
+                </div>
               </div>
 
               <div className="profile-form-field full-width">

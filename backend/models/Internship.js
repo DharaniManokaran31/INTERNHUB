@@ -7,19 +7,98 @@ const InternshipSchema = new mongoose.Schema(
     location: { type: String, required: true },
     type: { type: String, required: true }, // Remote, On-site, Hybrid
     
-    // ✅ NEW: Category field for filtering
-    category: {
-      type: String,
-      enum: ['technology', 'marketing', 'design', 'finance', 'hr', 'sales', 'other'],
-      default: 'other',
+    // ✅ ZOYARAA-SPECIFIC FIELDS
+    companyId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Company",
       required: true
     },
     
-    stipend: { type: String, default: "Unpaid" },
-    duration: { type: String, required: true },
+    department: { 
+      type: String, 
+      enum: ['Frontend', 'Backend', 'DevOps', 'Marketing', 'HR', 'Sales', 'UI/UX', 'Mobile'],
+      required: true
+    },
+    
+    mentorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Recruiter",
+      required: true
+    },
+    
+    // ✅ WORK DETAILS
+    workMode: { 
+      type: String, 
+      enum: ['Remote', 'Hybrid', 'Onsite'],
+      required: true
+    },
+    
+    officeLocation: {
+      type: String,
+      default: ''
+    },
+    
+    dailyTimings: {
+      type: String,
+      default: "10 AM - 6 PM"
+    },
+    
+    weeklyOff: {
+      type: String,
+      default: "Saturday, Sunday"
+    },
+    
+    startDate: {
+      type: Date,
+      required: true
+    },
+    
+    endDate: {
+      type: Date,
+      required: true
+    },
+    
+    duration: { 
+      type: Number, // in months
+      required: true 
+    },
+    
+    stipend: { 
+      type: Number, // Changed from String to Number for calculations
+      default: 0 
+    },
+    
+    positions: {
+      type: Number,
+      default: 1
+    },
+    
+    filledPositions: {
+      type: Number,
+      default: 0
+    },
+    
+    // ✅ SELECTION PROCESS
+    selectionProcess: [{
+      round: { type: Number, required: true },
+      type: { 
+        type: String, 
+        enum: ['Technical Test', 'Technical Interview', 'HR Interview', 'Group Discussion', 'Assignment'],
+        required: true 
+      },
+      duration: String,
+      details: String
+    }],
+    
+    // ✅ EXISTING FIELDS (kept for compatibility)
+    category: {
+      type: String,
+      enum: ['technology', 'marketing', 'design', 'finance', 'hr', 'sales', 'other'],
+      default: 'other'
+    },
+    
     description: { type: String, required: true },
     
-    // ✅ UPDATED: Skills with levels (backward compatible)
     skillsRequired: [{
       name: { type: String, required: true },
       level: { 
@@ -29,20 +108,17 @@ const InternshipSchema = new mongoose.Schema(
       }
     }],
     
-    // ✅ NEW: Requirements list
     requirements: [{
       type: String
     }],
     
-    // ✅ NEW: Perks & benefits list
     perks: [{
       type: String
     }],
     
-    postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Recruiter" },
+    postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Recruiter", required: true },
     deadline: { type: Date, required: true },
     
-    // ✅ NEW: Status field for managing internships
     status: {
       type: String,
       enum: ['active', 'closed', 'draft'],

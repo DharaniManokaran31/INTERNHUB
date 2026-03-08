@@ -41,45 +41,45 @@ const Landing = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Testimonials data
+  // Testimonials data - UPDATED for Zoyaraa
   const testimonials = [
     {
-      text: "InternHub made finding my dream internship so easy! The platform is intuitive and I got matched with amazing companies.",
-      author: "Sarah Miller",
-      role: "Computer Science Student",
-      initials: "SM"
+      text: "Zoyaraa's internship program gave me real-world experience. I worked on production code and got mentored by senior developers. Now I have a full-time offer!",
+      author: "Priya D",
+      role: "Frontend Intern → Full-time Developer",
+      initials: "PD"
     },
     {
-      text: "As a recruiter, InternHub streamlined our hiring process. We found talented interns quickly and efficiently.",
-      author: "John Davis",
-      role: "HR Manager, Tech Corp",
-      initials: "JD"
+      text: "As a mentor at Zoyaraa, I've guided 5 interns who all got placed. The daily log system helps track progress and provide timely feedback.",
+      author: "Rajesh M",
+      role: "Tech Lead - Frontend",
+      initials: "RM"
     },
     {
-      text: "The best internship platform I've used. Clean interface, great features, and excellent support team.",
-      author: "Emily Lee",
-      role: "Engineering Student",
-      initials: "EL"
+      text: "Managing 50+ recruiters across departments is easy with Zoyaraa's HR dashboard. The certificate system ensures quality control.",
+      author: "Priya K",
+      role: "HR Manager",
+      initials: "PK"
     }
   ];
 
-  // FAQ data
+  // FAQ data - UPDATED for Zoyaraa
   const faqItems = [
     {
-      question: "Is InternHub free to use?",
-      answer: "Yes! InternHub is completely free for students. Recruiters can post a limited number of internships for free, with premium plans available for additional features."
+      question: "Is Zoyaraa internship paid?",
+      answer: "Yes! All Zoyaraa internships come with competitive stipends based on role and duration. Stipends range from ₹10,000 to ₹30,000 per month depending on the department and your skills."
     },
     {
-      question: "How do I create an account?",
-      answer: "Click the 'Get Started' button, choose your account type (student or recruiter), and fill out the registration form. You'll receive a confirmation email to activate your account."
+      question: "How are mentors assigned?",
+      answer: "Each intern is assigned a mentor from their department - the same person who selected them during interviews. You'll have weekly 1:1 sessions and daily feedback on your work."
     },
     {
-      question: "Can I apply to multiple internships?",
-      answer: "Absolutely! Students can apply to as many internships as they want. We encourage you to explore different opportunities and find the perfect match."
+      question: "What is the daily log system?",
+      answer: "Interns submit daily work logs which mentors review and approve. This ensures continuous feedback and progress tracking. It also creates a record of your work for your final certificate."
     },
     {
-      question: "How long does the application process take?",
-      answer: "The timeline varies by company, but most recruiters review applications within 1-2 weeks. You'll receive updates on your application status through the platform."
+      question: "Do I get a certificate?",
+      answer: "Yes! Upon successful completion, you receive a verified certificate with QR code that employers can verify online. The certificate includes your grade, skills acquired, and mentor's recommendation."
     }
   ];
 
@@ -100,94 +100,104 @@ const Landing = () => {
       {/* Header */}
       <Header isScrolled={isHeaderScrolled} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
-      {/* Hero Section */}
+      {/* Hero Section - UPDATED WITH CORRECT BUTTONS */}
       <section className="hero" id="home">
         <div className="container">
           <div className="hero-content fade-in">
             <h1>
-              Find Your Perfect <span className="highlight">Internship Match</span>
+              Join <span className="highlight">Zoyaraa's</span> Internship Program
             </h1>
             <p>
-              Connect with top companies, apply to exciting opportunities, and kickstart your career. 
-              The complete platform for students and recruiters.
+              Launch your career with India's fastest growing tech company. Work on real projects, 
+              learn from industry experts, and get certified. Exclusive opportunities across all departments.
             </p>
-            <div className="hero-buttons">
-              <button className="btn btn-primary" onClick={() => navigate('/register')}>
+            <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {/* For Students */}
+              <button 
+                className="btn btn-primary" 
+                onClick={() => navigate('/register')}
+              >
                 Start Your Journey →
               </button>
-              <button className="btn btn-outline" onClick={() => navigate('/login')}>
-                I have an account
+              
+              {/* For Employees (Recruiters & HR) */}
+              <button 
+                className="btn btn-outline" 
+                onClick={() => navigate('/login')}
+              >
+                Employee Login
               </button>
             </div>
+    
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Stats Section - UPDATED */}
       <section className="stats">
         <div className="container">
           <div className="stats-grid">
             <div className="stat-item fade-in">
-              <h3>10,000+</h3>
-              <p>Active Students</p>
+              <h3>2,500+</h3>
+              <p>Students Placed</p>
             </div>
             <div className="stat-item fade-in">
-              <h3>500+</h3>
-              <p>Partner Companies</p>
+              <h3>50+</h3>
+              <p>Departments</p>
             </div>
             <div className="stat-item fade-in">
-              <h3>5,000+</h3>
-              <p>Internships Posted</p>
+              <h3>300+</h3>
+              <p>Expert Mentors</p>
             </div>
             <div className="stat-item fade-in">
-              <h3>95%</h3>
-              <p>Success Rate</p>
+              <h3>92%</h3>
+              <p>Placement Rate</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* How It Works Section - UPDATED */}
       <section className="how-it-works" id="how-it-works">
         <div className="container">
           <div className="section-header fade-in">
-            <h2>How It Works</h2>
-            <p>Getting started is easy. Follow these simple steps to find your perfect internship.</p>
+            <h2>Your Journey at Zoyaraa</h2>
+            <p>Four simple steps to launch your career with us.</p>
           </div>
           <div className="steps-grid">
             <div className="step-card fade-in">
               <div className="step-number">1</div>
               <h3>Create Account</h3>
-              <p>Sign up as a student or recruiter in just a few clicks.</p>
+              <p>Sign up as a student and complete your profile with your skills and resume.</p>
             </div>
             <div className="step-card fade-in">
               <div className="step-number">2</div>
-              <h3>Build Profile</h3>
-              <p>Upload your resume and showcase your skills and experience.</p>
+              <h3>Browse Opportunities</h3>
+              <p>Explore internships across Frontend, Backend, DevOps, Marketing, and more.</p>
             </div>
             <div className="step-card fade-in">
               <div className="step-number">3</div>
-              <h3>Apply or Post</h3>
-              <p>Students apply to internships, recruiters post opportunities.</p>
+              <h3>Apply & Get Selected</h3>
+              <p>Apply to roles that match your skills. Get shortlisted and attend interviews.</p>
             </div>
             <div className="step-card fade-in">
               <div className="step-number">4</div>
-              <h3>Get Matched</h3>
-              <p>Find your perfect match and start your journey.</p>
+              <h3>Start Your Journey</h3>
+              <p>Join Zoyaraa, work on real projects, and get mentored by industry experts.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section - UPDATED */}
       <section className="features" id="features">
         <div className="container">
           <div className="section-header fade-in">
-            <h2>Built for Everyone</h2>
-            <p>Whether you're a student, recruiter, or admin, we've got you covered.</p>
+            <h2>Built for Zoyaraa's Success</h2>
+            <p>Whether you're a student, recruiter, or HR, we've got you covered.</p>
           </div>
           <div className="features-grid">
-            {/* For Students */}
+            {/* For Students - UPDATED */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -199,20 +209,24 @@ const Landing = () => {
               <ul className="feature-list">
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Browse and apply to internships</span>
+                  <span>Apply to Zoyaraa's exclusive internships</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Upload resumes and cover letters</span>
+                  <span>Get mentored by department leads</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Track application status in real-time</span>
+                  <span>Track progress with daily logs</span>
+                </li>
+                <li>
+                  <span className="check-icon">✓</span>
+                  <span>Earn verified certificates</span>
                 </li>
               </ul>
             </div>
 
-            {/* For Recruiters */}
+            {/* For Recruiters (Zoyaraa Employees) - UPDATED */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -220,24 +234,28 @@ const Landing = () => {
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
               </div>
-              <h3>For Recruiters</h3>
+              <h3>For Zoyaraa Recruiters</h3>
               <ul className="feature-list">
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Post internship opportunities</span>
+                  <span>Post department-specific internships</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Review and filter applicants</span>
+                  <span>Review applicants from your department only</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Shortlist or reject with one click</span>
+                  <span>Shortlist, interview, and select candidates</span>
+                </li>
+                <li>
+                  <span className="check-icon">✓</span>
+                  <span>Mentor interns with daily log reviews</span>
                 </li>
               </ul>
             </div>
 
-            {/* For Administrators */}
+            {/* For HR Team - NEW */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -247,19 +265,23 @@ const Landing = () => {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               </div>
-              <h3>For Administrators</h3>
+              <h3>For HR Team</h3>
               <ul className="feature-list">
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Approve/decline accounts</span>
+                  <span>Manage all departments and recruiters</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Monitor platform statistics</span>
+                  <span>Invite and onboard new recruiters</span>
                 </li>
                 <li>
                   <span className="check-icon">✓</span>
-                  <span>Manage users and internships</span>
+                  <span>Approve certificates for interns</span>
+                </li>
+                <li>
+                  <span className="check-icon">✓</span>
+                  <span>Track platform-wide analytics</span>
                 </li>
               </ul>
             </div>
@@ -267,12 +289,12 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section - UPDATED */}
       <section className="testimonials">
         <div className="container">
           <div className="section-header fade-in">
-            <h2>What Our Users Say</h2>
-            <p>Hear from students and recruiters who found success with InternHub.</p>
+            <h2>Success Stories</h2>
+            <p>Hear from students and mentors who found success with Zoyaraa.</p>
           </div>
           <div className="testimonials-grid">
             {testimonials.map((testimonial, index) => (
@@ -291,12 +313,12 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* FAQ Section - UPDATED */}
       <section className="faq" id="faq">
         <div className="container">
           <div className="section-header fade-in">
             <h2>Frequently Asked Questions</h2>
-            <p>Find answers to common questions about InternHub.</p>
+            <p>Find answers to common questions about Zoyaraa's internship program.</p>
           </div>
           <div className="faq-list">
             {faqItems.map((item, index) => (
@@ -327,19 +349,48 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - UPDATED WITH ALL BUTTONS */}
       <section className="cta" id="get-started">
         <div className="container">
           <div className="cta-card fade-in">
-            <h2>Ready to Get Started?</h2>
-            <p>Join thousands of students and recruiters using InternHub to find their perfect match.</p>
-            <button className="btn" onClick={() => navigate('/register')}>
-              Create Free Account
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </button>
+            <h2>Ready to Start Your Journey?</h2>
+            <p>Join Zoyaraa's internship program and launch your career with India's fastest growing tech company.</p>
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {/* For Students */}
+              <button 
+                className="btn btn-primary" 
+                onClick={() => navigate('/register')}
+              >
+                Create Free Account →
+              </button>
+              
+              {/* For Returning Users */}
+              <button 
+                className="btn btn-outline" 
+                onClick={() => navigate('/login')}
+              >
+                Existing User? Login
+              </button>
+            </div>
+            
+            {/* For HR/Company Registration - Small link */}
+            <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
+              <span>Are you from Zoyaraa HR? </span>
+              <button 
+                onClick={() => navigate('/register-company')}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#2440F0', 
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+              >
+                Register your company here
+              </button>
+            </p>
           </div>
         </div>
       </section>

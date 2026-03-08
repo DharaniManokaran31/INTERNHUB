@@ -8,28 +8,20 @@ const {
   updateRecruiterProfile,
   changePassword,
   forgotPassword,
-  resetPassword    
+  resetPassword,
+  getMyMentees // ✅ ADD THIS
 } = require("../controllers/recruiterController");
 
-// Register route
+// Public routes
 router.post("/register", registerRecruiter);
-
-// Login route
 router.post("/login", loginRecruiter);
-
-// Forgot password route (public)
 router.post("/forgot-password", forgotPassword);
-
-// Reset password route (public)
 router.post("/reset-password/:token", resetPassword);
 
-// Profile route (protected)
+// Protected routes
 router.get("/profile", authMiddleware, getRecruiterProfile);
-
-// Update profile (protected)
 router.put("/profile", authMiddleware, updateRecruiterProfile);
-
-// Change password (protected)
 router.put("/change-password", authMiddleware, changePassword);
+router.get("/mentees", authMiddleware, getMyMentees); // ✅ ADD THIS
 
 module.exports = router;

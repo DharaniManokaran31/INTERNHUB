@@ -11,26 +11,35 @@ const RecruiterDashboardPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [internships, setInternships] = useState([]);
   const [recentApplications, setRecentApplications] = useState([]);
+  const [myMentees, setMyMentees] = useState([]);
+  const [interviews, setInterviews] = useState([]);
   const [stats, setStats] = useState({
     activeInternships: 0,
     totalApplications: 0,
     shortlisted: 0,
     hired: 0,
     pending: 0,
-    rejected: 0
+    rejected: 0,
+    myMentees: 0,
+    pendingInterviews: 0,
+    upcomingInterviews: 0,
+    totalInterviews: 0
   });
   const [userData, setUserData] = useState({
-    name: 'Demo Recruiter',
-    email: 'recruiter@company.com',
-    initials: 'DR',
+    name: 'Loading...',
+    email: '',
+    initials: '',
     role: 'recruiter',
-    company: ''
+    department: '',
+    company: 'Zoyaraa'
   });
   const [loading, setLoading] = useState({
     profile: true,
     internships: true,
     stats: true,
-    applications: true
+    applications: true,
+    mentees: true,
+    interviews: true
   });
   const [greeting, setGreeting] = useState('Welcome back');
 
@@ -63,7 +72,8 @@ const RecruiterDashboardPage = () => {
             email: user.email,
             initials: initials,
             role: user.role,
-            company: user.company || ''
+            department: user.department || '',
+            company: 'Zoyaraa'
           });
 
           localStorage.setItem('user', JSON.stringify(user));
@@ -102,7 +112,6 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        // Fetch internships posted by this recruiter
         const internshipsResponse = await fetch('http://localhost:5000/api/internships/recruiter', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -112,7 +121,7 @@ const RecruiterDashboardPage = () => {
 
         if (internshipsData.success) {
           const internshipsList = internshipsData.data.internships || [];
-          setInternships(internshipsList.slice(0, 3)); // Show only 3 recent
+          setInternships(internshipsList.slice(0, 3));
 
           const activeCount = internshipsList.filter(internship =>
             internship.status === 'active'
@@ -133,7 +142,7 @@ const RecruiterDashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  // Fetch application stats using new API
+  // Fetch application stats
   useEffect(() => {
     const fetchApplicationStats = async () => {
       try {
@@ -167,7 +176,7 @@ const RecruiterDashboardPage = () => {
     fetchApplicationStats();
   }, []);
 
-  // Fetch recent applications using new API
+  // Fetch recent applications
   useEffect(() => {
     const fetchRecentApplications = async () => {
       try {
@@ -192,6 +201,70 @@ const RecruiterDashboardPage = () => {
     };
 
     fetchRecentApplications();
+  }, []);
+
+  // Fetch interview stats
+  useEffect(() => {
+    const fetchInterviewStats = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5000/api/interviews/recruiter', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setInterviews(data.data.interviews?.slice(0, 3) || []);
+          setStats(prev => ({
+            ...prev,
+            pendingInterviews: data.data.stats?.pendingSchedule || 0,
+            upcomingInterviews: data.data.stats?.upcoming || 0,
+            totalInterviews: data.data.stats?.total || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching interview stats:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, interviews: false }));
+      }
+    };
+
+    fetchInterviewStats();
+  }, []);
+
+  // Fetch mentees
+  useEffect(() => {
+    const fetchMyMentees = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5000/api/recruiters/mentees', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setMyMentees(data.data.mentees?.slice(0, 3) || []);
+          setStats(prev => ({
+            ...prev,
+            myMentees: data.data.mentees?.length || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching mentees:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, mentees: false }));
+      }
+    };
+
+    fetchMyMentees();
   }, []);
 
   // Debounced search
@@ -252,6 +325,18 @@ const RecruiterDashboardPage = () => {
     navigate('/recruiter/applicants');
   };
 
+  const viewMyMentees = () => {
+    navigate('/recruiter/mentees');
+  };
+
+  const viewInterviews = () => {
+    navigate('/recruiter/interviews');
+  };
+
+  const viewInterview = (interviewId) => {
+    navigate(`/recruiter/interviews/${interviewId}`);
+  };
+
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       localStorage.removeItem('authToken');
@@ -310,10 +395,6 @@ const RecruiterDashboardPage = () => {
     }, 3000);
   };
 
-  const handleNotificationClick = () => {
-    showNotification('You have no new notifications');
-  };
-
   const createRippleEffect = (e) => {
     const button = e.currentTarget;
     const ripple = document.createElement('span');
@@ -329,10 +410,7 @@ const RecruiterDashboardPage = () => {
     ripple.style.top = y + 'px';
 
     button.appendChild(ripple);
-
-    setTimeout(() => {
-      ripple.remove();
-    }, 600);
+    setTimeout(() => ripple.remove(), 600);
   };
 
   const getStatusClass = (status) => {
@@ -356,7 +434,6 @@ const RecruiterDashboardPage = () => {
     });
   };
 
-  // Check if any loading state is true
   const isLoading = Object.values(loading).some(state => state === true);
 
   return (
@@ -372,7 +449,19 @@ const RecruiterDashboardPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
+          </div>
+          {/* ✅ ADD DEPARTMENT BADGE HERE */}
+          <div className="department-badge" style={{
+            marginTop: '0.5rem',
+            padding: '0.25rem 0.5rem',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            textAlign: 'center',
+            color: 'white'
+          }}>
+            {userData.department || 'Department'}
           </div>
         </div>
 
@@ -424,6 +513,27 @@ const RecruiterDashboardPage = () => {
             </svg>
             <span className="nav-item-text">View Applicants</span>
           </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/interviews')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span className="nav-item-text">Interviews</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentees')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">My Mentees</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -436,7 +546,7 @@ const RecruiterDashboardPage = () => {
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
               <div className="user-role-sidebar">
-                {userData.company ? `${userData.role} • ${userData.company}` : 'Recruiter'}
+                {userData.department} • Zoyaraa
               </div>
             </div>
           </button>
@@ -487,7 +597,6 @@ const RecruiterDashboardPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            {/* NEW CODE - ADD THIS */}
             <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
@@ -499,81 +608,123 @@ const RecruiterDashboardPage = () => {
         <div className="content-area">
           <div className="welcome-section">
             <h1 className="welcome-heading" id="greeting">{greeting}</h1>
-            <p className="welcome-subtext">Manage your internship postings and track applicants</p>
+            <p className="welcome-subtext">
+              {userData.department ? `Manage your ${userData.department} department internships` : 'Manage your internship postings and track applicants'}
+            </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="stats-grid">
-            <div className="stat-card" id="activeInternshipsCard">
-              <div className="stat-info">
-                <div className="stat-label">Active Internships</div>
-                <div className="stat-value" id="activeInternships">
-                  {isLoading ? '...' : stats.activeInternships}
+          {/* Stats Grid - First Row (3 cards) */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#4b5563', marginBottom: '1rem' }}>
+              Application Overview
+            </h3>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="stat-card" id="activeInternshipsCard">
+                <div className="stat-info">
+                  <div className="stat-label">Active Internships</div>
+                  <div className="stat-value" id="activeInternships">
+                    {isLoading ? '...' : stats.activeInternships}
+                  </div>
+                </div>
+                <div className="stat-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
                 </div>
               </div>
-              <div className="stat-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                </svg>
+
+              <div className="stat-card" id="totalApplicationsCard">
+                <div className="stat-info">
+                  <div className="stat-label">Total Applications</div>
+                  <div className="stat-value" id="totalApplications">
+                    {isLoading ? '...' : stats.totalApplications}
+                  </div>
+                </div>
+                <div className="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="stat-card" id="shortlistedCard">
+                <div className="stat-info">
+                  <div className="stat-label">Shortlisted</div>
+                  <div className="stat-value" id="shortlistedCount">
+                    {isLoading ? '...' : stats.shortlisted}
+                  </div>
+                </div>
+                <div className="stat-icon orange">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4"></circle>
+                    <path d="M5.5 20v-2a6 6 0 0 1 12 0v2"></path>
+                  </svg>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="stat-card" id="totalApplicationsCard">
-              <div className="stat-info">
-                <div className="stat-label">Total Applications</div>
-                <div className="stat-value" id="totalApplications">
-                  {isLoading ? '...' : stats.totalApplications}
+          {/* Stats Grid - Second Row (3 cards) */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#4b5563', marginBottom: '1rem' }}>
+              Interview & Mentoring
+            </h3>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="stat-card" id="pendingInterviewsCard">
+                <div className="stat-info">
+                  <div className="stat-label">Pending Interviews</div>
+                  <div className="stat-value" id="pendingInterviews">
+                    {isLoading ? '...' : stats.pendingInterviews}
+                  </div>
+                </div>
+                <div className="stat-icon purple" style={{ background: '#f3e8ff' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
                 </div>
               </div>
-              <div className="stat-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-              </div>
-            </div>
 
-            <div className="stat-card" id="shortlistedCard">
-              <div className="stat-info">
-                <div className="stat-label">Shortlisted</div>
-                <div className="stat-value" id="shortlistedCount">
-                  {isLoading ? '...' : stats.shortlisted}
+              <div className="stat-card" id="hiredCard">
+                <div className="stat-info">
+                  <div className="stat-label">Hired</div>
+                  <div className="stat-value" id="hiredCount">
+                    {isLoading ? '...' : stats.hired}
+                  </div>
+                </div>
+                <div className="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
                 </div>
               </div>
-              <div className="stat-icon orange">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4"></circle>
-                  <path d="M5.5 20v-2a6 6 0 0 1 12 0v2"></path>
-                </svg>
-              </div>
-            </div>
 
-            <div className="stat-card" id="hiredCard">
-              <div className="stat-info">
-                <div className="stat-label">Hired</div>
-                <div className="stat-value" id="hiredCount">
-                  {isLoading ? '...' : stats.hired}
+              <div className="stat-card" id="menteesCard">
+                <div className="stat-info">
+                  <div className="stat-label">My Mentees</div>
+                  <div className="stat-value" id="menteesCount">
+                    {isLoading ? '...' : stats.myMentees}
+                  </div>
                 </div>
-              </div>
-              <div className="stat-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
+                <div className="stat-icon purple" style={{ background: '#f3e8ff' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="action-buttons">
+          <div className="action-buttons" style={{ marginBottom: '2rem' }}>
             <button
               className="primary-btn"
               onClick={(e) => { createRippleEffect(e); postInternship(); }}
@@ -598,137 +749,300 @@ const RecruiterDashboardPage = () => {
               </svg>
               Manage Internships
             </button>
+            <button
+              className="secondary-btn"
+              onClick={(e) => { createRippleEffect(e); viewInterviews(); }}
+              aria-label="Manage interviews"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Manage Interviews
+            </button>
+            <button
+              className="secondary-btn"
+              onClick={(e) => { createRippleEffect(e); viewMyMentees(); }}
+              aria-label="View mentees"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              My Mentees
+            </button>
           </div>
 
-          {/* Two Column Grid for Recent Sections */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            {/* Recent Internships Section */}
-            <section className="section" style={{ marginBottom: 0 }}>
-              <div className="section-header">
-                <h2 className="section-title">Recent Internships</h2>
-                {internships.length > 0 && (
-                  <button
-                    className="view-all-link"
-                    onClick={() => navigate('/recruiter/internships')}
-                  >
-                    View All ({internships.length})
-                  </button>
-                )}
-              </div>
-
-              {isLoading ? (
-                <div className="loading-placeholder">Loading internships...</div>
-              ) : internships.length === 0 ? (
-                <div className="empty-state" id="emptyInternships">
-                  <div className="empty-state-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                  </div>
-                  <h3>No internships posted yet</h3>
-                  <p>Post your first internship to start receiving applications</p>
-                  <button
-                    className="primary-btn"
-                    onClick={(e) => { createRippleEffect(e); postInternship(); }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Post Internship
-                  </button>
+          {/* Four Column Grid for Recent Sections - First Row */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#4b5563', marginBottom: '1rem' }}>
+              Recent Activity
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              {/* Recent Internships Section */}
+              <section className="section" style={{ marginBottom: 0 }}>
+                <div className="section-header">
+                  <h2 className="section-title">Recent Internships</h2>
+                  {internships.length > 0 && (
+                    <button
+                      className="view-all-link"
+                      onClick={() => navigate('/recruiter/internships')}
+                    >
+                      View All ({internships.length})
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <div className="recent-applications-list">
-                  {internships.map((internship) => (
-                    <div key={internship._id} className="recent-application-card">
-                      <div className="recent-app-header">
-                        <h4>{internship.title}</h4>
-                        <span className={`status-badge ${getStatusClass(internship.status)}`}>
-                          {internship.status || 'Active'}
-                        </span>
-                      </div>
-                      <div className="recent-app-company">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                        {internship.type || 'Internship'} • {internship.location || 'Location'}
-                      </div>
-                      <div className="recent-app-meta">
-                        <span>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                          </svg>
-                          Posted: {formatDate(internship.createdAt)}
-                        </span>
-                      </div>
+
+                {isLoading ? (
+                  <div className="loading-placeholder">Loading internships...</div>
+                ) : internships.length === 0 ? (
+                  <div className="empty-state" id="emptyInternships" style={{ padding: '2rem' }}>
+                    <div className="empty-state-icon" style={{ width: '48px', height: '48px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                      </svg>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* Recent Applications Section */}
-            <section className="section" style={{ marginBottom: 0 }}>
-              <div className="section-header">
-                <h2 className="section-title">Recent Applications</h2>
-                {recentApplications.length > 0 && (
-                  <button
-                    className="view-all-link"
-                    onClick={() => navigate('/recruiter/applicants')}
-                  >
-                    View All ({recentApplications.length})
-                  </button>
-                )}
-              </div>
-
-              {isLoading ? (
-                <div className="loading-placeholder">Loading applications...</div>
-              ) : recentApplications.length === 0 ? (
-                <div className="empty-state" id="emptyApplications">
-                  <div className="empty-state-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                    </svg>
+                    <h3 style={{ fontSize: '1rem' }}>No internships posted yet</h3>
+                    <p style={{ fontSize: '0.875rem' }}>Post your first internship</p>
+                    <button
+                      className="primary-btn"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      onClick={(e) => { createRippleEffect(e); postInternship(); }}
+                    >
+                      Post Internship
+                    </button>
                   </div>
-                  <h3>No applications yet</h3>
-                  <p>When students apply to your internships, they'll appear here</p>
-                </div>
-              ) : (
-                <div className="recent-applications-list">
-                  {recentApplications.map((app) => (
-                    <div key={app.id} className="recent-application-card">
-                      <div className="recent-app-header">
-                        <h4>{app.studentName}</h4>
-                        <span className={`status-badge ${getStatusClass(app.status)}`}>
-                          {app.status}
-                        </span>
-                      </div>
-                      <div className="recent-app-company">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                        {app.internshipTitle || app.internship}
-                      </div>
-                      <div className="recent-app-meta">
-                        <span>
+                ) : (
+                  <div className="recent-applications-list">
+                    {internships.map((internship) => (
+                      <div key={internship._id} className="recent-application-card">
+                        <div className="recent-app-header">
+                          <h4>{internship.title}</h4>
+                          <span className={`status-badge ${getStatusClass(internship.status)}`}>
+                            {internship.status || 'Active'}
+                          </span>
+                        </div>
+                        <div className="recent-app-company">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                           </svg>
-                          Applied: {formatDate(app.appliedDate || app.appliedAt)}
-                        </span>
+                          {internship.department || userData.department} • {internship.location || 'Location'}
+                        </div>
+                        <div className="recent-app-meta">
+                          <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Posted: {formatDate(internship.createdAt)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Recent Applications Section */}
+              <section className="section" style={{ marginBottom: 0 }}>
+                <div className="section-header">
+                  <h2 className="section-title">Recent Applications</h2>
+                  {recentApplications.length > 0 && (
+                    <button
+                      className="view-all-link"
+                      onClick={() => navigate('/recruiter/applicants')}
+                    >
+                      View All ({recentApplications.length})
+                    </button>
+                  )}
                 </div>
-              )}
-            </section>
+
+                {isLoading ? (
+                  <div className="loading-placeholder">Loading applications...</div>
+                ) : recentApplications.length === 0 ? (
+                  <div className="empty-state" id="emptyApplications" style={{ padding: '2rem' }}>
+                    <div className="empty-state-icon" style={{ width: '48px', height: '48px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                      </svg>
+                    </div>
+                    <h3 style={{ fontSize: '1rem' }}>No applications yet</h3>
+                    <p style={{ fontSize: '0.875rem' }}>Students will appear here</p>
+                  </div>
+                ) : (
+                  <div className="recent-applications-list">
+                    {recentApplications.map((app) => (
+                      <div key={app.id} className="recent-application-card">
+                        <div className="recent-app-header">
+                          <h4>{app.studentName}</h4>
+                          <span className={`status-badge ${getStatusClass(app.status)}`}>
+                            {app.status}
+                          </span>
+                        </div>
+                        <div className="recent-app-company">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                          </svg>
+                          {app.internshipTitle || app.internship}
+                        </div>
+                        <div className="recent-app-meta">
+                          <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Applied: {formatDate(app.appliedDate || app.appliedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+
+          {/* Four Column Grid for Recent Sections - Second Row */}
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#4b5563', marginBottom: '1rem' }}>
+              Interview & Mentoring Activity
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              {/* Pending Interviews Section */}
+              <section className="section" style={{ marginBottom: 0 }}>
+                <div className="section-header">
+                  <h2 className="section-title">Pending Interviews</h2>
+                  {stats.totalInterviews > 0 && (
+                    <button
+                      className="view-all-link"
+                      onClick={() => navigate('/recruiter/interviews')}
+                    >
+                      View All ({stats.totalInterviews})
+                    </button>
+                  )}
+                </div>
+
+                {isLoading ? (
+                  <div className="loading-placeholder">Loading interviews...</div>
+                ) : interviews.length === 0 ? (
+                  <div className="empty-state" id="emptyInterviews" style={{ padding: '2rem' }}>
+                    <div className="empty-state-icon" style={{ width: '48px', height: '48px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    </div>
+                    <h3 style={{ fontSize: '1rem' }}>No interviews pending</h3>
+                    <p style={{ fontSize: '0.875rem' }}>Shortlist candidates to start</p>
+                    <button
+                      className="secondary-btn"
+                      style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      onClick={() => navigate('/recruiter/applicants')}
+                    >
+                      View Applicants
+                    </button>
+                  </div>
+                ) : (
+                  <div className="recent-applications-list">
+                    {interviews.map((interview) => {
+                      const pendingRound = interview.rounds.find(r => r.status === 'pending');
+                      return (
+                        <div
+                          key={interview._id}
+                          className="recent-application-card"
+                          onClick={() => viewInterview(interview._id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="recent-app-header">
+                            <h4>{interview.studentId?.fullName || 'Candidate'}</h4>
+                            <span className="status-badge status-pending">
+                              Round {interview.currentRound}
+                            </span>
+                          </div>
+                          <div className="recent-app-company">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                            {interview.internshipId?.title || 'Internship'}
+                          </div>
+                          <div className="recent-app-meta">
+                            <span>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                              </svg>
+                              {pendingRound ? `Need to schedule ${pendingRound.roundType}` : 'All rounds scheduled'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              {/* My Mentees Section */}
+              <section className="section" style={{ marginBottom: 0 }}>
+                <div className="section-header">
+                  <h2 className="section-title">My Mentees</h2>
+                  {myMentees.length > 0 && (
+                    <button
+                      className="view-all-link"
+                      onClick={() => navigate('/recruiter/mentees')}
+                    >
+                      View All ({myMentees.length})
+                    </button>
+                  )}
+                </div>
+
+                {isLoading ? (
+                  <div className="loading-placeholder">Loading mentees...</div>
+                ) : myMentees.length === 0 ? (
+                  <div className="empty-state" id="emptyMentees" style={{ padding: '2rem' }}>
+                    <div className="empty-state-icon" style={{ width: '48px', height: '48px' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                      </svg>
+                    </div>
+                    <h3 style={{ fontSize: '1rem' }}>No mentees yet</h3>
+                    <p style={{ fontSize: '0.875rem' }}>Accept interns to mentor them</p>
+                  </div>
+                ) : (
+                  <div className="recent-applications-list">
+                    {myMentees.slice(0, 3).map((mentee) => (
+                      <div key={mentee._id} className="recent-application-card">
+                        <div className="recent-app-header">
+                          <h4>{mentee.fullName}</h4>
+                          <span className="status-badge status-active">Active</span>
+                        </div>
+                        <div className="recent-app-company">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                          </svg>
+                          {mentee.internship || 'Intern'} • {mentee.progress || 'Week 2/12'}
+                        </div>
+                        <div className="recent-app-meta">
+                          <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Joined: {formatDate(mentee.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         </div>
       </main>

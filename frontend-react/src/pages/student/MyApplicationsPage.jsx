@@ -1,3 +1,4 @@
+// src/pages/student/MyApplicationsPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentApplications.css';
@@ -16,8 +17,8 @@ const MyApplicationsPage = () => {
   const [activeStatus, setActiveStatus] = useState('all');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [userData, setUserData] = useState({
-    name: 'Demo Student',
-    initials: 'DS',
+    name: 'Loading...',
+    initials: 'ST',
     role: 'student'
   });
 
@@ -27,6 +28,7 @@ const MyApplicationsPage = () => {
     shortlisted: 0,
     pending: 0,
     rejected: 0,
+    accepted: 0,
     interview: 0
   });
 
@@ -66,7 +68,7 @@ const MyApplicationsPage = () => {
     }
   };
 
-  // 1️⃣ FETCH APPLICATIONS - FIXED
+  // 1️⃣ FETCH APPLICATIONS
   const fetchApplications = async () => {
     try {
       setLoading(true);
@@ -101,12 +103,14 @@ const MyApplicationsPage = () => {
       total: apps.length,
       shortlisted: apps.filter(app => app.status === 'shortlisted').length,
       pending: apps.filter(app => app.status === 'pending' || app.status === 'applied').length,
-      rejected: apps.filter(app => app.status === 'rejected').length
+      rejected: apps.filter(app => app.status === 'rejected').length,
+      accepted: apps.filter(app => app.status === 'accepted').length,
+      interview: apps.filter(app => app.status === 'interview').length
     };
     setStats(stats);
   };
 
-  // 2️⃣ FILTER APPLICATIONS - FIXED
+  // 2️⃣ FILTER APPLICATIONS
   const filterApplications = (status) => {
     setActiveStatus(status);
 
@@ -128,18 +132,18 @@ const MyApplicationsPage = () => {
       }
     }
 
-    // Apply search filter ONLY if searchQuery exists
+    // Apply search filter
     if (searchQuery && searchQuery.trim()) {
       filtered = filtered.filter(app =>
         app.internship?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.internship?.companyName?.toLowerCase().includes(searchQuery.toLowerCase())
+        app.internship?.department?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     setFilteredApps(filtered);
   };
 
-  // 3️⃣ SEARCH EFFECT - FIXED
+  // 3️⃣ SEARCH EFFECT
   useEffect(() => {
     const timer = setTimeout(() => {
       if (applications.length > 0) {
@@ -170,7 +174,11 @@ const MyApplicationsPage = () => {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   // Get days remaining
@@ -242,14 +250,14 @@ const MyApplicationsPage = () => {
     }
   };
 
-  // ✅ NEW: View Resume with Google Docs Viewer
+  // ✅ View Resume with Google Docs Viewer
   const handleViewResume = (url) => {
     if (!url) {
       showNotification('No resume available', 'error');
       return;
     }
 
-    // Use Google Docs Viewer - 100% reliable!
+    // Use Google Docs Viewer
     const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     window.open(googleViewerUrl, '_blank');
   };
@@ -280,29 +288,6 @@ const MyApplicationsPage = () => {
     }
   };
 
-  // Handle withdraw
-  const handleWithdraw = async (applicationId) => {
-    if (window.confirm('Are you sure you want to withdraw this application?')) {
-      try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:5000/api/applications/${applicationId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-          showNotification('Application withdrawn successfully');
-          fetchApplications();
-        } else {
-          throw new Error('Failed to withdraw');
-        }
-      } catch (error) {
-        console.error('Error withdrawing application:', error);
-        showNotification('Failed to withdraw application', 'error');
-      }
-    }
-  };
-
   // Handle view details
   const handleViewDetails = (application) => {
     setSelectedApplication(application);
@@ -318,23 +303,20 @@ const MyApplicationsPage = () => {
     setSearchQuery('');
   };
 
-  // Handle notification click
-  const handleNotificationClick = () => {
-    showNotification('You have no new notifications');
-  };
-
   // Get badge count
   const getBadgeCount = (status) => {
     if (status === 'all') return stats.total;
     if (status === 'pending') return stats.pending;
     if (status === 'shortlisted') return stats.shortlisted;
     if (status === 'rejected') return stats.rejected;
+    if (status === 'accepted') return stats.accepted;
+    if (status === 'interview') return stats.interview;
     return 0;
   };
 
   // Get company initials for logo
   const getInitials = (companyName) => {
-    if (!companyName) return 'C';
+    if (!companyName) return 'Z';
     return companyName
       .split(' ')
       .map(n => n[0])
@@ -361,7 +343,7 @@ const MyApplicationsPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
         </div>
 
@@ -425,7 +407,7 @@ const MyApplicationsPage = () => {
             <div className="user-avatar-sidebar">{userData.initials}</div>
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">Student</div>
+              <div className="user-role-sidebar">Student • Zoyaraa</div>
             </div>
           </button>
         </div>
@@ -454,7 +436,7 @@ const MyApplicationsPage = () => {
               </svg>
               <input
                 type="text"
-                placeholder="Search applications..."
+                placeholder="Search by title or department..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search applications"
@@ -474,7 +456,6 @@ const MyApplicationsPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            {/* NEW CODE - ADD THIS */}
             <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
@@ -487,23 +468,21 @@ const MyApplicationsPage = () => {
           {/* Page Header */}
           <div className="page-header">
             <h1 className="page-title">My Applications</h1>
-            <p className="page-subtitle">Track and manage your internship applications</p>
+            <p className="page-subtitle">Track your internship applications at Zoyaraa</p>
           </div>
 
-          {/* Stats Row */}
-          <div className="stats-row">
+          {/* Stats Row - 5 cards now */}
+          <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }}>
             <div className="stat-card-small" onClick={() => filterApplications('all')}>
               <div className="stat-card-content">
                 <div className="stat-card-info">
-                  <h4>All Applications</h4>
+                  <h4>All</h4>
                   <div className="stat-card-value">{stats.total}</div>
                 </div>
                 <div className="stat-card-icon blue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
                   </svg>
                 </div>
               </div>
@@ -519,7 +498,6 @@ const MyApplicationsPage = () => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="18" height="18" rx="2"></rect>
                     <path d="M3 9h18"></path>
-                    <path d="M9 21V9"></path>
                   </svg>
                 </div>
               </div>
@@ -535,6 +513,21 @@ const MyApplicationsPage = () => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="stat-card-small" onClick={() => filterApplications('accepted')}>
+              <div className="stat-card-content">
+                <div className="stat-card-info">
+                  <h4>Accepted</h4>
+                  <div className="stat-card-value">{stats.accepted}</div>
+                </div>
+                <div className="stat-card-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m9 12 2 2 4-5"></path>
                   </svg>
                 </div>
               </div>
@@ -563,7 +556,7 @@ const MyApplicationsPage = () => {
               className={`status-tab ${activeStatus === 'all' ? 'active' : ''}`}
               onClick={() => filterApplications('all')}
             >
-              All Applications
+              All
               <span className="tab-badge">{getBadgeCount('all')}</span>
             </button>
             <button
@@ -579,6 +572,13 @@ const MyApplicationsPage = () => {
             >
               Shortlisted
               <span className="tab-badge">{getBadgeCount('shortlisted')}</span>
+            </button>
+            <button
+              className={`status-tab ${activeStatus === 'accepted' ? 'active' : ''}`}
+              onClick={() => filterApplications('accepted')}
+            >
+              Accepted
+              <span className="tab-badge">{getBadgeCount('accepted')}</span>
             </button>
             <button
               className={`status-tab ${activeStatus === 'rejected' ? 'active' : ''}`}
@@ -601,15 +601,13 @@ const MyApplicationsPage = () => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
                   </svg>
                 </div>
                 <h3>No applications found</h3>
                 <p>
                   {searchQuery || activeStatus !== 'all'
                     ? 'Try adjusting your filters'
-                    : 'Start applying to internships to see your applications here'}
+                    : 'Start applying to internships at Zoyaraa to see your applications here'}
                 </p>
                 {!searchQuery && activeStatus === 'all' && (
                   <button
@@ -624,19 +622,19 @@ const MyApplicationsPage = () => {
               filteredApps.map((app) => {
                 const status = getStatusConfig(app.status);
                 const isExpired = getDaysRemaining(app.internship?.deadline) === 'Expired';
-                const companyInitials = getInitials(app.internship?.companyName);
+                const companyInitials = getInitials('Zoyaraa');
 
                 return (
                   <div key={app._id} className="application-card">
                     <div className="app-card-header">
                       <div className="app-company-info">
                         <div className="app-company-logo">
-                          {companyInitials}
+                          Z
                         </div>
                         <div className="app-details">
                           <h3 className="app-title">{app.internship?.title || 'Internship Position'}</h3>
                           <p className="app-company-name">
-                            {app.internship?.companyName || 'Company'} · {app.internship?.location || 'Location'}
+                            Zoyaraa · {app.internship?.department || 'Department'}
                           </p>
                           <div className="app-meta">
                             {app.internship?.stipend && (
@@ -645,7 +643,9 @@ const MyApplicationsPage = () => {
                                   <line x1="12" y1="1" x2="12" y2="23"></line>
                                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                                 </svg>
-                                {app.internship.stipend}
+                                {typeof app.internship.stipend === 'number'
+                                  ? `₹${app.internship.stipend.toLocaleString()}/month`
+                                  : app.internship.stipend}
                               </span>
                             )}
                             <span className="app-meta-item">
@@ -684,26 +684,26 @@ const MyApplicationsPage = () => {
                         <div className="timeline-item">
                           <div className="timeline-dot active"></div>
                           <div className="timeline-content">
-                            <span className="timeline-title">Resume Shortlisted</span>
+                            <span className="timeline-title">Shortlisted</span>
                             <span className="timeline-date">{formatDate(app.updatedAt || app.appliedAt)}</span>
                           </div>
                         </div>
                       )}
 
-                      {app.status === 'interview' && (
+                      {app.status === 'accepted' && (
                         <>
                           <div className="timeline-item">
                             <div className="timeline-dot completed"></div>
                             <div className="timeline-content">
-                              <span className="timeline-title">Resume Shortlisted</span>
+                              <span className="timeline-title">Shortlisted</span>
                               <span className="timeline-date">{formatDate(app.updatedAt || app.appliedAt)}</span>
                             </div>
                           </div>
                           <div className="timeline-item">
-                            <div className="timeline-dot active"></div>
+                            <div className="timeline-dot completed"></div>
                             <div className="timeline-content">
-                              <span className="timeline-title">Interview Scheduled</span>
-                              <span className="timeline-date">{formatDate(app.interviewDate || app.updatedAt)}</span>
+                              <span className="timeline-title">Accepted</span>
+                              <span className="timeline-date">{formatDate(app.updatedAt || app.appliedAt)}</span>
                             </div>
                           </div>
                         </>
@@ -713,17 +713,7 @@ const MyApplicationsPage = () => {
                         <div className="timeline-item">
                           <div className="timeline-dot inactive"></div>
                           <div className="timeline-content">
-                            <span className="timeline-title">Application Rejected</span>
-                            <span className="timeline-date">{formatDate(app.updatedAt || app.appliedAt)}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {app.status === 'accepted' && (
-                        <div className="timeline-item">
-                          <div className="timeline-dot completed"></div>
-                          <div className="timeline-content">
-                            <span className="timeline-title">Application Accepted</span>
+                            <span className="timeline-title">Rejected</span>
                             <span className="timeline-date">{formatDate(app.updatedAt || app.appliedAt)}</span>
                           </div>
                         </div>
@@ -764,16 +754,18 @@ const MyApplicationsPage = () => {
                         </button>
 
                         {(app.status === 'pending' || app.status === 'applied') && !isExpired && (
-                          <button
-                            className="btn-danger"
-                            onClick={() => handleWithdraw(app._id)}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <line x1="18" y1="6" x2="6" y2="18"></line>
-                              <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                            Withdraw Application
-                          </button>
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            padding: '0.25rem 0.75rem',
+                            background: '#f3f4f6',
+                            borderRadius: '20px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            <span>⏳</span> Awaiting review
+                          </div>
                         )}
                       </div>
                     </div>
@@ -785,10 +777,10 @@ const MyApplicationsPage = () => {
         </div>
       </main>
 
-      {/* Application Details Modal - FIXED with Google Viewer */}
+      {/* Application Details Modal - ENHANCED with all fields */}
       {selectedApplication && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className="modal-header">
               <h2>{selectedApplication.internship?.title || 'Application Details'}</h2>
               <button
@@ -806,18 +798,37 @@ const MyApplicationsPage = () => {
             </div>
 
             <div className="modal-body">
+              {/* Company Header */}
               <div className="company-header">
                 <div className="company-logo-large">
-                  {getInitials(selectedApplication.internship?.companyName)}
+                  Z
                 </div>
                 <div className="company-info">
-                  <h3>{selectedApplication.internship?.companyName || 'Company'}</h3>
-                  <p>{selectedApplication.internship?.location || 'Location'}</p>
+                  <h3>Zoyaraa</h3>
+                  <p className="company-department">{selectedApplication.internship?.department || 'Department'}</p>
+                  <div className="status-badge" style={{
+                    display: 'inline-block',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    background: selectedApplication.status === 'accepted' ? '#E6F7E6' :
+                      selectedApplication.status === 'shortlisted' ? '#EEF2FF' :
+                        selectedApplication.status === 'rejected' ? '#fee2e2' : '#FFF4E5',
+                    color: selectedApplication.status === 'accepted' ? '#10b981' :
+                      selectedApplication.status === 'shortlisted' ? '#2440F0' :
+                        selectedApplication.status === 'rejected' ? '#dc2626' : '#f59e0b'
+                  }}>
+                    {selectedApplication.status === 'accepted' ? '✓ Accepted' :
+                      selectedApplication.status === 'shortlisted' ? '⭐ Shortlisted' :
+                        selectedApplication.status === 'rejected' ? '✗ Rejected' : '⏳ Under Review'}
+                  </div>
                 </div>
               </div>
 
+              {/* Application Status Timeline */}
               <div className="modal-section">
-                <h3>Application Status</h3>
+                <h3>📋 Application Timeline</h3>
                 <div className="status-timeline-vertical">
                   <div className="timeline-item-vertical">
                     <div className="timeline-dot-vertical completed"></div>
@@ -827,22 +838,12 @@ const MyApplicationsPage = () => {
                     </div>
                   </div>
 
-                  {(selectedApplication.status === 'shortlisted' || selectedApplication.status === 'interview' || selectedApplication.status === 'accepted') && (
+                  {(selectedApplication.status === 'shortlisted' || selectedApplication.status === 'accepted') && (
                     <div className="timeline-item-vertical">
                       <div className="timeline-dot-vertical completed"></div>
                       <div className="timeline-content-vertical">
-                        <span className="timeline-title">Resume Shortlisted</span>
+                        <span className="timeline-title">Shortlisted</span>
                         <span className="timeline-date">{formatDate(selectedApplication.updatedAt || selectedApplication.appliedAt)}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedApplication.status === 'interview' && (
-                    <div className="timeline-item-vertical">
-                      <div className="timeline-dot-vertical active"></div>
-                      <div className="timeline-content-vertical">
-                        <span className="timeline-title">Interview Scheduled</span>
-                        <span className="timeline-date">{formatDate(selectedApplication.interviewDate || selectedApplication.updatedAt)}</span>
                       </div>
                     </div>
                   )}
@@ -851,7 +852,7 @@ const MyApplicationsPage = () => {
                     <div className="timeline-item-vertical">
                       <div className="timeline-dot-vertical completed"></div>
                       <div className="timeline-content-vertical">
-                        <span className="timeline-title">Application Accepted</span>
+                        <span className="timeline-title">Accepted</span>
                         <span className="timeline-date">{formatDate(selectedApplication.updatedAt || selectedApplication.appliedAt)}</span>
                       </div>
                     </div>
@@ -861,7 +862,7 @@ const MyApplicationsPage = () => {
                     <div className="timeline-item-vertical">
                       <div className="timeline-dot-vertical inactive"></div>
                       <div className="timeline-content-vertical">
-                        <span className="timeline-title">Application Rejected</span>
+                        <span className="timeline-title">Rejected</span>
                         <span className="timeline-date">{formatDate(selectedApplication.updatedAt || selectedApplication.appliedAt)}</span>
                       </div>
                     </div>
@@ -872,97 +873,236 @@ const MyApplicationsPage = () => {
                       <div className="timeline-dot-vertical active"></div>
                       <div className="timeline-content-vertical">
                         <span className="timeline-title">Under Review</span>
-                        <span className="timeline-date">Pending decision</span>
+                        <span className="timeline-date">Awaiting decision</span>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* Internship Details - ENHANCED with all fields */}
               <div className="modal-section">
-                <h3>Internship Details</h3>
-                <div className="details-grid">
-                  <div className="detail-row">
-                    <span className="detail-label">Position</span>
-                    <span className="detail-value">{selectedApplication.internship?.title || 'N/A'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Duration</span>
-                    <span className="detail-value">{selectedApplication.internship?.duration || 'N/A'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Stipend</span>
-                    <span className="detail-value">{selectedApplication.internship?.stipend || 'Unpaid'}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Deadline</span>
-                    <span className="detail-value">
-                      {formatDate(selectedApplication.internship?.deadline)}
-                      {selectedApplication.internship?.deadline && (
-                        <span className={`deadline-badge ${getDaysRemaining(selectedApplication.internship.deadline) === 'Expired' ? 'expired' : ''}`}>
-                          {getDaysRemaining(selectedApplication.internship.deadline)}
-                        </span>
-                      )}
+                <h3>💼 Internship Details</h3>
+
+                {/* Basic Info Grid */}
+                <div className="details-grid-2col" style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <div className="detail-card" style={{
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <span className="detail-label" style={{ fontSize: '0.75rem', color: '#6b7280' }}>Position</span>
+                    <span className="detail-value" style={{ fontSize: '1rem', fontWeight: '600' }}>
+                      {selectedApplication.internship?.title || 'N/A'}
                     </span>
                   </div>
-                  {selectedApplication.internship?.skillsRequired && (
-                    <div className="detail-row skills-row">
-                      <span className="detail-label">Skills</span>
-                      <div className="skills-tags">
-                        {selectedApplication.internship.skillsRequired.slice(0, 5).map((skill, idx) => (
-                          <span key={idx} className="skill-tag">
-                            {typeof skill === 'string' ? skill : skill.name}
-                          </span>
-                        ))}
-                        {selectedApplication.internship.skillsRequired.length > 5 && (
-                          <span className="skill-tag more">
-                            +{selectedApplication.internship.skillsRequired.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ✅ FIXED: Resume View with Google Docs Viewer */}
-                  {selectedApplication.resume && (
-                    <div className="detail-row">
-                      <span className="detail-label">Resume</span>
-                      <div className="detail-value">
-                        <button
-                          className="resume-view-btn"
-                          onClick={() => handleViewResume(selectedApplication.resume)}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M22 12c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2s10 4.48 10 10z"></path>
-                          </svg>
-                          View Resume
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="detail-card" style={{
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <span className="detail-label" style={{ fontSize: '0.75rem', color: '#6b7280' }}>Department</span>
+                    <span className="detail-value" style={{ fontSize: '1rem', fontWeight: '600' }}>
+                      {selectedApplication.internship?.department || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-card" style={{
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <span className="detail-label" style={{ fontSize: '0.75rem', color: '#6b7280' }}>Work Mode</span>
+                    <span className="detail-value" style={{ fontSize: '1rem', fontWeight: '600' }}>
+                      {selectedApplication.internship?.workMode || 'Not specified'}
+                    </span>
+                  </div>
+                  <div className="detail-card" style={{
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <span className="detail-label" style={{ fontSize: '0.75rem', color: '#6b7280' }}>Location</span>
+                    <span className="detail-value" style={{ fontSize: '1rem', fontWeight: '600' }}>
+                      {selectedApplication.internship?.location || 'N/A'}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Work Details */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>Work Details</h4>
+                  <div className="work-details" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '0.75rem',
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Start Date</span>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{formatDate(selectedApplication.internship?.startDate)}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>End Date</span>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{formatDate(selectedApplication.internship?.endDate)}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Duration</span>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{selectedApplication.internship?.duration} months</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Daily Timings</span>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{selectedApplication.internship?.dailyTimings || '10 AM - 6 PM'}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Weekly Off</span>
+                      <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{selectedApplication.internship?.weeklyOff || 'Saturday, Sunday'}</p>
+                    </div>
+                    {selectedApplication.internship?.officeLocation && (
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Office Location</span>
+                        <p style={{ fontSize: '0.9rem', fontWeight: '500' }}>{selectedApplication.internship.officeLocation}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Compensation */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>Compensation</h4>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: '0.75rem',
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '8px'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Stipend</span>
+                      <p style={{ fontSize: '1rem', fontWeight: '600', color: '#10b981' }}>
+                        {selectedApplication.internship?.stipend
+                          ? typeof selectedApplication.internship.stipend === 'number'
+                            ? `₹${selectedApplication.internship.stipend.toLocaleString()}/month`
+                            : selectedApplication.internship.stipend
+                          : 'Unpaid'}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Positions</span>
+                      <p style={{ fontSize: '1rem', fontWeight: '500' }}>
+                        {selectedApplication.internship?.positions || 1} available
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Deadline</span>
+                      <p style={{
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        color: getDaysRemaining(selectedApplication.internship?.deadline) === 'Expired' ? '#dc2626' : '#059669'
+                      }}>
+                        {formatDate(selectedApplication.internship?.deadline)}
+                        <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                          ({getDaysRemaining(selectedApplication.internship?.deadline)})
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Skills Required */}
+                {selectedApplication.internship?.skillsRequired && selectedApplication.internship.skillsRequired.length > 0 && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>🛠️ Required Skills</h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {selectedApplication.internship.skillsRequired.map((skill, idx) => {
+                        const skillName = typeof skill === 'string' ? skill : skill.name;
+                        const skillLevel = typeof skill === 'string' ? 'beginner' : skill.level;
+                        const levelColors = {
+                          beginner: { bg: '#f0f9ff', color: '#0284c7' },
+                          intermediate: { bg: '#fef3c7', color: '#d97706' },
+                          advanced: { bg: '#fee2e2', color: '#dc2626' }
+                        };
+                        const colors = levelColors[skillLevel] || levelColors.beginner;
+
+                        return (
+                          <span key={idx} style={{
+                            background: colors.bg,
+                            color: colors.color,
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.8rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            {skillName}
+                            <span style={{ opacity: 0.7 }}>•</span>
+                            <span style={{ fontSize: '0.7rem' }}>{skillLevel}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cover Letter */}
+                {selectedApplication.coverLetter && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>📝 Your Cover Letter</h4>
+                    <div className="cover-letter-preview" style={{
+                      background: '#f8fafc',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      maxHeight: '200px',
+                      overflowY: 'auto'
+                    }}>
+                      <p style={{ fontSize: '0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                        {selectedApplication.coverLetter}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Resume */}
+                {selectedApplication.resume && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>📎 Resume</h4>
+                    <button
+                      className="resume-view-btn"
+                      onClick={() => handleViewResume(selectedApplication.resume)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem 1rem',
+                        background: '#EEF2FF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#2440F0',
+                        cursor: 'pointer',
+                        width: 'fit-content'
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M22 12c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2s10 4.48 10 10z"></path>
+                      </svg>
+                      View Resume
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="modal-footer">
-              {(selectedApplication.status === 'pending' || selectedApplication.status === 'applied') &&
-                getDaysRemaining(selectedApplication.internship?.deadline) !== 'Expired' && (
-                  <button
-                    className="btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleWithdraw(selectedApplication._id);
-                      handleCloseModal();
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    Withdraw Application
-                  </button>
-                )}
               <button
                 className="btn-primary"
                 onClick={(e) => {

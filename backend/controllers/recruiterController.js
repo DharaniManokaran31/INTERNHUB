@@ -1,16 +1,16 @@
 const Recruiter = require('../models/Recruiter');
+const Student = require('../models/Student'); // ✅ ADD THIS
+const Internship = require('../models/Internship'); // ✅ ADD THIS
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
-// REMOVED: const sendEmail = require('../utils/sendEmail');
 
 // Register Recruiter
 const registerRecruiter = async (req, res) => {
     try {
         const { fullName, email, password } = req.body;
 
-        // Check if recruiter exists
         const existingRecruiter = await Recruiter.findOne({ email });
         if (existingRecruiter) {
             return res.status(400).json({
@@ -19,10 +19,8 @@ const registerRecruiter = async (req, res) => {
             });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new recruiter
         const recruiter = new Recruiter({
             fullName,
             email,
@@ -31,7 +29,6 @@ const registerRecruiter = async (req, res) => {
 
         await recruiter.save();
 
-        // Remove password from response
         const recruiterWithoutPassword = recruiter.toObject();
         delete recruiterWithoutPassword.password;
 
@@ -55,7 +52,6 @@ const loginRecruiter = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find recruiter
         const recruiter = await Recruiter.findOne({ email });
         if (!recruiter) {
             return res.status(401).json({
@@ -64,7 +60,6 @@ const loginRecruiter = async (req, res) => {
             });
         }
 
-        // Check password
         const isPasswordValid = await bcrypt.compare(password, recruiter.password);
         if (!isPasswordValid) {
             return res.status(401).json({
@@ -73,14 +68,12 @@ const loginRecruiter = async (req, res) => {
             });
         }
 
-        // Generate token
         const token = jwt.sign(
             { id: recruiter._id, email: recruiter.email, role: recruiter.role },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '7d' }
         );
 
-        // Remove password from response
         const recruiterWithoutPassword = recruiter.toObject();
         delete recruiterWithoutPassword.password;
 
@@ -131,7 +124,6 @@ const updateRecruiterProfile = async (req, res) => {
     try {
         const updates = req.body;
 
-        // Remove fields that shouldn't be updated
         delete updates.password;
         delete updates.email;
         delete updates.role;
@@ -164,7 +156,6 @@ const changePassword = async (req, res) => {
 
         const recruiter = await Recruiter.findById(req.user.id);
 
-        // Verify current password
         const isPasswordValid = await bcrypt.compare(currentPassword, recruiter.password);
         if (!isPasswordValid) {
             return res.status(401).json({
@@ -173,7 +164,6 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         recruiter.password = hashedPassword;
         await recruiter.save();
@@ -190,7 +180,7 @@ const changePassword = async (req, res) => {
     }
 };
 
-// Forgot Password - FULL IMPLEMENTATION with email
+// Forgot Password
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -203,22 +193,17 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        // Generate JWT token (valid for 15 minutes)
         const resetToken = jwt.sign(
             { id: recruiter._id },
             process.env.JWT_SECRET + recruiter.password,
             { expiresIn: '15m' }
         );
 
-        // Store token in database with expiry
         recruiter.resetPasswordToken = resetToken;
-        recruiter.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+        recruiter.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
         await recruiter.save();
 
-        // Create reset URL
         const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
-
-        // Send email
         await sendPasswordResetEmail(email, resetUrl);
 
         res.status(200).json({
@@ -234,13 +219,12 @@ const forgotPassword = async (req, res) => {
     }
 };
 
-// Reset Password - FULL IMPLEMENTATION with token validation
+// Reset Password
 const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
 
-        // Find recruiter with valid token (not expired)
         const recruiter = await Recruiter.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() }
@@ -253,7 +237,6 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        // Validate password
         if (!password || password.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -261,10 +244,7 @@ const resetPassword = async (req, res) => {
             });
         }
 
-        // Hash new password
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Update password and clear reset fields
         recruiter.password = hashedPassword;
         recruiter.resetPasswordToken = undefined;
         recruiter.resetPasswordExpires = undefined;
@@ -283,6 +263,94 @@ const resetPassword = async (req, res) => {
     }
 };
 
+// ✅ NEW: Get recruiter's mentees (interns they are mentoring)
+const getMyMentees = async (req, res) => {
+    try {
+        const recruiterId = req.user.id;
+        
+        // Find the recruiter to get their mentees array
+        const recruiter = await Recruiter.findById(recruiterId);
+        
+        if (!recruiter) {
+            return res.status(404).json({
+                success: false,
+                message: 'Recruiter not found'
+            });
+        }
+
+        // If no mentees, return empty array
+        if (!recruiter.mentorFor || recruiter.mentorFor.length === 0) {
+            return res.status(200).json({
+                success: true,
+                data: {
+                    mentees: [],
+                    total: 0
+                }
+            });
+        }
+
+        // Get detailed information for each mentee
+        const mentees = await Promise.all(recruiter.mentorFor.map(async (studentId) => {
+            const student = await Student.findById(studentId)
+                .select('fullName email profilePicture education skills currentInternship createdAt');
+            
+            if (!student) return null;
+            
+            // Get their active internship details
+            let internship = null;
+            let progress = 'Not started';
+            
+            if (student?.currentInternship) {
+                internship = await Internship.findById(student.currentInternship)
+                    .select('title department startDate endDate duration');
+                
+                if (internship?.startDate) {
+                    const start = new Date(internship.startDate);
+                    const now = new Date();
+                    const weeksPassed = Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000));
+                    const totalWeeks = internship.duration || 12;
+                    const currentWeek = Math.min(weeksPassed + 1, totalWeeks);
+                    progress = `Week ${currentWeek}/${totalWeeks}`;
+                }
+            }
+            
+            return {
+                _id: student._id,
+                fullName: student.fullName,
+                email: student.email,
+                profilePicture: student.profilePicture,
+                education: student.education,
+                skills: student.skills,
+                internship: internship ? {
+                    title: internship.title,
+                    department: internship.department,
+                    startDate: internship.startDate,
+                    endDate: internship.endDate,
+                    progress
+                } : null,
+                createdAt: student.createdAt
+            };
+        }));
+
+        // Filter out null values
+        const filteredMentees = mentees.filter(m => m !== null);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                mentees: filteredMentees,
+                total: filteredMentees.length
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching mentees:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerRecruiter,
     loginRecruiter,
@@ -290,5 +358,6 @@ module.exports = {
     updateRecruiterProfile,
     changePassword,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    getMyMentees // ✅ ADD THIS
 };

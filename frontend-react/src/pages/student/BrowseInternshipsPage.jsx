@@ -1,3 +1,4 @@
+// src/pages/student/BrowseInternshipsPage.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentBrowseInternships.css';
@@ -16,9 +17,10 @@ const BrowseInternshipsPage = () => {
   const [displayedInternships, setDisplayedInternships] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState([]);
+  const [profileData, setProfileData] = useState(null);
   const [userData, setUserData] = useState({
     name: '',
-    initials: 'DS',
+    initials: 'ST',
     firstName: 'Student',
     role: 'student',
     greeting: 'Good morning'
@@ -31,6 +33,8 @@ const BrowseInternshipsPage = () => {
   // ===== FILTER STATES =====
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
+    department: '', // NEW: department filter
+    workMode: [],   // NEW: work mode filter
     location: '',
     types: [],
     duration: '',
@@ -38,6 +42,26 @@ const BrowseInternshipsPage = () => {
     stipend: '',
     levels: []
   });
+
+  // ===== DEPARTMENT OPTIONS =====
+  const departments = [
+    { value: '', label: 'All Departments' },
+    { value: 'Frontend', label: 'Frontend' },
+    { value: 'Backend', label: 'Backend' },
+    { value: 'DevOps', label: 'DevOps' },
+    { value: 'Marketing', label: 'Marketing' },
+    { value: 'HR', label: 'HR' },
+    { value: 'Sales', label: 'Sales' },
+    { value: 'UI/UX', label: 'UI/UX' },
+    { value: 'Mobile', label: 'Mobile' }
+  ];
+
+  // ===== WORK MODE OPTIONS =====
+  const workModes = [
+    { value: 'Remote', label: 'Remote' },
+    { value: 'Hybrid', label: 'Hybrid' },
+    { value: 'Onsite', label: 'Onsite' }
+  ];
 
   // ===== SORT STATE =====
   const [sortBy, setSortBy] = useState('recent');
@@ -48,6 +72,14 @@ const BrowseInternshipsPage = () => {
   const [coverLetter, setCoverLetter] = useState('');
   const [applying, setApplying] = useState(false);
   const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+
+  // ===== APPLICATION FORM STATES =====
+  const [experience, setExperience] = useState('');
+  const [available, setAvailable] = useState('');
+  const [locationPref, setLocationPref] = useState('');
+  const [source, setSource] = useState('');
+  const [portfolio, setPortfolio] = useState('');
+  const [confirmTerms, setConfirmTerms] = useState(false);
 
   // ===== GREETING =====
   useEffect(() => {
@@ -127,6 +159,9 @@ const BrowseInternshipsPage = () => {
           initials: initials,
           role: user.role
         }));
+
+        // ✅ STORE FULL PROFILE DATA
+        setProfileData(user);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -158,7 +193,7 @@ const BrowseInternshipsPage = () => {
     }
   };
 
-  // ===== FETCH MY APPLICATIONS - FIXED =====
+  // ===== FETCH MY APPLICATIONS =====
   const fetchMyApplications = async () => {
     try {
       const token = localStorage.getItem('authToken');
@@ -170,15 +205,10 @@ const BrowseInternshipsPage = () => {
 
       if (data.success) {
         const applications = data.data.applications || [];
-        console.log('✅ Applications loaded:', applications);
-
-        // ✅ NORMALIZE: Ensure internshipId is available at top level
         const normalizedApps = applications.map(app => ({
           ...app,
-          // Extract internship ID from nested object if needed
           internshipId: app.internshipId || app.internship?._id || app.internship
         }));
-
         setMyApplications(normalizedApps);
       }
     } catch (error) {
@@ -186,13 +216,10 @@ const BrowseInternshipsPage = () => {
     }
   };
 
-  // ===== CHECK IF ALREADY APPLIED - FIXED =====
+  // ===== CHECK IF ALREADY APPLIED =====
   const hasApplied = (internshipId) => {
     if (!internshipId) return false;
-
-    // Check if this internship ID exists in myApplications
     return myApplications.some(app => {
-      // Try multiple possible field names
       const appInternshipId = app.internshipId || app.internship?._id || app.internship;
       return appInternshipId === internshipId;
     });
@@ -230,11 +257,14 @@ const BrowseInternshipsPage = () => {
   // ===== FORMAT STIPEND =====
   const formatStipend = (stipend) => {
     if (!stipend) return 'Unpaid';
+    if (typeof stipend === 'number') {
+      return `₹${stipend.toLocaleString()}/month`;
+    }
     if (typeof stipend === 'string') {
       if (stipend.includes('₹')) return stipend;
       return `₹${stipend}`;
     }
-    return `₹${stipend.toLocaleString()}/month`;
+    return 'Unpaid';
   };
 
   // ===== FORMAT DATE =====
@@ -291,6 +321,20 @@ const BrowseInternshipsPage = () => {
     }
   };
 
+  // ===== TOGGLE WORK MODE FILTER =====
+  const toggleWorkModeFilter = (mode) => {
+    setActiveFilters(prev => {
+      const modes = [...prev.workMode];
+      const index = modes.indexOf(mode);
+      if (index === -1) {
+        modes.push(mode);
+      } else {
+        modes.splice(index, 1);
+      }
+      return { ...prev, workMode: modes };
+    });
+  };
+
   // ===== FILTER & SORT INTERNSHIPS =====
   useEffect(() => {
     let filtered = [...internships];
@@ -300,13 +344,26 @@ const BrowseInternshipsPage = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(internship =>
         internship.title?.toLowerCase().includes(query) ||
-        internship.companyName?.toLowerCase().includes(query) ||
         internship.description?.toLowerCase().includes(query) ||
         internship.skillsRequired?.some(skill =>
           typeof skill === 'string'
             ? skill.toLowerCase().includes(query)
             : skill.name?.toLowerCase().includes(query)
         )
+      );
+    }
+
+    // Department filter
+    if (activeFilters.department) {
+      filtered = filtered.filter(internship =>
+        internship.department === activeFilters.department
+      );
+    }
+
+    // Work Mode filter
+    if (activeFilters.workMode.length > 0) {
+      filtered = filtered.filter(internship =>
+        activeFilters.workMode.includes(internship.workMode)
       );
     }
 
@@ -349,9 +406,9 @@ const BrowseInternshipsPage = () => {
     if (activeFilters.stipend) {
       const minStipend = parseInt(activeFilters.stipend);
       filtered = filtered.filter(internship => {
-        const stipendAmount = typeof internship.stipend === 'string'
-          ? parseInt(internship.stipend.replace(/[^0-9]/g, '') || 0)
-          : internship.stipend?.amount || 0;
+        const stipendAmount = typeof internship.stipend === 'number'
+          ? internship.stipend
+          : parseInt(internship.stipend?.replace(/[^0-9]/g, '') || 0);
         return stipendAmount >= minStipend;
       });
     }
@@ -373,21 +430,13 @@ const BrowseInternshipsPage = () => {
         case 'recent':
           return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         case 'stipend-high': {
-          const aStipend = typeof a.stipend === 'string'
-            ? parseInt(a.stipend.replace(/[^0-9]/g, '') || 0)
-            : a.stipend?.amount || 0;
-          const bStipend = typeof b.stipend === 'string'
-            ? parseInt(b.stipend.replace(/[^0-9]/g, '') || 0)
-            : b.stipend?.amount || 0;
+          const aStipend = typeof a.stipend === 'number' ? a.stipend : 0;
+          const bStipend = typeof b.stipend === 'number' ? b.stipend : 0;
           return bStipend - aStipend;
         }
         case 'stipend-low': {
-          const aStipend = typeof a.stipend === 'string'
-            ? parseInt(a.stipend.replace(/[^0-9]/g, '') || 0)
-            : a.stipend?.amount || 0;
-          const bStipend = typeof b.stipend === 'string'
-            ? parseInt(b.stipend.replace(/[^0-9]/g, '') || 0)
-            : b.stipend?.amount || 0;
+          const aStipend = typeof a.stipend === 'number' ? a.stipend : 0;
+          const bStipend = typeof b.stipend === 'number' ? b.stipend : 0;
           return aStipend - bStipend;
         }
         case 'duration':
@@ -404,7 +453,7 @@ const BrowseInternshipsPage = () => {
     setDisplayedInternships(filtered.slice(0, itemsPerPage));
   }, [internships, searchQuery, activeFilters, sortBy]);
 
-  // ===== HANDLE APPLY - WITH COVER LETTER =====
+  // ===== HANDLE APPLY =====
   const handleApply = async () => {
     if (!selectedInternship) return;
 
@@ -412,7 +461,6 @@ const BrowseInternshipsPage = () => {
       setApplying(true);
       const token = localStorage.getItem('authToken');
 
-      // ✅ Get user from localStorage
       const userStr = localStorage.getItem('user');
       if (!userStr) {
         showNotification('Please login again', 'error');
@@ -427,12 +475,6 @@ const BrowseInternshipsPage = () => {
         return;
       }
 
-      console.log('📝 Applying with:', {
-        studentId,
-        internshipId: selectedInternship._id,
-        coverLetterLength: coverLetter.length
-      });
-
       const response = await fetch('http://localhost:5000/api/applications', {
         method: 'POST',
         headers: {
@@ -442,21 +484,17 @@ const BrowseInternshipsPage = () => {
         body: JSON.stringify({
           studentId: studentId,
           internshipId: selectedInternship._id,
-          coverLetter: coverLetter // ✅ Send cover letter to backend
+          coverLetter: coverLetter
         })
       });
 
       const data = await response.json();
-      console.log('✅ Apply response:', data);
 
       if (data.success || data.message === 'Application submitted successfully') {
         showNotification('Application submitted successfully!', 'success');
         setShowApplyModal(false);
         setCoverLetter('');
-
-        // ✅ IMPORTANT: Wait for applications to refresh
         await fetchMyApplications();
-
       } else {
         throw new Error(data.message || 'Failed to apply');
       }
@@ -488,6 +526,8 @@ const BrowseInternshipsPage = () => {
   const clearAllFilters = () => {
     setSearchQuery('');
     setActiveFilters({
+      department: '',
+      workMode: [],
       location: '',
       types: [],
       duration: '',
@@ -503,8 +543,13 @@ const BrowseInternshipsPage = () => {
   const removeFilter = (type, value) => {
     setActiveFilters(prev => {
       const updated = { ...prev };
-
       switch (type) {
+        case 'department':
+          updated.department = '';
+          break;
+        case 'workMode':
+          updated.workMode = prev.workMode.filter(m => m !== value);
+          break;
         case 'location':
           updated.location = '';
           break;
@@ -526,23 +571,20 @@ const BrowseInternshipsPage = () => {
         default:
           break;
       }
-
       return updated;
     });
   };
 
-  // ===== TOGGLE FILTER TYPE =====
+  // ===== TOGGLE TYPE FILTER =====
   const toggleTypeFilter = (type) => {
     setActiveFilters(prev => {
       const types = [...prev.types];
       const index = types.indexOf(type);
-
       if (index === -1) {
         types.push(type);
       } else {
         types.splice(index, 1);
       }
-
       return { ...prev, types };
     });
   };
@@ -552,13 +594,11 @@ const BrowseInternshipsPage = () => {
     setActiveFilters(prev => {
       const levels = [...prev.levels];
       const index = levels.indexOf(level);
-
       if (index === -1) {
         levels.push(level);
       } else {
         levels.splice(index, 1);
       }
-
       return { ...prev, levels };
     });
   };
@@ -588,11 +628,6 @@ const BrowseInternshipsPage = () => {
     }
   };
 
-  // ===== HANDLE NOTIFICATION CLICK =====
-  const handleNotificationClick = () => {
-    showNotification('You have no new notifications');
-  };
-
   // ===== GET INITIALS =====
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -608,12 +643,10 @@ const BrowseInternshipsPage = () => {
         setShowKeyboardHint(true);
         setTimeout(() => setShowKeyboardHint(false), 2000);
       }
-
       if (e.key === 'Escape' && document.activeElement?.id === 'searchInput') {
         document.activeElement.blur();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -623,26 +656,24 @@ const BrowseInternshipsPage = () => {
     const button = e.currentTarget;
     const ripple = document.createElement('span');
     ripple.classList.add('ripple');
-
     const rect = button.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = e.clientX - rect.left - size / 2;
     const y = e.clientY - rect.top - size / 2;
-
     ripple.style.width = ripple.style.height = size + 'px';
     ripple.style.left = x + 'px';
     ripple.style.top = y + 'px';
-
     button.appendChild(ripple);
-
-    setTimeout(() => {
-      ripple.remove();
-    }, 600);
+    setTimeout(() => ripple.remove(), 600);
   };
 
   // ===== GET FILTER DISPLAY TEXT =====
   const getFilterDisplayText = (type, value) => {
     switch (type) {
+      case 'department':
+        return value;
+      case 'workMode':
+        return value;
       case 'location':
         return value;
       case 'type':
@@ -667,6 +698,8 @@ const BrowseInternshipsPage = () => {
   // ===== GET ACTIVE FILTERS COUNT =====
   const getActiveFiltersCount = () => {
     let count = 0;
+    if (activeFilters.department) count++;
+    if (activeFilters.workMode.length) count++;
     if (activeFilters.location) count++;
     if (activeFilters.types.length) count++;
     if (activeFilters.duration) count++;
@@ -686,7 +719,7 @@ const BrowseInternshipsPage = () => {
         onClick={() => setIsMobileMenuOpen(false)}
       ></div>
 
-      {/* Sidebar - EXACT match to Dashboard */}
+      {/* Sidebar - ZOYARAA BRANDING */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
@@ -696,7 +729,7 @@ const BrowseInternshipsPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
         </div>
 
@@ -760,7 +793,7 @@ const BrowseInternshipsPage = () => {
             <div className="user-avatar-sidebar">{userData.initials}</div>
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name || 'Student User'}</div>
-              <div className="user-role-sidebar">Student</div>
+              <div className="user-role-sidebar">Student • Zoyaraa</div>
             </div>
           </button>
         </div>
@@ -790,7 +823,7 @@ const BrowseInternshipsPage = () => {
               <input
                 type="text"
                 id="searchInput"
-                placeholder="Search internships..."
+                placeholder="Search internships by title, skills..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search internships"
@@ -813,7 +846,6 @@ const BrowseInternshipsPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            {/* NEW CODE - ADD THIS */}
             <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
@@ -823,16 +855,46 @@ const BrowseInternshipsPage = () => {
 
         {/* Content Area */}
         <div className="content-area">
-          {/* Page Header - LEFT ALIGNED WITH GREETING */}
+          {/* Page Header */}
           <div className="page-header">
             <h1 className="page-title">
               {userData.greeting}, {userData.firstName || 'Student'}!
             </h1>
-            <p className="page-subtitle">Find your perfect internship opportunity</p>
+            <p className="page-subtitle">Find your perfect internship opportunity at Zoyaraa</p>
           </div>
 
           {/* Active Filters */}
           <div className={`active-filters ${getActiveFiltersCount() === 0 ? 'hidden' : ''}`}>
+            {activeFilters.department && (
+              <div className="filter-chip">
+                🏢 {activeFilters.department}
+                <button
+                  className="filter-chip-remove"
+                  onClick={() => removeFilter('department', activeFilters.department)}
+                  aria-label="Remove department filter"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
+            {activeFilters.workMode.map(mode => (
+              <div key={mode} className="filter-chip">
+                🏢 {mode}
+                <button
+                  className="filter-chip-remove"
+                  onClick={() => removeFilter('workMode', mode)}
+                  aria-label="Remove work mode filter"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            ))}
             {activeFilters.location && (
               <div className="filter-chip">
                 📍 {activeFilters.location}
@@ -848,7 +910,6 @@ const BrowseInternshipsPage = () => {
                 </button>
               </div>
             )}
-
             {activeFilters.types.map(type => (
               <div key={type} className="filter-chip">
                 💼 {getFilterDisplayText('type', type)}
@@ -864,7 +925,6 @@ const BrowseInternshipsPage = () => {
                 </button>
               </div>
             ))}
-
             {activeFilters.duration && (
               <div className="filter-chip">
                 ⏱️ {getFilterDisplayText('duration', activeFilters.duration)}
@@ -880,7 +940,6 @@ const BrowseInternshipsPage = () => {
                 </button>
               </div>
             )}
-
             {activeFilters.category && (
               <div className="filter-chip">
                 🏷️ {getFilterDisplayText('category', activeFilters.category)}
@@ -896,7 +955,6 @@ const BrowseInternshipsPage = () => {
                 </button>
               </div>
             )}
-
             {activeFilters.stipend && (
               <div className="filter-chip">
                 💰 {getFilterDisplayText('stipend', activeFilters.stipend)}
@@ -912,7 +970,6 @@ const BrowseInternshipsPage = () => {
                 </button>
               </div>
             )}
-
             {activeFilters.levels.map(level => (
               <div key={level} className="filter-chip">
                 📊 {getFilterDisplayText('level', level)}
@@ -944,6 +1001,39 @@ const BrowseInternshipsPage = () => {
                     Clear All
                   </button>
                 )}
+              </div>
+
+              {/* Department Filter - NEW */}
+              <div className="filter-group">
+                <label className="filter-label">🏢 Department</label>
+                <select
+                  className="filter-select"
+                  value={activeFilters.department}
+                  onChange={(e) => setActiveFilters(prev => ({ ...prev, department: e.target.value }))}
+                >
+                  {departments.map(dept => (
+                    <option key={dept.value} value={dept.value}>{dept.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Work Mode Filter - NEW */}
+              <div className="filter-group">
+                <label className="filter-label">🏢 Work Mode</label>
+                <div className="checkbox-group">
+                  {workModes.map(mode => (
+                    <div key={mode.value} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        id={`mode-${mode.value}`}
+                        value={mode.value}
+                        checked={activeFilters.workMode.includes(mode.value)}
+                        onChange={(e) => toggleWorkModeFilter(e.target.value)}
+                      />
+                      <label htmlFor={`mode-${mode.value}`}>{mode.label}</label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Location Filter */}
@@ -1064,7 +1154,7 @@ const BrowseInternshipsPage = () => {
               <div className="results-header">
                 <div className="results-count">
                   {loading ? 'Loading...' :
-                    `Showing ${displayedInternships.length} of ${filteredInternships.length} internship${filteredInternships.length !== 1 ? 's' : ''}`
+                    `Showing ${displayedInternships.length} of ${filteredInternships.length} internship${filteredInternships.length !== 1 ? 's' : ''} at Zoyaraa`
                   }
                 </div>
                 <div className="sort-dropdown">
@@ -1084,12 +1174,10 @@ const BrowseInternshipsPage = () => {
 
               <div id="internshipsList" className="internships-list">
                 {loading ? (
-                  // Skeleton loading
                   [...Array(6)].map((_, i) => (
                     <div key={i} className="skeleton-card"></div>
                   ))
                 ) : displayedInternships.length === 0 ? (
-                  // Empty state
                   <div className="empty-state">
                     <div className="empty-state-icon">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1098,7 +1186,7 @@ const BrowseInternshipsPage = () => {
                       </svg>
                     </div>
                     <h3>No internships found</h3>
-                    <p>Try adjusting your filters to see more results</p>
+                    <p>Try adjusting your filters to see more results from Zoyaraa</p>
                     <div className="empty-state-actions">
                       <button
                         className="primary-btn"
@@ -1115,7 +1203,6 @@ const BrowseInternshipsPage = () => {
                     </div>
                   </div>
                 ) : (
-                  // Internship cards
                   displayedInternships.map((internship) => {
                     const applied = hasApplied(internship._id);
                     const bookmarked = isBookmarked(internship._id);
@@ -1129,16 +1216,16 @@ const BrowseInternshipsPage = () => {
                         onClick={() => setSelectedInternship(internship)}
                         tabIndex="0"
                         role="button"
-                        aria-label={`View details for ${internship.title} at ${internship.companyName}`}
+                        aria-label={`View details for ${internship.title} at Zoyaraa`}
                       >
                         <div className="card-header">
                           <div className="company-info">
                             <div className="company-logo">
-                              {internship.companyName?.charAt(0) || 'C'}
+                              Z
                             </div>
                             <div className="internship-details">
                               <h3 className="internship-title">{internship.title}</h3>
-                              <p className="company-name">{internship.companyName}</p>
+                              <p className="company-name">Zoyaraa • {internship.department}</p>
                               <div className="internship-meta">
                                 <span className="meta-item">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1154,14 +1241,14 @@ const BrowseInternshipsPage = () => {
                                     <line x1="8" y1="2" x2="8" y2="6"></line>
                                     <line x1="3" y1="10" x2="21" y2="10"></line>
                                   </svg>
-                                  {internship.duration || 'N/A'} {internship.duration && 'months'}
+                                  {internship.duration || 'N/A'} months
                                 </span>
                                 <span className="meta-item">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                   </svg>
-                                  {internship.type || 'Full-time'}
+                                  {internship.workMode || 'Full-time'}
                                 </span>
                               </div>
                               <div className="posted-time">{relativeTime}</div>
@@ -1248,10 +1335,10 @@ const BrowseInternshipsPage = () => {
         </div>
       </main>
 
-      {/* Internship Details Modal - 2x2 Grid Layout */}
+      {/* Internship Details Modal - COMPLETE with ALL Zoyaraa fields */}
       {selectedInternship && !showApplyModal && (
         <div className="modal-overlay" onClick={() => setSelectedInternship(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
             <button
               className="close-modal"
               onClick={() => setSelectedInternship(null)}
@@ -1264,38 +1351,102 @@ const BrowseInternshipsPage = () => {
             </button>
 
             <div className="modal-body">
+              {/* Header */}
               <div className="modal-header-content">
                 <h2>{selectedInternship.title}</h2>
-                <p className="company-name-large">{selectedInternship.companyName}</p>
+                <p className="company-name-large">Zoyaraa • {selectedInternship.department} Department</p>
+                <div className="internship-status-badge" style={{
+                  display: 'inline-block',
+                  padding: '0.25rem 1rem',
+                  borderRadius: '20px',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  background: selectedInternship.status === 'active' ? '#E6F7E6' : '#fee2e2',
+                  color: selectedInternship.status === 'active' ? '#10b981' : '#dc2626',
+                  marginTop: '0.5rem'
+                }}>
+                  {selectedInternship.status === 'active' ? '🟢 Active' : '🔴 Closed'}
+                </div>
               </div>
 
-              {/* 2x2 Grid Layout - Perfect Alignment */}
+              {/* Key Details Grid - 2x2 */}
               <div className="internship-details-grid-2col">
                 <div className="detail-card">
                   <div className="detail-label">📍 Location</div>
-                  <div className="detail-value">{selectedInternship.location || 'N/A'}</div>
+                  <div className="detail-value">{selectedInternship.location || 'Not specified'}</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">⏱️ Duration</div>
-                  <div className="detail-value">
-                    {selectedInternship.duration || 'N/A'}
-                    {selectedInternship.duration && !selectedInternship.duration.includes('month') ? ' months' : ''}
-                  </div>
+                  <div className="detail-value">{selectedInternship.duration} months</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">💰 Stipend</div>
                   <div className="detail-value stipend-value">{formatStipend(selectedInternship.stipend)}</div>
                 </div>
                 <div className="detail-card">
-                  <div className="detail-label">💼 Type</div>
-                  <div className="detail-value">{selectedInternship.type || 'Full-time'}</div>
+                  <div className="detail-label">💼 Work Mode</div>
+                  <div className="detail-value">{selectedInternship.workMode || 'Not specified'}</div>
+                </div>
+              </div>
+
+              {/* Work Details Section - NEW */}
+              <div className="modal-section">
+                <h3>🏢 Work Details</h3>
+                <div className="work-details-grid" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '1rem',
+                  background: '#f8fafc',
+                  padding: '1rem',
+                  borderRadius: '8px'
+                }}>
+                  {selectedInternship.officeLocation && (
+                    <div className="work-detail-item">
+                      <span className="detail-label-small">Office Location:</span>
+                      <span className="detail-value-small">{selectedInternship.officeLocation}</span>
+                    </div>
+                  )}
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">Daily Timings:</span>
+                    <span className="detail-value-small">{selectedInternship.dailyTimings || '10 AM - 6 PM'}</span>
+                  </div>
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">Weekly Off:</span>
+                    <span className="detail-value-small">{selectedInternship.weeklyOff || 'Saturday, Sunday'}</span>
+                  </div>
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">Start Date:</span>
+                    <span className="detail-value-small">{formatDate(selectedInternship.startDate)}</span>
+                  </div>
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">End Date:</span>
+                    <span className="detail-value-small">{formatDate(selectedInternship.endDate)}</span>
+                  </div>
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">Positions Available:</span>
+                    <span className="detail-value-small">{selectedInternship.positions || 1}</span>
+                  </div>
+                  <div className="work-detail-item">
+                    <span className="detail-label-small">Application Deadline:</span>
+                    <span className="detail-value-small" style={{
+                      color: isDeadlinePassed(selectedInternship.deadline) ? '#dc2626' : '#059669',
+                      fontWeight: '600'
+                    }}>
+                      {formatDate(selectedInternship.deadline)}
+                      {!isDeadlinePassed(selectedInternship.deadline) && (
+                        <span style={{ marginLeft: '0.5rem' }}>({getDaysRemaining(selectedInternship.deadline)})</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Description */}
               <div className="modal-section">
                 <h3>📝 Description</h3>
-                <p className="internship-description">{selectedInternship.description}</p>
+                <p className="internship-description" style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                  {selectedInternship.description}
+                </p>
               </div>
 
               {/* Skills Required */}
@@ -1308,14 +1459,26 @@ const BrowseInternshipsPage = () => {
                     const levelColor = getSkillLevelColor(skillLevel);
 
                     return (
-                      <div key={index} className="skill-item">
-                        <span className="skill-name">{skillName}</span>
+                      <div key={index} className="skill-item" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <span className="skill-name" style={{ fontWeight: '500' }}>{skillName}</span>
                         <span
                           className="skill-level-badge"
                           style={{
                             backgroundColor: levelColor.bg,
                             color: levelColor.color,
-                            border: `1px solid ${levelColor.border}`
+                            border: `1px solid ${levelColor.border}`,
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600'
                           }}
                         >
                           {skillLevel}
@@ -1330,10 +1493,18 @@ const BrowseInternshipsPage = () => {
               {selectedInternship.requirements && selectedInternship.requirements.length > 0 && (
                 <div className="modal-section">
                   <h3>📋 Requirements</h3>
-                  <ul className="requirements-list">
+                  <ul className="requirements-list" style={{ listStyle: 'none', padding: 0 }}>
                     {selectedInternship.requirements.map((req, index) => (
-                      <li key={index}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <li key={index} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        marginBottom: '0.5rem'
+                      }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                         {req}
@@ -1347,10 +1518,22 @@ const BrowseInternshipsPage = () => {
               {selectedInternship.perks && selectedInternship.perks.length > 0 && (
                 <div className="modal-section">
                   <h3>🎁 Perks & Benefits</h3>
-                  <div className="perks-grid">
+                  <div className="perks-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '0.75rem'
+                  }}>
                     {selectedInternship.perks.map((perk, index) => (
-                      <div key={index} className="perk-item">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <div key={index} className="perk-item" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        background: '#f0f9ff',
+                        borderRadius: '8px',
+                        color: '#0369a1'
+                      }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10"></circle>
                           <path d="m9 12 2 2 4-5"></path>
                         </svg>
@@ -1360,6 +1543,59 @@ const BrowseInternshipsPage = () => {
                   </div>
                 </div>
               )}
+
+              {/* Selection Process - NEW */}
+              {selectedInternship.selectionProcess && selectedInternship.selectionProcess.length > 0 && (
+                <div className="modal-section">
+                  <h3>🎯 Selection Process</h3>
+                  <div className="selection-process-steps">
+                    {selectedInternship.selectionProcess.map((round, index) => (
+                      <div key={index} className="selection-round" style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        marginBottom: '1rem',
+                        position: 'relative'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          top: '-10px',
+                          left: '1rem',
+                          background: '#2440F0',
+                          color: 'white',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>
+                          Round {round.round}
+                        </div>
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: '600' }}>{round.type}</span>
+                            {round.duration && (
+                              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                ⏱️ {round.duration}
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ color: '#4b5563', fontSize: '0.9375rem', margin: 0 }}>
+                            {round.details}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Posted & Deadline Info */}
+              <div className="modal-section" style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7280', fontSize: '0.875rem' }}>
+                  <span>📅 Posted: {formatDate(selectedInternship.createdAt)}</span>
+                  <span>🆔 Internship ID: {selectedInternship._id.slice(-6)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="modal-footer">
@@ -1381,7 +1617,12 @@ const BrowseInternshipsPage = () => {
               )}
               {hasApplied(selectedInternship._id) && (
                 <button className="modal-apply-btn applied" disabled>
-                  ✓ Applied
+                  ✓ Already Applied
+                </button>
+              )}
+              {isDeadlinePassed(selectedInternship.deadline) && !hasApplied(selectedInternship._id) && (
+                <button className="modal-apply-btn" disabled style={{ background: '#9ca3af' }}>
+                  ⏰ Deadline Passed
                 </button>
               )}
             </div>
@@ -1389,10 +1630,10 @@ const BrowseInternshipsPage = () => {
         </div>
       )}
 
-      {/* Apply Modal */}
+      {/* Apply Modal - CORRECT Version */}
       {showApplyModal && selectedInternship && (
         <div className="modal-overlay" onClick={() => setShowApplyModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <button
               className="close-modal"
               onClick={() => setShowApplyModal(false)}
@@ -1407,37 +1648,312 @@ const BrowseInternshipsPage = () => {
             <div className="modal-body">
               <div className="modal-header-content">
                 <h2>Apply for {selectedInternship.title}</h2>
-                <p className="company-name-large">{selectedInternship.companyName}</p>
+                <p className="company-name-large">Zoyaraa • {selectedInternship.department} Department</p>
               </div>
 
+              {/* ===== SECTION 1: Profile Review (Auto-filled from DB) ===== */}
               <div className="modal-section">
-                <h3>📝 Cover Letter</h3>
-                <textarea
-                  className="cover-letter-input"
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  placeholder="Introduce yourself and explain why you're a great fit for this internship..."
-                  rows="6"
-                />
-                <p className="field-hint">
-                  A well-written cover letter increases your chances of getting shortlisted.
-                </p>
+                <h3>📋 Your Profile</h3>
+                <div style={{
+                  background: '#f8fafc',
+                  borderRadius: '8px',
+                  padding: '1.5rem',
+                  marginBottom: '1rem'
+                }}>
+                  {/* Basic Info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div>
+                      <span style={{ fontWeight: '600', fontSize: '1.1rem' }}>{userData.name || 'Student Name'}</span>
+                      <p style={{ fontSize: '0.875rem', color: '#4b5563', marginTop: '0.25rem' }}>{userData.email}</p>
+                    </div>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      background: '#E6F7E6',
+                      color: '#10b981',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '20px',
+                      fontWeight: '600'
+                    }}>
+                      Profile Synced
+                    </span>
+                  </div>
+
+                  {/* Education (from DB) - Handle different structures */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Education</span>
+                    <p style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
+                      {profileData?.college || profileData?.education?.college || 'Not specified'} •
+                      {profileData?.department || profileData?.education?.department || 'Department'} •
+                      {profileData?.yearOfStudy || profileData?.education?.yearOfStudy || 'Year'}
+                    </p>
+                  </div>
+
+                  {/* Skills (from DB) - Handle different structures */}
+                  {profileData?.skills && profileData.skills.length > 0 ? (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Skills</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        {profileData.skills.map((skill, i) => (
+                          <span key={i} style={{
+                            background: '#EEF2FF',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            color: '#2440F0'
+                          }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : profileData?.resume?.skills && profileData.resume.skills.length > 0 ? (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Skills</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        {profileData.resume.skills.map((skill, i) => (
+                          <span key={i} style={{
+                            background: '#EEF2FF',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            color: '#2440F0'
+                          }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Resume - Check for resumeFile field */}
+                  {profileData?.resume?.resumeFile ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '8px' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <span style={{ fontSize: '0.875rem', color: '#2440F0' }}>
+                        {profileData.resume.resumeFileName || 'resume.pdf'}
+                      </span>
+                      <a
+                        href={`http://localhost:5000${profileData.resume.resumeFile}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#2440F0', textDecoration: 'underline' }}
+                      >
+                        View Resume
+                      </a>
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: '1rem',
+                      background: '#FFF4E5',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                      <span style={{ fontSize: '0.875rem', color: '#f59e0b' }}>
+                        No resume uploaded. Please upload in your profile.
+                      </span>
+                      <button
+                        onClick={() => navigate('/student/resume')}
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: '0.75rem',
+                          color: '#2440F0',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Go to Profile
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ===== SECTION 2: Application Questions (Based on Internship) ===== */}
+              <div className="modal-section">
+                <h3>📝 Application Questions</h3>
+
+                {/* COVER LETTER - Always relevant */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Why are you interested in this internship? <span style={{ color: '#6b7280', fontWeight: 'normal' }}>(Optional but recommended)</span>
+                  </label>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    placeholder="Tell us why you're a good fit for this role and what you hope to learn..."
+                    rows="4"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '0.9375rem',
+                      fontFamily: 'inherit'
+                    }}
+                  />
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    A thoughtful response increases your chances of getting shortlisted.
+                  </p>
+                </div>
+
+                {/* RELEVANT QUESTIONS based on internship requirements */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Do you have experience with {selectedInternship.skillsRequired?.slice(0, 3).map(s => typeof s === 'string' ? s : s.name).join(', ')}?
+                  </label>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="radio" name="experience" value="yes" /> Yes
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="radio" name="experience" value="no" /> No
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="radio" name="experience" value="some" /> Some experience
+                    </label>
+                  </div>
+                </div>
+
+                {/* PORTFOLIO/GITHUB - Only ask if relevant to role */}
+                {selectedInternship.category === 'technology' && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                      Portfolio/GitHub Link
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://github.com/username"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* PROJECT LINKS - For design/development roles */}
+                {selectedInternship.category === 'design' && (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                      Portfolio/Behance Link
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://behance.net/username"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px'
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* AVAILABILITY - Ask if they can commit to duration */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Are you available for {selectedInternship.duration} months starting from {new Date(selectedInternship.startDate).toLocaleDateString()}?
+                  </label>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="radio" name="available" value="yes" /> Yes, I'm available
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="radio" name="available" value="no" /> No, I have constraints
+                    </label>
+                  </div>
+                </div>
+
+                {/* WORK MODE - Ask preference based on internship work mode */}
+                {selectedInternship.workMode === 'Hybrid' || selectedInternship.workMode === 'Onsite' ? (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                      Are you able to work from {selectedInternship.officeLocation || 'our office'}?
+                    </label>
+                    <div style={{ display: 'flex', gap: '2rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="radio" name="location" value="yes" /> Yes
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="radio" name="location" value="no" /> No
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="radio" name="location" value="hybrid" /> Can do hybrid
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* SOURCE - Always good to track */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    How did you hear about this internship?
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      background: 'white'
+                    }}
+                  >
+                    <option value="">Select an option</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="college">College/University</option>
+                    <option value="friend">Friend/Referral</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* ===== SECTION 3: Confirmation ===== */}
+              <div className="modal-section" style={{ borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <input type="checkbox" id="confirm" style={{ marginTop: '0.25rem' }} />
+                  <label htmlFor="confirm" style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                    I confirm that all information provided is accurate and I understand that
+                    <a href="#" style={{ color: '#2440F0', margin: '0 0.25rem' }}>false information</a>
+                    may lead to disqualification.
+                  </label>
+                </div>
               </div>
             </div>
 
+            {/* Footer */}
             <div className="modal-footer">
               <button
-                className="modal-close-btn"
+                className="secondary-btn"
                 onClick={() => setShowApplyModal(false)}
                 onMouseDown={createRippleEffect}
               >
                 Cancel
               </button>
               <button
-                className="modal-apply-btn"
+                className="primary-btn"
                 onClick={handleApply}
                 disabled={applying}
                 onMouseDown={createRippleEffect}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  padding: '0.75rem 2rem'
+                }}
               >
                 {applying ? 'Submitting...' : 'Submit Application'}
               </button>

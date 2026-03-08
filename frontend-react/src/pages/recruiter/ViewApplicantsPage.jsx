@@ -13,6 +13,7 @@ const ViewApplicantsPage = () => {
   const [internships, setInternships] = useState([]);
   const [selectedInternship, setSelectedInternship] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [interviews, setInterviews] = useState({}); // Track which apps have interviews
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -25,7 +26,8 @@ const ViewApplicantsPage = () => {
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'RD',
-    company: ''
+    department: '',
+    company: 'Zoyaraa'
   });
 
   useEffect(() => {
@@ -74,7 +76,8 @@ const ViewApplicantsPage = () => {
         setUserData({
           name: user.fullName,
           initials: initials,
-          company: user.company || ''
+          department: user.department || '',
+          company: 'Zoyaraa'
         });
       }
     } catch (error) {
@@ -122,12 +125,52 @@ const ViewApplicantsPage = () => {
           accepted: 0,
           rejected: 0
         });
+
+        // Check which shortlisted applications already have interviews
+        await checkInterviewStatus(data.data.applications || []);
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
       showNotification('Failed to load applications', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check which shortlisted applications have interviews
+  const checkInterviewStatus = async (apps) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const interviewMap = {};
+
+      // Only check shortlisted applications
+      const shortlistedApps = apps.filter(app => app.status === 'shortlisted');
+
+      for (const app of shortlistedApps) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/interviews/application/${app.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            interviewMap[app.id] = {
+              exists: true,
+              interviewId: data.data.interview._id,
+              currentRound: data.data.interview.currentRound
+            };
+          } else {
+            interviewMap[app.id] = { exists: false };
+          }
+        } catch (error) {
+          console.log(`No interview for app ${app.id}`);
+          interviewMap[app.id] = { exists: false };
+        }
+      }
+
+      setInterviews(interviewMap);
+    } catch (error) {
+      console.error('Error checking interview status:', error);
     }
   };
 
@@ -176,6 +219,11 @@ const ViewApplicantsPage = () => {
           return newStats;
         });
 
+        // If new status is shortlisted, check if we need to refresh interview status
+        if (newStatus === 'shortlisted') {
+          setTimeout(() => checkInterviewStatus(applications), 500);
+        }
+
         showNotification(`Application ${newStatus} successfully`);
       } else {
         showNotification(data.message || 'Failed to update status', 'error');
@@ -186,8 +234,56 @@ const ViewApplicantsPage = () => {
     }
   };
 
+  // Start interview process for shortlisted candidate
+  const startInterviewProcess = async (applicationId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+
+      showNotification('Starting interview process...', 'info');
+
+      const response = await fetch(`http://localhost:5000/api/interviews/application/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showNotification('✅ Interview process started successfully!', 'success');
+
+        // Update interview map
+        setInterviews(prev => ({
+          ...prev,
+          [applicationId]: {
+            exists: true,
+            interviewId: data.data.interview._id,
+            currentRound: 1
+          }
+        }));
+
+        // Refresh the applications list
+        if (selectedInternship) {
+          fetchApplications(selectedInternship._id);
+        }
+
+      } else {
+        showNotification(data.message || 'Failed to start interview', 'error');
+      }
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      showNotification('Network error. Please try again.', 'error');
+    }
+  };
+
   const viewStudentProfile = (studentId) => {
     navigate(`/recruiter/student/${studentId}`);
+  };
+
+  // View interview details
+  const viewInterview = (interviewId) => {
+    navigate(`/recruiter/interviews/${interviewId}`);
   };
 
   const toggleCoverLetter = (appId) => {
@@ -227,7 +323,9 @@ const ViewApplicantsPage = () => {
     notification.textContent = message;
     notification.style.background = type === 'error'
       ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-      : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
+      : type === 'info'
+        ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
   };
@@ -265,7 +363,18 @@ const ViewApplicantsPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
+          </div>
+          {/* Department Badge - Like PostInternshipPage */}
+          <div className="department-badge" style={{
+            marginTop: '0.5rem',
+            padding: '0.25rem 0.5rem',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            textAlign: 'center'
+          }}>
+            {userData.department || 'Department'}
           </div>
         </div>
 
@@ -306,7 +415,7 @@ const ViewApplicantsPage = () => {
           </button>
 
           <button
-            className={`nav-item active`}
+            className={`nav-item ${location.pathname.includes('/recruiter/applicants') ? 'active' : ''}`}
             onClick={() => navigate('/recruiter/applicants')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -316,6 +425,28 @@ const ViewApplicantsPage = () => {
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span className="nav-item-text">View Applicants</span>
+          </button>
+
+          {/* Interviews Menu Item */}
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/interviews')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span className="nav-item-text">Interviews</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentees')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">My Mentees</span>
           </button>
         </nav>
 
@@ -328,7 +459,7 @@ const ViewApplicantsPage = () => {
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
               <div className="user-role-sidebar">
-                {userData.company ? `Recruiter • ${userData.company}` : 'Recruiter'}
+                {userData.department} • Zoyaraa
               </div>
             </div>
           </button>
@@ -352,7 +483,14 @@ const ViewApplicantsPage = () => {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
-            <h2 className="page-title">Applicants</h2>
+            <h2 className="page-title">
+              Applicants
+              {userData.department && (
+                <span style={{ fontSize: '0.9rem', marginLeft: '1rem', color: '#666' }}>
+                  • {userData.department} Department
+                </span>
+              )}
+            </h2>
           </div>
           <div className="top-bar-right">
             <NotificationBell />
@@ -386,7 +524,7 @@ const ViewApplicantsPage = () => {
           ) : (
             <>
               {/* Internship Selector */}
-              <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <label htmlFor="internship-select" style={{ fontWeight: '600' }}>Select Internship:</label>
                 <select
                   id="internship-select"
@@ -400,7 +538,8 @@ const ViewApplicantsPage = () => {
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
                     fontSize: '0.9375rem',
-                    minWidth: '300px'
+                    minWidth: '300px',
+                    flex: '1'
                   }}
                 >
                   {internships.map(internship => (
@@ -409,6 +548,30 @@ const ViewApplicantsPage = () => {
                     </option>
                   ))}
                 </select>
+
+                {/* Quick link to interviews dashboard */}
+                <button
+                  onClick={() => navigate('/recruiter/interviews')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    border: '1px solid #2440F0',
+                    borderRadius: '8px',
+                    background: 'white',
+                    color: '#2440F0',
+                    fontSize: '0.9375rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  Manage Interviews
+                </button>
               </div>
 
               {selectedInternship && (
@@ -562,13 +725,17 @@ const ViewApplicantsPage = () => {
                     <div className="applications-list">
                       {filteredApplications.map((app) => {
                         const statusColors = getStatusColor(app.status);
+                        const hasInterview = interviews[app.id]?.exists;
+                        const interviewId = interviews[app.id]?.interviewId;
+
                         return (
                           <div key={app.id} className="application-card" style={{
                             background: 'white',
                             border: '1px solid #e5e7eb',
                             borderRadius: '12px',
                             padding: '1.5rem',
-                            marginBottom: '1rem'
+                            marginBottom: '1rem',
+                            position: 'relative'
                           }}>
                             {/* Header */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -599,7 +766,7 @@ const ViewApplicantsPage = () => {
                               Applied: {formatDate(app.appliedDate)}
                             </p>
 
-                            {/* Cover Letter Section - NEW */}
+                            {/* Cover Letter Section */}
                             {app.coverLetter && (
                               <div style={{ marginBottom: '1.5rem' }}>
                                 <div
@@ -664,8 +831,9 @@ const ViewApplicantsPage = () => {
                             )}
 
                             {/* Action Buttons - LOGICAL FLOW BASED ON STATUS */}
-                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                              {/* PENDING applications - Show Shortlist & Reject */}
+                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+
+                              {/* ===== PENDING applications ===== */}
                               {app.status === 'pending' && (
                                 <>
                                   <button
@@ -701,24 +869,60 @@ const ViewApplicantsPage = () => {
                                 </>
                               )}
 
-                              {/* SHORTLISTED applications - Show Accept & Reject */}
+                              {/* ===== SHORTLISTED applications ===== */}
                               {app.status === 'shortlisted' && (
                                 <>
-                                  <button
-                                    onClick={() => updateApplicationStatus(app.id, 'accepted')}
-                                    style={{
-                                      padding: '0.5rem 1rem',
-                                      border: 'none',
-                                      borderRadius: '6px',
-                                      background: '#10b981',
-                                      color: 'white',
-                                      fontSize: '0.875rem',
-                                      fontWeight: '500',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Accept
-                                  </button>
+                                  {!hasInterview ? (
+                                    // No interview started - Show Start Interview Process button
+                                    <button
+                                      onClick={() => startInterviewProcess(app.id)}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        background: '#8b5cf6', // Purple color for interview process
+                                        color: 'white',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                      }}
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                      </svg>
+                                      Start Interview Process
+                                    </button>
+                                  ) : (
+                                    // Interview started - Show View Interview button
+                                    <button
+                                      onClick={() => viewInterview(interviewId)}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        border: '1px solid #8b5cf6',
+                                        borderRadius: '6px',
+                                        background: '#f5f3ff',
+                                        color: '#8b5cf6',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                      }}
+                                    >
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M22 12c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2s10 4.48 10 10z"></path>
+                                      </svg>
+                                      View Interview
+                                    </button>
+                                  )}
+
+                                  {/* Reject button - always visible for shortlisted */}
                                   <button
                                     onClick={() => updateApplicationStatus(app.id, 'rejected')}
                                     style={{
@@ -737,27 +941,48 @@ const ViewApplicantsPage = () => {
                                 </>
                               )}
 
-                              {/* ACCEPTED applications - Show disabled "Accepted" badge */}
+                              {/* ===== ACCEPTED applications ===== */}
                               {app.status === 'accepted' && (
-                                <button
-                                  disabled
-                                  style={{
-                                    padding: '0.5rem 1rem',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    background: '#E6F7E6',
-                                    color: '#10b981',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '600',
-                                    cursor: 'not-allowed',
-                                    opacity: 0.8
-                                  }}
-                                >
-                                  ✓ Accepted
-                                </button>
+                                <>
+                                  <button
+                                    disabled
+                                    style={{
+                                      padding: '0.5rem 1rem',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      background: '#E6F7E6',
+                                      color: '#10b981',
+                                      fontSize: '0.875rem',
+                                      fontWeight: '600',
+                                      cursor: 'not-allowed',
+                                      opacity: 0.8
+                                    }}
+                                  >
+                                    ✓ Accepted
+                                  </button>
+
+                                  {/* Show View Interview button if interview exists */}
+                                  {hasInterview && (
+                                    <button
+                                      onClick={() => viewInterview(interviewId)}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        background: 'white',
+                                        color: '#1f2937',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      View Interview History
+                                    </button>
+                                  )}
+                                </>
                               )}
 
-                              {/* REJECTED applications - Show disabled "Rejected" badge */}
+                              {/* ===== REJECTED applications ===== */}
                               {app.status === 'rejected' && (
                                 <button
                                   disabled
@@ -794,6 +1019,30 @@ const ViewApplicantsPage = () => {
                                 View Profile
                               </button>
                             </div>
+
+                            {/* Interview Status Badge - Show for shortlisted with interview */}
+                            {app.status === 'shortlisted' && hasInterview && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '1rem',
+                                left: '50%', // Center horizontally
+                                transform: 'translateX(-50%)', // Adjust for centering
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                background: '#EEF2FF',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '16px',
+                                fontSize: '0.75rem',
+                                color: '#2440F0',
+                                fontWeight: '500',
+                                zIndex: 1,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                              }}>
+                                <span>🔄</span>
+                                Round {interviews[app.id]?.currentRound || 1} in progress
+                              </div>
+                            )}
                           </div>
                         );
                       })}

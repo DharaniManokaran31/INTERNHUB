@@ -1,3 +1,4 @@
+// src/pages/student/ProfilePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/StudentProfile.css';
@@ -135,6 +136,15 @@ const ProfilePage = () => {
     setIsEditMode(false);
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      showNotification('Logged out successfully!');
+      setTimeout(() => navigate('/login'), 1000);
+    }
+  };
+
   const showNotification = (message, type = 'success') => {
     document.querySelectorAll('.custom-notification').forEach(n => n.remove());
 
@@ -252,16 +262,30 @@ const ProfilePage = () => {
         {/* Action Buttons */}
         <div className="profile-actions-bar">
           {!isEditMode ? (
-            <button 
-              className="profile-edit-btn"
-              onClick={(e) => { createRippleEffect(e); setIsEditMode(true); }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path>
-              </svg>
-              Edit Profile
-            </button>
+            <>
+              <button 
+                className="profile-edit-btn"
+                onClick={(e) => { createRippleEffect(e); setIsEditMode(true); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path>
+                </svg>
+                Edit Profile
+              </button>
+              <button 
+                className="profile-edit-btn"
+                onClick={handleLogout}
+                style={{ background: '#f3f4f6', color: '#1f2937', marginLeft: '0.5rem' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Logout
+              </button>
+            </>
           ) : (
             <div className="profile-action-group">
               <button 

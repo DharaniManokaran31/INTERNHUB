@@ -17,13 +17,14 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import AcceptInvitePage from './pages/auth/AcceptInvitePage';
 
 // Student Dashboard Pages
 import StudentDashboard from './pages/student/DashboardPage';
 import StudentInternships from './pages/student/BrowseInternshipsPage';
 import StudentApplications from './pages/student/MyApplicationsPage';
 import StudentResume from './pages/student/MyResumePage';
-import ProfilePage from './pages/student/ProfilePage'; // ✅ ADDED
+import ProfilePage from './pages/student/ProfilePage';
 
 // Recruiter Dashboard Pages
 import RecruiterDashboard from './pages/recruiter/DashboardPage';
@@ -32,6 +33,8 @@ import RecruiterPostInternship from './pages/recruiter/PostInternshipPage';
 import RecruiterProfile from './pages/recruiter/ProfilePage';
 import RecruiterViewApplicants from './pages/recruiter/ViewApplicantsPage';
 import StudentProfileViewPage from './pages/recruiter/StudentProfileViewPage';
+import MyMenteesPage from './pages/recruiter/MyMenteesPage';
+import InterviewsDashboardPage from './pages/recruiter/InterviewsDashboardPage';
 
 // Admin Dashboard Pages
 import AdminDashboard from './pages/admin/DashboardPage';
@@ -39,6 +42,9 @@ import AdminManageUsers from './pages/admin/ManageUsersPage';
 import AdminManageInternships from './pages/admin/ManageInternshipsPage';
 import AdminReports from './pages/admin/ReportsPage';
 import AdminProfilePage from './pages/admin/ProfilePage';
+
+// HR Dashboard Pages - ✅ ADD THIS IMPORT
+import HRDashboard from './pages/hr/DashboardPage';
 
 // Placeholder Pages (for development)
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -69,6 +75,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
       return <Navigate to="/recruiter/dashboard" replace />;
     } else if (userRole === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
+    } else if (userRole === 'hr') {    // ✅ ADD THIS
+      return <Navigate to="/hr/dashboard" replace />;
     }
     return <Navigate to="/" replace />;
   }
@@ -114,6 +122,13 @@ function App() {
             </AuthLayout>
           } />
 
+          <Route path="/accept-invite/:token" element={
+            <AuthLayout>
+              <AcceptInvitePage />
+            </AuthLayout>
+          } />
+
+
           {/* Student Routes - Protected */}
           <Route path="/student/dashboard" element={
             <ProtectedRoute allowedRoles={['student']}>
@@ -123,7 +138,7 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/student/profile" element={ // ✅ REPLACED with real component
+          <Route path="/student/profile" element={
             <ProtectedRoute allowedRoles={['student']}>
               <DashboardLayout role="student">
                 <ProfilePage />
@@ -180,7 +195,6 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* ✅ ADD THIS NEW ROUTE HERE - Edit Internship */}
           <Route path="/recruiter/edit-internship/:internshipId" element={
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
@@ -197,6 +211,16 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* ✅ ADD THE INTERVIEWS ROUTE HERE */}
+          <Route path="/recruiter/interviews" element={
+            <ProtectedRoute allowedRoles={['recruiter']}>
+              <DashboardLayout role="recruiter">
+                <InterviewsDashboardPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+
           <Route path="/recruiter/profile" element={
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
@@ -209,6 +233,23 @@ function App() {
             <ProtectedRoute allowedRoles={['recruiter']}>
               <DashboardLayout role="recruiter">
                 <StudentProfileViewPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/recruiter/mentees" element={
+            <ProtectedRoute allowedRoles={['recruiter']}>
+              <DashboardLayout role="recruiter">
+                <MyMenteesPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+          {/* ✅ HR Routes - Protected */}
+          <Route path="/hr/dashboard" element={
+            <ProtectedRoute allowedRoles={['hr']}>
+              <DashboardLayout role="hr">
+                <HRDashboard />
               </DashboardLayout>
             </ProtectedRoute>
           } />
@@ -249,7 +290,7 @@ function App() {
           <Route path="/admin/profile" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <DashboardLayout role="admin">
-                <AdminProfilePage /> {/* You'll need to import this */}
+                <AdminProfilePage />
               </DashboardLayout>
             </ProtectedRoute>
           } />
@@ -282,6 +323,8 @@ function App() {
                   return <Navigate to="/recruiter/dashboard" replace />;
                 } else if (userRole === 'admin') {
                   return <Navigate to="/admin/dashboard" replace />;
+                } else if (userRole === 'hr') {    // ✅ ADD THIS
+                  return <Navigate to="/hr/dashboard" replace />;
                 }
                 return <Navigate to="/login" replace />;
               }}
@@ -291,6 +334,7 @@ function App() {
           <Route path="/recruiter" element={<Navigate to="/recruiter/dashboard" replace />} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+          <Route path="/hr" element={<Navigate to="/hr/dashboard" replace />} /> {/* ✅ ADD THIS */}
 
           {/* 404 Redirect */}
           <Route path="*" element={

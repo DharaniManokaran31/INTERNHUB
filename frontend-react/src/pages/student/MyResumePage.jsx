@@ -1,3 +1,4 @@
+// src/pages/student/MyResumePage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentResume.css';
@@ -14,8 +15,8 @@ const MyResumePage = () => {
   const [uploading, setUploading] = useState(false);
   const [activeSection, setActiveSection] = useState('education');
   const [userData, setUserData] = useState({
-    name: 'Demo Student',
-    initials: 'DS',
+    name: 'Loading...',
+    initials: 'ST',
     role: 'student'
   });
 
@@ -250,10 +251,9 @@ const MyResumePage = () => {
       const formData = new FormData();
       formData.append('certificate', file);
 
-      // ✅ FIX: Send certificate data with the file
       // Get current form values or use defaults
       formData.append('name', formData.name || file.name.replace(/\.[^/.]+$/, ""));
-      formData.append('issuer', formData.issuer || 'Pending'); // Send default if empty
+      formData.append('issuer', formData.issuer || 'Pending');
       formData.append('date', formData.date || new Date().toISOString().split('T')[0]);
 
       const response = await fetch('http://localhost:5000/api/students/certificates/upload', {
@@ -659,6 +659,10 @@ const MyResumePage = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   // ===== RENDER RESUME UPLOAD SECTION =====
   const renderResumeUpload = () => {
     console.log('📄 Resume URL in render:', resumeData.resumeUrl);
@@ -749,7 +753,7 @@ const MyResumePage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
         </div>
 
@@ -813,7 +817,7 @@ const MyResumePage = () => {
             <div className="user-avatar-sidebar">{userData.initials}</div>
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">Student</div>
+              <div className="user-role-sidebar">Student • Zoyaraa</div>
             </div>
           </button>
         </div>
@@ -826,7 +830,7 @@ const MyResumePage = () => {
           <div className="top-bar-left">
             <button
               className="menu-toggle"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={toggleMobileMenu}
               aria-label="Toggle menu"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -835,9 +839,9 @@ const MyResumePage = () => {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
+            <h2 className="page-title">My Resume</h2>
           </div>
           <div className="top-bar-right">
-            {/* NEW CODE - ADD THIS */}
             <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
@@ -1243,7 +1247,7 @@ const MyResumePage = () => {
                   </div>
                 )}
 
-                {/* Certifications Section - UPDATED WITH BETTER STYLING */}
+                {/* Certifications Section */}
                 {activeSection === 'certifications' && (
                   <div className="resume-section">
                     <div className="section-header">
@@ -1762,7 +1766,7 @@ const MyResumePage = () => {
         </div>
       )}
 
-      {/* Certification Form Modal - WITH ENHANCED PREVIEW LIKE RESUME */}
+      {/* Certification Form Modal */}
       {showCertForm && (
         <div className="modal-overlay" onClick={() => setShowCertForm(false)}>
           <div className="modal-content small" onClick={e => e.stopPropagation()}>
@@ -1815,7 +1819,7 @@ const MyResumePage = () => {
                   />
                 </div>
 
-                {/* Certificate Upload Section - WITH ENHANCED PREVIEW LIKE RESUME */}
+                {/* Certificate Upload Section */}
                 <div className="form-group full-width">
                   <label>Upload Certificate (Optional)</label>
                   <div className="cert-upload-container">

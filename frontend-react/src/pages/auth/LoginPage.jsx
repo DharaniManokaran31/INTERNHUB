@@ -155,8 +155,10 @@ const LoginPage = () => {
             navigate('/student/dashboard');
           } else if (data.data.user.role === 'recruiter') {
             navigate('/recruiter/dashboard');
-          } else if (data.data.user.role === 'admin') {  // ✅ ADDED admin redirect
+          } else if (data.data.user.role === 'admin') {
             navigate('/admin/dashboard');
+          } else if (data.data.user.role === 'hr') {    // ✅ ADDED HR redirect
+            navigate('/hr/dashboard');
           } else {
             navigate('/dashboard');
           }
@@ -242,11 +244,11 @@ const LoginPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="logo-text">InternHub</span>
+            <span className="logo-text">Zoyaraa</span>  {/* Changed from InternHub */}
           </div>
 
           <div>
-            <h1 className="branding-heading">Connect talent with opportunity.</h1>
+            <h1 className="branding-heading">Zoyaraa Internship Platform</h1>  {/* Changed */}
             <p className="branding-subtext">
               The complete internship management platform for students, recruiters, and administrators.
             </p>

@@ -1,3 +1,4 @@
+// src/pages/student/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentDashboard.css';
@@ -8,21 +9,24 @@ const DashboardPage = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [applications, setApplications] = useState([]); // ✅ ADDED
+  const [applications, setApplications] = useState([]);
+  const [recommendedInternships, setRecommendedInternships] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     shortlisted: 0,
-    pending: 0
+    pending: 0,
+    accepted: 0,
+    rejected: 0
   });
   const [userData, setUserData] = useState({
-    name: 'Demo Student',
-    email: 'demo@student.com',
-    initials: 'DS',
+    name: 'Loading...',
+    email: '',
+    initials: 'ST',
     role: 'student'
   });
   const [greeting, setGreeting] = useState('Welcome back');
 
-  // ✅ Get REAL user profile from your backend
+  // Get REAL user profile from backend
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -80,15 +84,12 @@ const DashboardPage = () => {
     setGreeting(`${greetingText}, ${firstName}!`);
   }, [userData]);
 
-  // ✅ Get REAL application stats from your backend
+  // Get REAL application stats
   useEffect(() => {
     const fetchApplicationStats = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.log('No auth token found');
-          return;
-        }
+        if (!token) return;
 
         const response = await fetch('http://localhost:5000/api/applications/me', {
           headers: {
@@ -100,34 +101,48 @@ const DashboardPage = () => {
 
         if (data.success) {
           const applicationsData = data.data.applications || [];
-          setApplications(applicationsData); // ✅ STORE APPLICATIONS
+          setApplications(applicationsData);
           setStats({
             total: applicationsData.length,
             shortlisted: applicationsData.filter(app => app.status === 'shortlisted').length,
-            pending: applicationsData.filter(app =>
+            pending: applicationsData.filter(app => 
               app.status === 'applied' || app.status === 'pending'
-            ).length
+            ).length,
+            accepted: applicationsData.filter(app => app.status === 'accepted').length,
+            rejected: applicationsData.filter(app => app.status === 'rejected').length
           });
-        } else {
-          setStats({
-            total: 0,
-            shortlisted: 0,
-            pending: 0
-          });
-          setApplications([]);
         }
       } catch (error) {
         console.error('Error fetching applications:', error);
-        setStats({
-          total: 0,
-          shortlisted: 0,
-          pending: 0
-        });
-        setApplications([]);
       }
     };
 
     fetchApplicationStats();
+  }, []);
+
+  // Fetch recommended internships
+  useEffect(() => {
+    const fetchRecommendedInternships = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5000/api/internships?limit=3', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setRecommendedInternships(data.data.internships || []);
+        }
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+      }
+    };
+
+    fetchRecommendedInternships();
   }, []);
 
   // Debounced search
@@ -182,6 +197,10 @@ const DashboardPage = () => {
 
   const viewAllApplications = () => {
     navigate('/student/applications');
+  };
+
+  const viewInternshipDetails = (internshipId) => {
+    navigate(`/student/internship/${internshipId}`);
   };
 
   const handleLogout = () => {
@@ -242,10 +261,6 @@ const DashboardPage = () => {
     }, 3000);
   };
 
-  const handleNotificationClick = () => {
-    showNotification('You have no new notifications');
-  };
-
   const createRippleEffect = (e) => {
     const button = e.currentTarget;
     const ripple = document.createElement('span');
@@ -261,10 +276,42 @@ const DashboardPage = () => {
     ripple.style.top = y + 'px';
 
     button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  };
 
-    setTimeout(() => {
-      ripple.remove();
-    }, 600);
+  const getStatusBadge = (status) => {
+    const styles = {
+      applied: { bg: '#FFF4E5', color: '#f59e0b', text: 'Applied' },
+      pending: { bg: '#FFF4E5', color: '#f59e0b', text: 'Pending' },
+      shortlisted: { bg: '#EEF2FF', color: '#2440F0', text: 'Shortlisted' },
+      accepted: { bg: '#E6F7E6', color: '#10b981', text: 'Accepted' },
+      rejected: { bg: '#fee2e2', color: '#dc2626', text: 'Rejected' }
+    };
+    const style = styles[status] || styles.pending;
+
+    return (
+      <span style={{
+        padding: '0.25rem 0.75rem',
+        borderRadius: '20px',
+        fontSize: '0.75rem',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        background: style.bg,
+        color: style.color
+      }}>
+        {style.text}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   return (
@@ -280,7 +327,7 @@ const DashboardPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
         </div>
 
@@ -346,7 +393,7 @@ const DashboardPage = () => {
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
               <div className="user-role-sidebar">
-                {userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}
+                Student • Zoyaraa
               </div>
             </div>
           </button>
@@ -397,7 +444,6 @@ const DashboardPage = () => {
             </div>
           </div>
           <div className="top-bar-right">
-            {/* NEW CODE - ADD THIS */}
             <NotificationBell />
             <button className="logout-btn" onClick={handleLogout}>
               <span>Logout</span>
@@ -409,24 +455,33 @@ const DashboardPage = () => {
         <div className="content-area">
           <div className="welcome-section">
             <h1 className="welcome-heading" id="greeting">{greeting}</h1>
-            <p className="welcome-subtext">Track your internship applications and find new opportunities</p>
+            <p className="welcome-subtext">Track your applications and discover opportunities at Zoyaraa</p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="stats-grid">
+          {/* Stats Grid - 5 cards */}
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             <div className="stat-card" id="totalApplicationsCard">
               <div className="stat-info">
                 <div className="stat-label">Total Applications</div>
                 <div className="stat-value" id="totalApplications">{stats.total}</div>
               </div>
               <div className="stat-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card" id="pendingCard">
+              <div className="stat-info">
+                <div className="stat-label">Pending</div>
+                <div className="stat-value" id="pendingCount">{stats.pending}</div>
+              </div>
+              <div className="stat-icon orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                  <path d="M3 9h18"></path>
                 </svg>
               </div>
             </div>
@@ -436,26 +491,36 @@ const DashboardPage = () => {
                 <div className="stat-label">Shortlisted</div>
                 <div className="stat-value" id="shortlistedCount">{stats.shortlisted}</div>
               </div>
+              <div className="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M5.5 20v-2a6 6 0 0 1 12 0v2"></path>
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card" id="acceptedCard">
+              <div className="stat-info">
+                <div className="stat-label">Accepted</div>
+                <div className="stat-value" id="acceptedCount">{stats.accepted}</div>
+              </div>
               <div className="stat-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
               </div>
             </div>
 
-            <div className="stat-card" id="pendingCard">
+            <div className="stat-card" id="rejectedCard">
               <div className="stat-info">
-                <div className="stat-label">Pending Review</div>
-                <div className="stat-value" id="pendingCount">{stats.pending}</div>
+                <div className="stat-label">Rejected</div>
+                <div className="stat-value" id="rejectedCount">{stats.rejected}</div>
               </div>
-              <div className="stat-icon orange">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                  <path d="M3 9h18"></path>
-                  <path d="M9 21V9"></path>
+              <div className="stat-icon red" style={{ background: '#fee2e2' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </div>
             </div>
@@ -489,78 +554,144 @@ const DashboardPage = () => {
             </button>
           </div>
 
-          {/* Recent Applications Section */}
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Recent Applications</h2>
-              {applications.length > 0 && (
-                <button
-                  className="view-all-link"
-                  onClick={() => navigate('/student/applications')}
-                >
-                  View All ({applications.length})
-                </button>
-              )}
-            </div>
+          {/* Two Column Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            {/* Recent Applications Section */}
+            <section className="section" style={{ marginBottom: 0 }}>
+              <div className="section-header">
+                <h2 className="section-title">Recent Applications</h2>
+                {applications.length > 0 && (
+                  <button
+                    className="view-all-link"
+                    onClick={() => navigate('/student/applications')}
+                  >
+                    View All ({applications.length})
+                  </button>
+                )}
+              </div>
 
-            {applications.length === 0 ? (
-              <div className="empty-state" id="emptyApplications">
-                <div className="empty-state-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
-                </div>
-                <h3>You haven't applied to any internships yet.</h3>
-                <p>Start exploring internships and apply to positions that match your skills</p>
-                <button
-                  className="primary-btn"
-                  onClick={(e) => { createRippleEffect(e); browseInternships(); }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                  </svg>
-                  Browse Internships
-                </button>
-              </div>
-            ) : (
-              <div className="recent-applications-list">
-                {applications.slice(0, 3).map((app) => (
-                  <div key={app._id} className="recent-application-card">
-                    <div className="recent-app-header">
-                      <h4>{app.internship?.title || 'Internship'}</h4>
-                      <span className={`status-badge status-${app.status}`}>
-                        {app.status === 'applied' || app.status === 'pending' ? 'Pending' : app.status}
-                      </span>
-                    </div>
-                    <div className="recent-app-company">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                      </svg>
-                      {app.internship?.companyName || 'Company'}
-                    </div>
-                    <div className="recent-app-meta">
-                      <span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        Applied: {new Date(app.appliedAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
+              {applications.length === 0 ? (
+                <div className="empty-state" id="emptyApplications">
+                  <div className="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
                   </div>
-                ))}
+                  <h3>No applications yet</h3>
+                  <p>Start exploring internships and apply to positions that match your skills</p>
+                  <button
+                    className="primary-btn"
+                    onClick={(e) => { createRippleEffect(e); browseInternships(); }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    Browse Internships
+                  </button>
+                </div>
+              ) : (
+                <div className="recent-applications-list">
+                  {applications.slice(0, 3).map((app) => (
+                    <div key={app._id} className="recent-application-card">
+                      <div className="recent-app-header">
+                        <h4>{app.internship?.title || 'Internship'}</h4>
+                        {getStatusBadge(app.status)}
+                      </div>
+                      <div className="recent-app-company">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                        {app.internship?.companyName || 'Zoyaraa'} • {app.internship?.department || 'Department'}
+                      </div>
+                      <div className="recent-app-meta">
+                        <span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                          </svg>
+                          Applied: {formatDate(app.appliedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Recommended Internships Section */}
+            <section className="section" style={{ marginBottom: 0 }}>
+              <div className="section-header">
+                <h2 className="section-title">Recommended for You</h2>
+                {recommendedInternships.length > 0 && (
+                  <button
+                    className="view-all-link"
+                    onClick={() => navigate('/student/internships')}
+                  >
+                    View All
+                  </button>
+                )}
               </div>
-            )}
-          </section>
+
+              {recommendedInternships.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                  </div>
+                  <h3>Check back later</h3>
+                  <p>New internships will appear here as they're posted</p>
+                </div>
+              ) : (
+                <div className="recent-applications-list">
+                  {recommendedInternships.slice(0, 3).map((internship) => (
+                    <div 
+                      key={internship._id} 
+                      className="recent-application-card"
+                      onClick={() => viewInternshipDetails(internship._id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="recent-app-header">
+                        <h4>{internship.title}</h4>
+                        <span style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#EEF2FF',
+                          color: '#2440F0',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem'
+                        }}>
+                          {internship.department}
+                        </span>
+                      </div>
+                      <div className="recent-app-company">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                        {internship.workMode} • {internship.location}
+                      </div>
+                      <div className="recent-app-meta">
+                        <span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                          </svg>
+                          Starts: {formatDate(internship.startDate)}
+                        </span>
+                        <span style={{ color: '#10b981', fontWeight: '600' }}>
+                          ₹{internship.stipend?.toLocaleString() || 'Unpaid'}/mo
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </main>
     </div>
