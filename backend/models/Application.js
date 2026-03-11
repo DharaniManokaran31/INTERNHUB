@@ -58,6 +58,37 @@ const ApplicationSchema = new mongoose.Schema(
     resumeVersion: {
       type: String,                   // Could be timestamp or version ID
       default: null
+    },
+
+    // ✅ TRACK STATUS HISTORY/TIMELINE
+    timeline: [{
+      status: String,
+      comment: String,
+      updatedAt: { type: Date, default: Date.now },
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Recruiter" }
+    }],
+
+    // ✅ RECRUITER NOTES (INTERNAL)
+    recruiterNotes: [{
+      note: String,
+      addedAt: { type: Date, default: Date.now },
+      addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Recruiter" }
+    }],
+
+    // ✅ NEXT STEPS
+    nextSteps: {
+      type: String,
+      default: ''
+    },
+
+    // ✅ CERTIFICATE RECOMMENDATION
+    certificateRecommended: {
+      type: Boolean,
+      default: false
+    },
+    certificationFeedback: {
+      type: String,
+      default: ''
     }
   },
   { timestamps: true }

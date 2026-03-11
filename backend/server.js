@@ -27,6 +27,10 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Public Routes (No Auth)
+const hrController = require("./controllers/hrController");
+app.get("/api/public/certificates/verify/:id", hrController.verifyCertificatePublic);
+
 app.get("/", (req, res) => {
   res.status(200).json({ message: "InternHub Backend is Running" });
 });

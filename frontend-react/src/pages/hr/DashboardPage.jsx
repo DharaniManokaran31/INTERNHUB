@@ -30,13 +30,14 @@ const HRDashboardPage = () => {
             const token = localStorage.getItem('authToken');
             
             // Fetch everything in parallel using hrService
-            const [profileRes, statsRes, recruitersRes, notificationsRes] = await Promise.all([
+            const [profileRes, statsRes, recruitersRes, notificationsRes, activityRes] = await Promise.all([
                 fetch('http://localhost:5000/api/recruiters/profile', { 
                     headers: { 'Authorization': `Bearer ${token}` } 
                 }).then(res => res.json()),
                 hrService.getDashboardStats(),
                 hrService.getAllRecruiters(),
-                hrService.getNotifications()
+                hrService.getNotifications(),
+                hrService.getRecentActivity()
             ]);
 
             // Handle Profile

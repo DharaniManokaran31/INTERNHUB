@@ -483,7 +483,25 @@ const updateApplicationStatus = async (req, res) => {
 
     const oldStatus = application.status;
     application.status = status;
+
+    // Record timeline entry
+    application.timeline.push({
+      status: status,
+      comment: req.body.comment || `Application status changed to ${status}`,
+      updatedBy: recruiterId
+    });
+
     await application.save();
+
+    // Send status change email
+    const { sendApplicationStatusEmail } = require('../services/emailService');
+    await sendApplicationStatusEmail(
+      application.student.email,
+      application.student.fullName,
+      application.internship.title,
+      status,
+      req.body.comment
+    );
 
     // When status changes to 'accepted', set up mentoring
     if (status === 'accepted' && oldStatus !== 'accepted') {
@@ -572,6 +590,216 @@ const updateApplicationStatus = async (req, res) => {
   }
 };
 
+// ----------------------
+// Get Application By ID (Full Details)
+// ----------------------
+const getApplicationById = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const recruiterId = req.user.id;
+
+    const application = await Application.findById(applicationId)
+      .populate('student', 'fullName email profilePicture phone location education skills resume linkedin github portfolio')
+      .populate('internship', 'title department companyName workMode location')
+      .populate('timeline.updatedBy', 'fullName designation')
+      .populate('recruiterNotes.addedBy', 'fullName designation');
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    // Check permission (HR or Owner)
+    const isHR = req.user.role === 'hr' || req.user.role === 'admin';
+    // For simplicity, we assume if it's a recruiter, they should have permission if they can see the internship
+    // We'll add more strict check if needed.
+
+    // Generate full URLs for files
+    const appObj = application.toObject();
+    
+    // Resume URL
+    if (appObj.submittedResume?.url) {
+      appObj.submittedResume.url = `${req.protocol}://${req.get('host')}${appObj.submittedResume.url}`;
+    }
+    
+    // Certificates URLs
+    if (appObj.submittedCertificates) {
+      appObj.submittedCertificates = appObj.submittedCertificates.map(cert => ({
+        ...cert,
+        url: cert.url ? `${req.protocol}://${req.get('host')}${cert.url}` : null
+      }));
+    }
+
+    // Student profile Picture and Resume URLs
+    if (appObj.student) {
+      if (appObj.student.profilePicture) {
+        // Assume profile picture might be a URL or a path
+        if (!appObj.student.profilePicture.startsWith('http')) {
+          appObj.student.profilePicture = `${req.protocol}://${req.get('host')}${appObj.student.profilePicture}`;
+        }
+      }
+      
+      if (appObj.student.resume?.resumeFile) {
+        appObj.student.resume.resumeUrl = `${req.protocol}://${req.get('host')}${appObj.student.resume.resumeFile}`;
+      }
+      
+      if (appObj.student.resume?.certifications) {
+        appObj.student.resume.certifications = appObj.student.resume.certifications.map(cert => ({
+          ...cert,
+          certificateUrl: cert.certificateUrl ? `${req.protocol}://${req.get('host')}${cert.certificateUrl}` : null
+        }));
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { application: appObj }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Get Internship Funnel Stats
+// ----------------------
+const getInternshipFunnelStats = async (req, res) => {
+  try {
+    const { internshipId } = req.params;
+    const recruiterId = req.user.id;
+
+    // Verify ownership or HR role
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+      return res.status(404).json({ success: false, message: "Internship not found" });
+    }
+
+    const isHR = req.user.role === 'hr' || req.user.role === 'admin';
+    const isOwner = internship.postedBy.toString() === recruiterId;
+
+    if (!isHR && !isOwner) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    const applications = await Application.find({ internship: internshipId });
+
+    const stats = {
+      total: applications.length,
+      pending: applications.filter(a => a.status === 'pending').length,
+      shortlisted: applications.filter(a => a.status === 'shortlisted').length,
+      rejected: applications.filter(a => a.status === 'rejected').length,
+      accepted: applications.filter(a => a.status === 'accepted').length,
+      // Conversion rates
+      shortlistRate: applications.length ? Math.round((applications.filter(a => a.status === 'shortlisted').length / applications.length) * 100) : 0,
+      acceptanceRate: applications.length ? Math.round((applications.filter(a => a.status === 'accepted').length / applications.length) * 100) : 0
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ----------------------
+// Recommend Student for Certification
+// ----------------------
+const recommendCertificate = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { feedback } = req.body;
+    const recruiterId = req.user.id;
+
+    const application = await Application.findById(applicationId).populate('internship');
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    // Check if internship belongs to recruiter
+    if (application.internship.postedBy.toString() !== recruiterId && req.user.role !== 'hr') {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    application.certificateRecommended = true;
+    application.certificationFeedback = feedback || '';
+    await application.save();
+
+    // Notify HR (Optional, but let's do it if possible)
+    // We could create a notification for all users with role 'hr'
+    const RecruiterModel = require('../models/Recruiter');
+    const hrs = await RecruiterModel.find({ role: 'hr' });
+    
+    const { createNotification } = require('./notificationController');
+    for (const hr of hrs) {
+      await createNotification({
+        recipient: hr._id,
+        recipientModel: 'Recruiter',
+        type: 'certificate_recommendation',
+        title: 'New Certificate Recommendation',
+        message: `${req.user.name || 'A recruiter'} recommended a student for certification.`,
+        data: {
+          applicationId,
+          studentId: application.student,
+          internshipTitle: application.internship.title
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Student recommended for certification successfully"
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ----------------------
+// Add Note to Application
+// ----------------------
+const addApplicationNote = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { note } = req.body;
+    const recruiterId = req.user.id;
+
+    if (!note) {
+      return res.status(400).json({ success: false, message: "Note content is required" });
+    }
+
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found" });
+    }
+
+    application.recruiterNotes.push({
+      note,
+      addedBy: recruiterId
+    });
+
+    await application.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Note added successfully",
+      data: { notes: application.recruiterNotes }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   applyToInternship,
   getStudentApplications,
@@ -579,5 +807,9 @@ module.exports = {
   getRecruiterApplicationStats,
   getRecruiterRecentApplications,
   getInternshipApplications,
-  updateApplicationStatus
+  updateApplicationStatus,
+  getApplicationById,
+  addApplicationNote,
+  getInternshipFunnelStats,
+  recommendCertificate
 };

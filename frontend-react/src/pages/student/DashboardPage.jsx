@@ -24,6 +24,10 @@ const DashboardPage = () => {
     initials: 'ST',
     role: 'student'
   });
+  const [profileCompletion, setProfileCompletion] = useState({
+    percentage: 0,
+    missingFields: []
+  });
   const [greeting, setGreeting] = useState('Welcome back');
 
   // Get REAL user profile from backend
@@ -58,6 +62,15 @@ const DashboardPage = () => {
           });
 
           localStorage.setItem('user', JSON.stringify(user));
+
+          // Fetch profile completion
+          try {
+            const cRes = await fetch('http://localhost:5000/api/students/profile/completion', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const cData = await cRes.json();
+            if (cData.success) setProfileCompletion(cData.data);
+          } catch (e) {}
         }
       } catch (error) {
         console.error('Error fetching profile:', error);

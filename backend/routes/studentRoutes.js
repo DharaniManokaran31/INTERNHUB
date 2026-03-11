@@ -37,7 +37,21 @@ router.delete(
 
 // ===== CERTIFICATE ROUTES (FULL CRUD) =====
 
-// Get all certificates
+// Get official issued certificates
+router.get(
+  "/issued-certificates",
+  authMiddleware,
+  studentController.getIssuedCertificates
+);
+
+// Get specific official certificate
+router.get(
+  "/issued-certificates/:id",
+  authMiddleware,
+  studentController.getIssuedCertificateById
+);
+
+// Get student-uploaded certificates
 router.get(
   "/certificates",
   authMiddleware,

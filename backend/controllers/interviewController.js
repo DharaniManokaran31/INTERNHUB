@@ -645,9 +645,89 @@ exports.submitAssignment = async (req, res) => {
         submittedOnTime
       }
     });
-
   } catch (error) {
     console.error('Error submitting assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ============================================
+// 11. RESPOND TO INTERVIEW (Student)
+// ============================================
+exports.respondToInterview = async (req, res) => {
+  try {
+    const { interviewId } = req.params;
+    const { roundNumber, response, reason } = req.body; // response: 'accepted' or 'declined'
+    const studentId = req.user.id || req.user._id;
+
+    const interview = await Interview.findById(interviewId)
+      .populate('studentId', 'fullName email')
+      .populate('recruiterId', 'fullName email')
+      .populate('internshipId', 'title');
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
+    }
+
+    if (interview.studentId._id.toString() !== studentId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const round = interview.rounds.find(r => r.roundNumber === roundNumber);
+    if (!round) {
+      return res.status(404).json({
+        success: false,
+        message: 'Round not found'
+      });
+    }
+
+    round.status = response === 'accepted' ? 'scheduled' : 'declined';
+    if (reason) round.studentFeedback = reason;
+
+    await interview.save();
+
+    // Notify recruiter via email
+    const { sendInterviewResponseEmail } = require('../services/emailService');
+    const { createNotification } = require('./notificationController');
+
+    await sendInterviewResponseEmail(
+      interview.recruiterId.email,
+      interview.recruiterId.fullName,
+      interview.studentId.fullName,
+      response,
+      reason
+    );
+
+    // Create notification for recruiter
+    await createNotification({
+      recipient: interview.recruiterId._id,
+      recipientModel: 'Recruiter',
+      type: response === 'accepted' ? 'interview_rescheduled' : 'interview_cancelled', // Reuse existing types or mapping
+      title: `Interview ${response.toUpperCase()}`,
+      message: `${interview.studentId.fullName} has ${response} the interview for ${interview.internshipId.title}`,
+      data: {
+        interviewId: interview._id,
+        roundNumber,
+        studentName: interview.studentId.fullName
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Interview ${response} successfully`
+    });
+
+  } catch (error) {
+    console.error('Error responding to interview:', error);
     res.status(500).json({
       success: false,
       message: error.message

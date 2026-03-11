@@ -984,10 +984,258 @@ const sendInterviewEmail = async (email, studentName, internshipTitle, round) =>
   }
 };
 
+// ============================================
+// STUDENT SIDE EMAILS
+// ============================================
+
+// 1. Application Status Change Email
+const sendApplicationStatusEmail = async (studentEmail, studentName, internshipTitle, newStatus, comment) => {
+  try {
+    const isAccepted = newStatus === 'accepted';
+    const isRejected = newStatus === 'rejected';
+    
+    const mailOptions = {
+      from: `"Zoyaraa Recruitment" <${process.env.EMAIL_USER}>`,
+      to: studentEmail,
+      subject: `Update on your application for ${internshipTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #2440F0;">Application Update</h2>
+          <p>Hello ${studentName},</p>
+          <p>Your application for the <strong>${internshipTitle}</strong> internship has been updated to: <strong style="color: ${isAccepted ? '#10b981' : isRejected ? '#ef4444' : '#2440F0'}">${newStatus.toUpperCase()}</strong>.</p>
+          ${comment ? `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>Recruiter Feedback:</strong><br>${comment}</div>` : ''}
+          <p>You can view more details on your dashboard.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/student/applications" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW APPLICATIONS</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending application status email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 2. Interview Cancellation Email
+const sendInterviewCancellationEmail = async (studentEmail, studentName, internshipTitle, roundType) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa Recruitment" <${process.env.EMAIL_USER}>`,
+      to: studentEmail,
+      subject: `Interview Cancelled: ${roundType} for ${internshipTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #ef4444;">Interview Cancelled</h2>
+          <p>Hello ${studentName},</p>
+          <p>We regret to inform you that your scheduled <strong>${roundType}</strong> for <strong>${internshipTitle}</strong> has been cancelled.</p>
+          <p>The recruiter will contact you if any further steps are needed.</p>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending interview cancellation email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 3. Interview Reschedule Email
+const sendInterviewRescheduleEmail = async (studentEmail, studentName, internshipTitle, roundType, newDetails) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa Recruitment" <${process.env.EMAIL_USER}>`,
+      to: studentEmail,
+      subject: `Interview Rescheduled: ${roundType} for ${internshipTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #2440F0;">Interview Rescheduled</h2>
+          <p>Hello ${studentName},</p>
+          <p>Your <strong>${roundType}</strong> for <strong>${internshipTitle}</strong> has been rescheduled to a new time.</p>
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>New Schedule:</strong><br>
+            📅 Date: ${new Date(newDetails.date).toLocaleDateString()}<br>
+            ⏰ Time: ${newDetails.time}
+          </div>
+          <p>Please log in to your dashboard to confirm or view full details.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/student/dashboard" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">GOTO DASHBOARD</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending interview reschedule email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 4. Certificate Issued Email
+const sendCertificateIssuedEmail = async (studentEmail, studentName, internshipTitle, downloadLink) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa HR" <${process.env.EMAIL_USER}>`,
+      to: studentEmail,
+      subject: `🎓 Congratulations! Your Certificate for ${internshipTitle} is ready`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; text-align: center;">
+          <h2 style="color: #2440F0;">Certificate Issued!</h2>
+          <p>Hello ${studentName},</p>
+          <p>Congratulations on successfully completing your <strong>${internshipTitle}</strong> internship at Zoyaraa!</p>
+          <p>Your official completion certificate has been issued and is ready for download.</p>
+          <div style="margin: 40px 0;">
+             <a href="${downloadLink}" style="background: #10b981; color: white; padding: 16px 32px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px;">DOWNLOAD CERTIFICATE</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">You can also view all your certificates in the Portfolio section of your dashboard.</p>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending certificate issued email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
+// RECRUITER SIDE EMAILS
+// ============================================
+
+// 5. New Application Notification Email
+const sendNewApplicationEmail = async (recruiterEmail, recruiterName, studentName, internshipTitle) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa System" <${process.env.EMAIL_USER}>`,
+      to: recruiterEmail,
+      subject: `New Application: ${studentName} for ${internshipTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #2440F0;">New Application Received</h2>
+          <p>Hello ${recruiterName},</p>
+          <p>You have received a new application for the <strong>${internshipTitle}</strong> position.</p>
+          <p><strong>Applicant Name:</strong> ${studentName}</p>
+          <p>Please log in to review the student's profile and resume.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/recruiter/applicants" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">REVIEW APPLICANTS</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending new application email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 6. Interview Response Email (Student responds to invite)
+const sendInterviewResponseEmail = async (recruiterEmail, recruiterName, studentName, response, reason) => {
+  try {
+    const isAccepted = response === 'accepted';
+    const mailOptions = {
+      from: `"Zoyaraa System" <${process.env.EMAIL_USER}>`,
+      to: recruiterEmail,
+      subject: `Interview ${response.toUpperCase()}: ${studentName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: ${isAccepted ? '#10b981' : '#ef4444'};">Interview ${isAccepted ? 'Accepted' : 'Declined'}</h2>
+          <p>Hello ${recruiterName},</p>
+          <p>The student <strong>${studentName}</strong> has <strong>${response}</strong> your interview invitation.</p>
+          ${reason ? `<div style="background: #fff5f5; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>Reason provided:</strong><br>${reason}</div>` : ''}
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/recruiter/interviews" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW SCHEDULE</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending interview response email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 7. Student Progress Log Email
+const sendStudentProgressEmail = async (recruiterEmail, recruiterName, studentName, logDetails) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa System" <${process.env.EMAIL_USER}>`,
+      to: recruiterEmail,
+      subject: `New Progress Log: ${studentName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #2440F0;">Student Log Update</h2>
+          <p>Hello ${recruiterName},</p>
+          <p>Your mentee <strong>${studentName}</strong> has submitted a new daily progress log.</p>
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>Log Date:</strong> ${new Date(logDetails.date).toLocaleDateString()}<br>
+            <strong>Hours:</strong> ${logDetails.hours}<br>
+            <strong>Summary:</strong> ${logDetails.description}
+          </div>
+          <p>Please review and provide feedback on their progress.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/recruiter/mentees" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW MENTEES</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending student progress email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// 8. Internship Closed/Filled Email
+const sendInternshipClosedEmail = async (recruiterEmail, internshipTitle, applicantCount) => {
+  try {
+    const mailOptions = {
+      from: `"Zoyaraa System" <${process.env.EMAIL_USER}>`,
+      to: recruiterEmail,
+      subject: `Internship Closed: ${internshipTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+          <h2 style="color: #475569;">Internship Posting Closed</h2>
+          <p>Hello,</p>
+          <p>The internship posting for <strong>${internshipTitle}</strong> has been closed.</p>
+          <p><strong>Total Applicants:</strong> ${applicantCount}</p>
+          <p>If this was filled, congratulations! If you closed it for other reasons, you can reopen it anytime from your dashboard.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="http://localhost:3000/recruiter/internships" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">MANAGE INTERNSHIPS</a>
+          </div>
+        </div>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending internship closed email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendPasswordResetEmail,
   sendInvitationEmail,
   sendResultEmail,
   sendInterviewEmail,
-  sendLogReminderEmail
+  sendLogReminderEmail,
+  // New functions
+  sendApplicationStatusEmail,
+  sendInterviewCancellationEmail,
+  sendInterviewRescheduleEmail,
+  sendCertificateIssuedEmail,
+  sendNewApplicationEmail,
+  sendInterviewResponseEmail,
+  sendStudentProgressEmail,
+  sendInternshipClosedEmail
 };

@@ -10,6 +10,10 @@ const {
   getRecruiterRecentApplications,
   getInternshipApplications,
   updateApplicationStatus,
+  getApplicationById,
+  addApplicationNote,
+  getInternshipFunnelStats,
+  recommendCertificate
 } = require("../controllers/applicationController");
 
 // ===== STUDENT ROUTES =====
@@ -34,5 +38,17 @@ router.get("/internship/:internshipId", authMiddleware, getInternshipApplication
 
 // Update application status (shortlist/reject/accept)
 router.patch("/:applicationId/status", authMiddleware, updateApplicationStatus);
+
+// Get application by ID (with full details)
+router.get("/:applicationId/detail", authMiddleware, getApplicationById);
+
+// Add note to application
+router.post("/:applicationId/notes", authMiddleware, addApplicationNote);
+
+// Get funnel stats for an internship
+router.get("/internship/:internshipId/funnel", authMiddleware, getInternshipFunnelStats);
+
+// Recommend for certificate
+router.post("/:applicationId/recommend-certificate", authMiddleware, recommendCertificate);
 
 module.exports = router;

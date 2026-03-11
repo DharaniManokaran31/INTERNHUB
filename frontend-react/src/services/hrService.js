@@ -155,9 +155,14 @@ const hrService = {
     return response.data;
   },
 
-  // ===== NOTIFICATIONS =====
+  // ===== NOTIFICATIONS & ACTIVITY =====
   getNotifications: async () => {
     const response = await api.get('/notifications');
+    return response.data;
+  },
+
+  getRecentActivity: async () => {
+    const response = await api.get('/hr/activity/recent');
     return response.data;
   },
 

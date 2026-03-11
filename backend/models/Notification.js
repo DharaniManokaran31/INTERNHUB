@@ -11,17 +11,24 @@ const notificationSchema = new mongoose.Schema({
     required: true,
     enum: ['Student', 'Recruiter']
   },
-  type: {
-    type: String,
-    enum: [
-      'application_received',    // Recruiter gets when student applies
-      'application_status_change', // Student gets when status changes
-      'internship_expiring',      // Recruiter gets
-      'new_internship',           // Student gets when matching internship posted
-      'deadline_approaching'      // Both
-    ],
-    required: true
-  },
+    type: {
+      type: String,
+      enum: [
+        'application_received',    // Recruiter gets when student applies
+        'application_status_change', // Student gets when status changes
+        'internship_expiring',      // Recruiter gets
+        'new_internship',           // Student gets when matching internship posted
+        'deadline_approaching',      // Both
+        'interview_scheduled',       // Student gets
+        'interview_rescheduled',      // Both
+        'interview_cancelled',       // Both
+        'interview_result',          // Student gets
+        'certificate_issued',        // Student gets
+        'new_progress_log',          // Recruiter gets
+        'log_feedback'               // Student gets
+      ],
+      required: true
+    },
   title: {
     type: String,
     required: true

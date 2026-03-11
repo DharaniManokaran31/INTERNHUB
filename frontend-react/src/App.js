@@ -29,6 +29,7 @@ import ActiveInternshipPage from './pages/student/ActiveInternshipPage';
 import DailyLogFormPage from './pages/student/DailyLogFormPage';
 import MyLogsPage from './pages/student/MyLogsPage';
 import MilestonesPage from './pages/student/MilestonesPage';
+import StudentCertificates from './pages/student/CertificatesPage';
 
 // Recruiter Dashboard Pages
 import RecruiterDashboard from './pages/recruiter/DashboardPage';
@@ -139,6 +140,7 @@ function App() {
           <Route path="/student/internships" element={<ProtectedRoute allowedRoles={['student']}><DashboardLayout role="student"><StudentInternships /></DashboardLayout></ProtectedRoute>} />
           <Route path="/student/applications" element={<ProtectedRoute allowedRoles={['student']}><DashboardLayout role="student"><StudentApplications /></DashboardLayout></ProtectedRoute>} />
           <Route path="/student/resume" element={<ProtectedRoute allowedRoles={['student']}><DashboardLayout role="student"><StudentResume /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/student/certificates" element={<ProtectedRoute allowedRoles={['student']}><DashboardLayout role="student"><StudentCertificates /></DashboardLayout></ProtectedRoute>} />
 
           {/* Recruiter Routes - Protected */}
           <Route path="/recruiter/dashboard" element={<ProtectedRoute allowedRoles={['recruiter']}><DashboardLayout role="recruiter"><RecruiterDashboard /></DashboardLayout></ProtectedRoute>} />

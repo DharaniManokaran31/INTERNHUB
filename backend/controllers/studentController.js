@@ -171,9 +171,35 @@ exports.getStudentProfile = async (req, res) => {
       }));
     }
 
+    // Calculate profile completion percentage
+    const profileFields = [
+      student.fullName,
+      student.phone,
+      student.location,
+      student.education?.college,
+      student.education?.department,
+      student.education?.course,
+      student.resume?.resumeFile,
+      student.linkedin,
+      student.github,
+      (student.skills && student.skills.length > 0)
+    ];
+    const completedFields = profileFields.filter(field => field && field !== '').length;
+    const completionPercentage = Math.round((completedFields / profileFields.length) * 100);
+
     res.status(200).json({
       success: true,
-      data: { student: studentObj }
+      data: { 
+        student: studentObj,
+        profileCompletionPercentage: completionPercentage,
+        missingFields: profileFields.map((field, index) => {
+          if (!field || field === '') {
+            const fieldNames = ['Full Name', 'Phone', 'Location', 'College', 'Department', 'Course', 'Resume', 'LinkedIn', 'GitHub', 'Skills'];
+            return fieldNames[index];
+          }
+          return null;
+        }).filter(f => f !== null)
+      }
     });
   } catch (error) {
     console.error(error);
@@ -184,6 +210,56 @@ exports.getStudentProfile = async (req, res) => {
   }
 };
 
+// ----------------------
+// Get Application Timeline
+// ----------------------
+exports.getApplicationTimeline = async (req, res) => {
+  try {
+    const Application = require("../models/Application");
+    const { applicationId } = req.params;
+    const studentId = req.user.id || req.user._id;
+
+    const application = await Application.findOne({
+      _id: applicationId,
+      student: studentId
+    })
+    .populate({
+      path: 'internship',
+      select: 'title companyName'
+    })
+    .populate({
+      path: 'timeline.updatedBy',
+      select: 'fullName designation'
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        application: {
+          id: application._id,
+          status: application.status,
+          internshipTitle: application.internship?.title,
+          companyName: application.internship?.companyName,
+          appliedAt: application.appliedAt,
+          timeline: application.timeline
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 // ----------------------
 // Update Student Profile
 // ----------------------
@@ -829,6 +905,68 @@ exports.getStudentById = async (req, res) => {
     res.status(200).json({
       success: true,
       data: { student: studentObj }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Get Issued Certificates (Official)
+// ----------------------
+exports.getIssuedCertificates = async (req, res) => {
+  try {
+    const Certificate = require("../models/Certificate");
+    const studentId = req.user.id || req.user._id;
+
+    const certificates = await Certificate.find({ student: studentId, status: 'issued' })
+      .populate('internship', 'title department companyName')
+      .populate('issuedBy', 'fullName designation')
+      .sort({ issueDate: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: { certificates }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Get Issued Certificate By ID
+// ----------------------
+exports.getIssuedCertificateById = async (req, res) => {
+  try {
+    const Certificate = require("../models/Certificate");
+    const { id } = req.params;
+    const studentId = req.user.id || req.user._id;
+
+    const certificate = await Certificate.findOne({ 
+      _id: id, 
+      student: studentId 
+    })
+    .populate('internship', 'title department companyName')
+    .populate('issuedBy', 'fullName designation');
+
+    if (!certificate) {
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { certificate }
     });
   } catch (error) {
     console.error(error);

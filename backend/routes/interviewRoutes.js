@@ -12,7 +12,8 @@ const {
   submitRoundResult,
   submitAssignment,
   rescheduleRound,
-  getInterviewStats
+  getInterviewStats,
+  respondToInterview
 } = require('../controllers/interviewController');
 
 // ===== PUBLIC ROUTES (None - all require auth) =====
@@ -44,6 +45,9 @@ router.get('/student', getStudentInterviews);
 
 // Submit assignment for a round
 router.post('/:interviewId/submit', submitAssignment);
+
+// Submit response to interview invite
+router.put('/:interviewId/respond', respondToInterview);
 
 // ===== COMMON ROUTES (Both Recruiter & Student) =====
 
