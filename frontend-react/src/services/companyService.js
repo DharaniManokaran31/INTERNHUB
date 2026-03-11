@@ -1,43 +1,40 @@
+// frontend-react/src/services/companyService.js
 import api from './api';
 
 const companyService = {
-  // Register Zoyaraa company (first time)
+  // ===== COMPANY REGISTRATION & PROFILE (Used during setup) =====
+  // Register Zoyaraa company (first time - only HR does this once)
   registerCompany: async (companyData) => {
     const response = await api.post('/company/register', companyData);
     return response.data;
   },
 
-  // Get company profile
+  // Get company profile (used by HR dashboard)
   getCompanyProfile: async () => {
     const response = await api.get('/company/profile');
     return response.data;
   },
 
-  // Update company profile
+  // Update company profile (HR only)
   updateCompanyProfile: async (companyData) => {
     const response = await api.put('/company/profile', companyData);
     return response.data;
   },
 
-  // Invite a new recruiter
+  // ===== INVITATION MANAGEMENT (Used by HR) =====
+  // Invite a new recruiter (HR only)
   inviteRecruiter: async (recruiterData) => {
     const response = await api.post('/company/invite', recruiterData);
     return response.data;
   },
 
-  // Get all recruiters (active + pending)
-  getAllRecruiters: async () => {
-    const response = await api.get('/company/recruiters');
-    return response.data;
-  },
-
-  // Resend invitation to a pending recruiter
+  // Resend invitation to a pending recruiter (HR only)
   resendInvitation: async (recruiterId) => {
     const response = await api.post(`/company/recruiters/${recruiterId}/resend`);
     return response.data;
   },
 
-  // Accept invitation (public route - no auth needed)
+  // Accept invitation (public - used by recruiters)
   acceptInvitation: async (token, password) => {
     const response = await api.post(`/company/accept-invitation/${token}`, { password });
     return response.data;

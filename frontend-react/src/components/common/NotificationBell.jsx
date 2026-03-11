@@ -45,7 +45,6 @@ const NotificationBell = () => {
       if (data.success) {
         setNotifications(data.data.notifications);
         setUnreadCount(data.data.unreadCount);
-        console.log('❌ API returned error:', data);
       }
     } catch (error) {
       console.error('❌ Error fetching notifications:', error);

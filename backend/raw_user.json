@@ -1,0 +1,33 @@
+{
+  "_id": "69aa654177946c3cdf9e0b7c",
+  "fullName": "Dharani",
+  "email": "dharani31082005@gmail.com",
+  "password": "$2b$10$oUvi5.MuN23gAAa1VndM1uO5t3wCebYr4ZSVWfqNszzpbPu8/C/du",
+  "role": "hr",
+  "company": "Zoyaraa",
+  "position": "HR Manager",
+  "phone": "+91 9876543210",
+  "profilePicture": "",
+  "companyDescription": "",
+  "website": "",
+  "linkedin": "",
+  "companyId": "69aa654177946c3cdf9e0b7e",
+  "department": null,
+  "designation": "",
+  "permissions": {
+    "canPostInternship": false,
+    "canInviteRecruiters": true,
+    "canPublishCertificates": true,
+    "canViewAllDepartments": true,
+    "departmentOnly": false,
+    "maxInterns": 0
+  },
+  "mentorFor": [],
+  "isInvited": false,
+  "invitationStatus": "accepted",
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "createdAt": "2026-03-06T05:25:21.687Z",
+  "updatedAt": "2026-03-06T05:25:21.724Z",
+  "__v": 0
+}

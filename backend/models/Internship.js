@@ -6,123 +6,142 @@ const InternshipSchema = new mongoose.Schema(
     companyName: { type: String, required: true },
     location: { type: String, required: true },
     type: { type: String, required: true }, // Remote, On-site, Hybrid
-    
+
     // ✅ ZOYARAA-SPECIFIC FIELDS
-    companyId: { 
-      type: mongoose.Schema.Types.ObjectId, 
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
       required: true
     },
-    
-    department: { 
-      type: String, 
+
+    department: {
+      type: String,
       enum: ['Frontend', 'Backend', 'DevOps', 'Marketing', 'HR', 'Sales', 'UI/UX', 'Mobile'],
       required: true
     },
-    
+
     mentorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Recruiter",
       required: true
     },
-    
+
     // ✅ WORK DETAILS
-    workMode: { 
-      type: String, 
+    workMode: {
+      type: String,
       enum: ['Remote', 'Hybrid', 'Onsite'],
       required: true
     },
-    
+
     officeLocation: {
       type: String,
       default: ''
     },
-    
+
     dailyTimings: {
       type: String,
       default: "10 AM - 6 PM"
     },
-    
+
     weeklyOff: {
       type: String,
       default: "Saturday, Sunday"
     },
-    
+
     startDate: {
       type: Date,
       required: true
     },
-    
+
     endDate: {
       type: Date,
       required: true
     },
-    
-    duration: { 
+
+    duration: {
       type: Number, // in months
-      required: true 
+      required: true
     },
-    
-    stipend: { 
+
+    stipend: {
       type: Number, // Changed from String to Number for calculations
-      default: 0 
+      default: 0
     },
-    
+
     positions: {
       type: Number,
       default: 1
     },
-    
+
     filledPositions: {
       type: Number,
       default: 0
     },
-    
+
     // ✅ SELECTION PROCESS
     selectionProcess: [{
       round: { type: Number, required: true },
-      type: { 
-        type: String, 
+      type: {
+        type: String,
         enum: ['Technical Test', 'Technical Interview', 'HR Interview', 'Group Discussion', 'Assignment'],
-        required: true 
+        required: true
       },
       duration: String,
       details: String
     }],
-    
+
     // ✅ EXISTING FIELDS (kept for compatibility)
     category: {
       type: String,
       enum: ['technology', 'marketing', 'design', 'finance', 'hr', 'sales', 'other'],
       default: 'other'
     },
-    
+
     description: { type: String, required: true },
-    
+
     skillsRequired: [{
       name: { type: String, required: true },
-      level: { 
-        type: String, 
+      level: {
+        type: String,
         enum: ['beginner', 'intermediate', 'advanced'],
         default: 'beginner'
       }
     }],
-    
+
     requirements: [{
       type: String
     }],
-    
+
     perks: [{
       type: String
     }],
-    
+
     postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Recruiter", required: true },
     deadline: { type: Date, required: true },
-    
+
     status: {
       type: String,
       enum: ['active', 'closed', 'draft'],
       default: 'active'
+    },
+
+    // ✅ PROGRESS TRACKING (Module 6)
+    totalDays: { type: Number, required: true, default: 60 }, // Calculated from start/end date, default 60 for now
+    completedDays: { type: Number, default: 0 },
+
+    milestones: [{
+      title: String,
+      description: String,
+      dueDate: Date,
+      completedDate: Date,
+      status: { type: String, enum: ['pending', 'completed', 'overdue'], default: 'pending' }
+    }],
+
+    internDetails: {
+      startDate: Date,
+      expectedEndDate: Date,
+      actualEndDate: Date,
+      status: { type: String, enum: ['active', 'completed', 'terminated'] }
     }
   },
   { timestamps: true }

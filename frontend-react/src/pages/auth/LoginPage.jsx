@@ -31,7 +31,7 @@ const LoginPage = () => {
     if (localStorage.getItem('registeredEmail')) {
       localStorage.removeItem('registeredEmail');
     }
-    
+
     // Clear registered role from localStorage after use
     if (localStorage.getItem('registeredRole')) {
       localStorage.removeItem('registeredRole');
@@ -97,7 +97,7 @@ const LoginPage = () => {
     // Show loading state
     setIsLoading(true);
 
-    // TRY STUDENT, RECRUITER, AND ADMIN LOGIN
+    // TRY STUDENT, RECRUITER, ADMIN, AND HR LOGIN
     try {
       // First try student login
       let response = await fetch('http://localhost:5000/api/students/login', {
@@ -124,9 +124,22 @@ const LoginPage = () => {
         data = await response.json();
       }
 
-      // ✅ ADDED: If recruiter login fails, try admin login
+      // If recruiter login fails, try admin login
       if (!data.success) {
         response = await fetch('http://localhost:5000/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        });
+        data = await response.json();
+      }
+
+      // ✅ ADD THIS: If admin login fails, try HR login
+      if (!data.success) {
+        response = await fetch('http://localhost:5000/api/recruiters/login', {  // HR uses same endpoint as recruiters
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -157,7 +170,7 @@ const LoginPage = () => {
             navigate('/recruiter/dashboard');
           } else if (data.data.user.role === 'admin') {
             navigate('/admin/dashboard');
-          } else if (data.data.user.role === 'hr') {    // ✅ ADDED HR redirect
+          } else if (data.data.user.role === 'hr') {    // ✅ HR redirect
             navigate('/hr/dashboard');
           } else {
             navigate('/dashboard');
@@ -298,8 +311,8 @@ const LoginPage = () => {
               </svg>
               <span>{successMessage}</span>
               {location.state?.registeredRole && (
-                <span style={{ 
-                  fontWeight: 'bold', 
+                <span style={{
+                  fontWeight: 'bold',
                   marginLeft: '0.5rem',
                   padding: '2px 8px',
                   backgroundColor: '#10b981',

@@ -1,0 +1,2180 @@
+[
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-01",
+    "dayNumber": 1,
+    "weekNumber": 1,
+    "tasksCompleted": [
+      {
+        "description": "Setup work machine and accounts, Orientation and platform walkthrough, Initial meeting with mentor Nandhini",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-1"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Understanding Zoyara's team structure and work culture.",
+    "challenges": "Setting up all access permissions took some time.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Great start Lavanya! Make sure to go through the frontend guidelines doc by tomorrow.",
+      "rating": 3,
+      "submittedAt": "2026-06-01T18:30:00Z"
+    },
+    "submittedAt": "2026-06-01T17:00:00Z",
+    "reviewedAt": "2026-06-01T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-02",
+    "dayNumber": 2,
+    "weekNumber": 1,
+    "tasksCompleted": [
+      {
+        "description": "Learn JSX syntax and rules",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-2"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of React Core Concepts.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react core concepts. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-02T18:30:00Z"
+    },
+    "submittedAt": "2026-06-02T17:00:00Z",
+    "reviewedAt": "2026-06-02T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-03",
+    "dayNumber": 3,
+    "weekNumber": 1,
+    "tasksCompleted": [
+      {
+        "description": "Build simple nested components",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-3"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of React Core Concepts.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react core concepts. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-03T18:30:00Z"
+    },
+    "submittedAt": "2026-06-03T17:00:00Z",
+    "reviewedAt": "2026-06-03T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-04",
+    "dayNumber": 4,
+    "weekNumber": 1,
+    "tasksCompleted": [
+      {
+        "description": "Study React component lifecycle",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-4"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of React Core Concepts.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react core concepts. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-04T18:30:00Z"
+    },
+    "submittedAt": "2026-06-04T17:00:00Z",
+    "reviewedAt": "2026-06-04T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-05",
+    "dayNumber": 5,
+    "weekNumber": 1,
+    "tasksCompleted": [
+      {
+        "description": "Practice passing props and state",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-5"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of React Core Concepts.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on React Core Concepts. Have a great weekend!",
+      "rating": 3,
+      "submittedAt": "2026-06-05T18:30:00Z"
+    },
+    "submittedAt": "2026-06-05T17:00:00Z",
+    "reviewedAt": "2026-06-05T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-08",
+    "dayNumber": 6,
+    "weekNumber": 2,
+    "tasksCompleted": [
+      {
+        "description": "Implement useState for counter app",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-6"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Hooks Deep Dive.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on hooks deep dive. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-08T18:30:00Z"
+    },
+    "submittedAt": "2026-06-08T17:00:00Z",
+    "reviewedAt": "2026-06-08T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-09",
+    "dayNumber": 7,
+    "weekNumber": 2,
+    "tasksCompleted": [
+      {
+        "description": "Use useEffect for API data fetching",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-7"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Hooks Deep Dive.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on hooks deep dive. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-09T18:30:00Z"
+    },
+    "submittedAt": "2026-06-09T17:00:00Z",
+    "reviewedAt": "2026-06-09T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-10",
+    "dayNumber": 8,
+    "weekNumber": 2,
+    "tasksCompleted": [
+      {
+        "description": "Learn useContext for theme switching",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-8"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Hooks Deep Dive.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on hooks deep dive. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-10T18:30:00Z"
+    },
+    "submittedAt": "2026-06-10T17:00:00Z",
+    "reviewedAt": "2026-06-10T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-11",
+    "dayNumber": 9,
+    "weekNumber": 2,
+    "tasksCompleted": [
+      {
+        "description": "Create custom useFetch hook",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-9"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Hooks Deep Dive.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on hooks deep dive. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-11T18:30:00Z"
+    },
+    "submittedAt": "2026-06-11T17:00:00Z",
+    "reviewedAt": "2026-06-11T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-12",
+    "dayNumber": 10,
+    "weekNumber": 2,
+    "tasksCompleted": [
+      {
+        "description": "Handle complex form interactions",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-10"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Hooks Deep Dive.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Hooks Deep Dive. Have a great weekend!",
+      "rating": 3,
+      "submittedAt": "2026-06-12T18:30:00Z"
+    },
+    "submittedAt": "2026-06-12T17:00:00Z",
+    "reviewedAt": "2026-06-12T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-15",
+    "dayNumber": 11,
+    "weekNumber": 3,
+    "tasksCompleted": [
+      {
+        "description": "Setup React Router v6",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-11"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of React Router & Navigation.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react router & navigation. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-15T18:30:00Z"
+    },
+    "submittedAt": "2026-06-15T17:00:00Z",
+    "reviewedAt": "2026-06-15T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-16",
+    "dayNumber": 12,
+    "weekNumber": 3,
+    "tasksCompleted": [
+      {
+        "description": "Create layout components",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-12"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of React Router & Navigation.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react router & navigation. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-16T18:30:00Z"
+    },
+    "submittedAt": "2026-06-16T17:00:00Z",
+    "reviewedAt": "2026-06-16T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-17",
+    "dayNumber": 13,
+    "weekNumber": 3,
+    "tasksCompleted": [
+      {
+        "description": "Implement nested routing",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-13"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of React Router & Navigation.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react router & navigation. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-17T18:30:00Z"
+    },
+    "submittedAt": "2026-06-17T17:00:00Z",
+    "reviewedAt": "2026-06-17T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-18",
+    "dayNumber": 14,
+    "weekNumber": 3,
+    "tasksCompleted": [
+      {
+        "description": "Add protected routes",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-14"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of React Router & Navigation.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on react router & navigation. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-18T18:30:00Z"
+    },
+    "submittedAt": "2026-06-18T17:00:00Z",
+    "reviewedAt": "2026-06-18T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-19",
+    "dayNumber": 15,
+    "weekNumber": 3,
+    "tasksCompleted": [
+      {
+        "description": "Handle 404 pages and redirects",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-15"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of React Router & Navigation.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "needs_revision",
+    "mentorFeedback": {
+      "comment": "Please review the code standard guidelines. Your components are too monolithic. Break them down and resubmit.",
+      "rating": 2,
+      "submittedAt": "2026-06-19T18:30:00Z"
+    },
+    "submittedAt": "2026-06-19T17:00:00Z",
+    "reviewedAt": "2026-06-19T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-22",
+    "dayNumber": 16,
+    "weekNumber": 4,
+    "tasksCompleted": [
+      {
+        "description": "Fetch data using Axios",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-16"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of API Integration.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Much better! Thanks for making those revisions. Component structure looks solid now.",
+      "rating": 4,
+      "submittedAt": "2026-06-22T18:30:00Z"
+    },
+    "submittedAt": "2026-06-22T17:00:00Z",
+    "reviewedAt": "2026-06-22T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-23",
+    "dayNumber": 17,
+    "weekNumber": 4,
+    "tasksCompleted": [
+      {
+        "description": "Handle loading and error states",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-17"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of API Integration.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on api integration. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-23T18:30:00Z"
+    },
+    "submittedAt": "2026-06-23T17:00:00Z",
+    "reviewedAt": "2026-06-23T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-24",
+    "dayNumber": 18,
+    "weekNumber": 4,
+    "tasksCompleted": [
+      {
+        "description": "Implement async/await patterns",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-18"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of API Integration.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on api integration. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-24T18:30:00Z"
+    },
+    "submittedAt": "2026-06-24T17:00:00Z",
+    "reviewedAt": "2026-06-24T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-25",
+    "dayNumber": 19,
+    "weekNumber": 4,
+    "tasksCompleted": [
+      {
+        "description": "Send POST/PUT requests to mock API",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-19"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of API Integration.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on api integration. Keep it up!",
+      "rating": 3,
+      "submittedAt": "2026-06-25T18:30:00Z"
+    },
+    "submittedAt": "2026-06-25T17:00:00Z",
+    "reviewedAt": "2026-06-25T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-26",
+    "dayNumber": 20,
+    "weekNumber": 4,
+    "tasksCompleted": [
+      {
+        "description": "Create data service layer",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-20"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of API Integration.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on API Integration. Have a great weekend!",
+      "rating": 3,
+      "submittedAt": "2026-06-26T18:30:00Z"
+    },
+    "submittedAt": "2026-06-26T17:00:00Z",
+    "reviewedAt": "2026-06-26T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-29",
+    "dayNumber": 21,
+    "weekNumber": 5,
+    "tasksCompleted": [
+      {
+        "description": "Deep dive into Context API",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-21"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of State Management.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on state management. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-06-29T18:30:00Z"
+    },
+    "submittedAt": "2026-06-29T17:00:00Z",
+    "reviewedAt": "2026-06-29T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-06-30",
+    "dayNumber": 22,
+    "weekNumber": 5,
+    "tasksCompleted": [
+      {
+        "description": "Refactor prop drilling to Context",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-22"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of State Management.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on state management. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-06-30T18:30:00Z"
+    },
+    "submittedAt": "2026-06-30T17:00:00Z",
+    "reviewedAt": "2026-06-30T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-01",
+    "dayNumber": 23,
+    "weekNumber": 5,
+    "tasksCompleted": [
+      {
+        "description": "Implement useReducer for complex state",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-23"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of State Management.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on state management. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-01T18:30:00Z"
+    },
+    "submittedAt": "2026-07-01T17:00:00Z",
+    "reviewedAt": "2026-07-01T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-02",
+    "dayNumber": 24,
+    "weekNumber": 5,
+    "tasksCompleted": [
+      {
+        "description": "State architecture planning",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-24"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of State Management.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on state management. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-02T18:30:00Z"
+    },
+    "submittedAt": "2026-07-02T17:00:00Z",
+    "reviewedAt": "2026-07-02T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-03",
+    "dayNumber": 25,
+    "weekNumber": 5,
+    "tasksCompleted": [
+      {
+        "description": "Compare Context vs Redux concepts",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-25"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of State Management.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on State Management. Have a great weekend!",
+      "rating": 4,
+      "submittedAt": "2026-07-03T18:30:00Z"
+    },
+    "submittedAt": "2026-07-03T17:00:00Z",
+    "reviewedAt": "2026-07-03T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-06",
+    "dayNumber": 26,
+    "weekNumber": 6,
+    "tasksCompleted": [
+      {
+        "description": "Setup Redux Toolkit store",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-26"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Redux Toolkit.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on redux toolkit. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-06T18:30:00Z"
+    },
+    "submittedAt": "2026-07-06T17:00:00Z",
+    "reviewedAt": "2026-07-06T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-07",
+    "dayNumber": 27,
+    "weekNumber": 6,
+    "tasksCompleted": [
+      {
+        "description": "Create slices and reducers",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-27"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Redux Toolkit.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "needs_revision",
+    "mentorFeedback": {
+      "comment": "Please review the code standard guidelines. Your components are too monolithic. Break them down and resubmit.",
+      "rating": 2,
+      "submittedAt": "2026-07-07T18:30:00Z"
+    },
+    "submittedAt": "2026-07-07T17:00:00Z",
+    "reviewedAt": "2026-07-07T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-08",
+    "dayNumber": 28,
+    "weekNumber": 6,
+    "tasksCompleted": [
+      {
+        "description": "Dispatch basic actions",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-28"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Redux Toolkit.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Much better! Thanks for making those revisions. Component structure looks solid now.",
+      "rating": 4,
+      "submittedAt": "2026-07-08T18:30:00Z"
+    },
+    "submittedAt": "2026-07-08T17:00:00Z",
+    "reviewedAt": "2026-07-08T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-09",
+    "dayNumber": 29,
+    "weekNumber": 6,
+    "tasksCompleted": [
+      {
+        "description": "Implement async actions with createAsyncThunk",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-29"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Redux Toolkit.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on redux toolkit. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-09T18:30:00Z"
+    },
+    "submittedAt": "2026-07-09T17:00:00Z",
+    "reviewedAt": "2026-07-09T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-10",
+    "dayNumber": 30,
+    "weekNumber": 6,
+    "tasksCompleted": [
+      {
+        "description": "Mid-internship review preparation, Self-assessment documentation, Review meeting with mentor",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-30"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Identified key areas to focus on for the next half.",
+    "challenges": "Self-evaluating technical progress accurately.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "You've shown good progress in React basics. Let's focus more on state management moving forward.",
+      "rating": 4,
+      "submittedAt": "2026-07-10T18:30:00Z"
+    },
+    "submittedAt": "2026-07-10T17:00:00Z",
+    "reviewedAt": "2026-07-10T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-13",
+    "dayNumber": 31,
+    "weekNumber": 7,
+    "tasksCompleted": [
+      {
+        "description": "Analyze render performance",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-31"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Performance Optimization.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on performance optimization. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-13T18:30:00Z"
+    },
+    "submittedAt": "2026-07-13T17:00:00Z",
+    "reviewedAt": "2026-07-13T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-14",
+    "dayNumber": 32,
+    "weekNumber": 7,
+    "tasksCompleted": [
+      {
+        "description": "Implement React.memo for list items",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-32"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Performance Optimization.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on performance optimization. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-14T18:30:00Z"
+    },
+    "submittedAt": "2026-07-14T17:00:00Z",
+    "reviewedAt": "2026-07-14T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-15",
+    "dayNumber": 33,
+    "weekNumber": 7,
+    "tasksCompleted": [
+      {
+        "description": "Use useMemo for expensive calculations",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-33"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Performance Optimization.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on performance optimization. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-15T18:30:00Z"
+    },
+    "submittedAt": "2026-07-15T17:00:00Z",
+    "reviewedAt": "2026-07-15T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-16",
+    "dayNumber": 34,
+    "weekNumber": 7,
+    "tasksCompleted": [
+      {
+        "description": "Use useCallback for event handlers",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-34"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Performance Optimization.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on performance optimization. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-16T18:30:00Z"
+    },
+    "submittedAt": "2026-07-16T17:00:00Z",
+    "reviewedAt": "2026-07-16T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-17",
+    "dayNumber": 35,
+    "weekNumber": 7,
+    "tasksCompleted": [
+      {
+        "description": "Implement code splitting with React.lazy",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-35"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Performance Optimization.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Performance Optimization. Have a great weekend!",
+      "rating": 4,
+      "submittedAt": "2026-07-17T18:30:00Z"
+    },
+    "submittedAt": "2026-07-17T17:00:00Z",
+    "reviewedAt": "2026-07-17T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-20",
+    "dayNumber": 36,
+    "weekNumber": 8,
+    "tasksCompleted": [
+      {
+        "description": "Master Tailwind CSS utilities",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-36"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Styling & UI Libraries.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on styling & ui libraries. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-20T18:30:00Z"
+    },
+    "submittedAt": "2026-07-20T17:00:00Z",
+    "reviewedAt": "2026-07-20T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-21",
+    "dayNumber": 37,
+    "weekNumber": 8,
+    "tasksCompleted": [
+      {
+        "description": "Build responsive layouts with Tailwind",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-37"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Styling & UI Libraries.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on styling & ui libraries. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-21T18:30:00Z"
+    },
+    "submittedAt": "2026-07-21T17:00:00Z",
+    "reviewedAt": "2026-07-21T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-22",
+    "dayNumber": 38,
+    "weekNumber": 8,
+    "tasksCompleted": [
+      {
+        "description": "Integrate Material UI components",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-38"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Styling & UI Libraries.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on styling & ui libraries. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-22T18:30:00Z"
+    },
+    "submittedAt": "2026-07-22T17:00:00Z",
+    "reviewedAt": "2026-07-22T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-23",
+    "dayNumber": 39,
+    "weekNumber": 8,
+    "tasksCompleted": [
+      {
+        "description": "Customize MUI theme",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-39"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Styling & UI Libraries.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on styling & ui libraries. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-23T18:30:00Z"
+    },
+    "submittedAt": "2026-07-23T17:00:00Z",
+    "reviewedAt": "2026-07-23T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-24",
+    "dayNumber": 40,
+    "weekNumber": 8,
+    "tasksCompleted": [
+      {
+        "description": "Implement dark mode",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-40"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Styling & UI Libraries.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Styling & UI Libraries. Have a great weekend!",
+      "rating": 4,
+      "submittedAt": "2026-07-24T18:30:00Z"
+    },
+    "submittedAt": "2026-07-24T17:00:00Z",
+    "reviewedAt": "2026-07-24T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-27",
+    "dayNumber": 41,
+    "weekNumber": 9,
+    "tasksCompleted": [
+      {
+        "description": "Setup Jest testing environment",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-41"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Testing Fundamentals.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on testing fundamentals. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-27T18:30:00Z"
+    },
+    "submittedAt": "2026-07-27T17:00:00Z",
+    "reviewedAt": "2026-07-27T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-28",
+    "dayNumber": 42,
+    "weekNumber": 9,
+    "tasksCompleted": [
+      {
+        "description": "Write unit tests for utility functions",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-42"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Testing Fundamentals.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "needs_revision",
+    "mentorFeedback": {
+      "comment": "Please review the code standard guidelines. Your components are too monolithic. Break them down and resubmit.",
+      "rating": 2,
+      "submittedAt": "2026-07-28T18:30:00Z"
+    },
+    "submittedAt": "2026-07-28T17:00:00Z",
+    "reviewedAt": "2026-07-28T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-29",
+    "dayNumber": 43,
+    "weekNumber": 9,
+    "tasksCompleted": [
+      {
+        "description": "Use React Testing Library for components",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-43"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Testing Fundamentals.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Much better! Thanks for making those revisions. Component structure looks solid now.",
+      "rating": 4,
+      "submittedAt": "2026-07-29T18:30:00Z"
+    },
+    "submittedAt": "2026-07-29T17:00:00Z",
+    "reviewedAt": "2026-07-29T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-30",
+    "dayNumber": 44,
+    "weekNumber": 9,
+    "tasksCompleted": [
+      {
+        "description": "Test component user interactions",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-44"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Testing Fundamentals.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on testing fundamentals. Keep it up!",
+      "rating": 4,
+      "submittedAt": "2026-07-30T18:30:00Z"
+    },
+    "submittedAt": "2026-07-30T17:00:00Z",
+    "reviewedAt": "2026-07-30T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-07-31",
+    "dayNumber": 45,
+    "weekNumber": 9,
+    "tasksCompleted": [
+      {
+        "description": "Project Kickoff: E-commerce Dashboard, Requirement analysis session, Architecture planning",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-45"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "How to break down a large project into deliverable sprints.",
+    "challenges": "Planning state structure for the entire application.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid architecture plan. Remember to keep components modular.",
+      "rating": 4,
+      "submittedAt": "2026-07-31T18:30:00Z"
+    },
+    "submittedAt": "2026-07-31T17:00:00Z",
+    "reviewedAt": "2026-07-31T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-03",
+    "dayNumber": 46,
+    "weekNumber": 10,
+    "tasksCompleted": [
+      {
+        "description": "Gather E-commerce requirements",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-46"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Project Setup & Planning.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on project setup & planning. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-03T18:30:00Z"
+    },
+    "submittedAt": "2026-08-03T17:00:00Z",
+    "reviewedAt": "2026-08-03T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-04",
+    "dayNumber": 47,
+    "weekNumber": 10,
+    "tasksCompleted": [
+      {
+        "description": "Plan application architecture",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-47"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Project Setup & Planning.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on project setup & planning. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-04T18:30:00Z"
+    },
+    "submittedAt": "2026-08-04T17:00:00Z",
+    "reviewedAt": "2026-08-04T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-05",
+    "dayNumber": 48,
+    "weekNumber": 10,
+    "tasksCompleted": [
+      {
+        "description": "Create wireframes and mockups",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-48"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Project Setup & Planning.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on project setup & planning. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-05T18:30:00Z"
+    },
+    "submittedAt": "2026-08-05T17:00:00Z",
+    "reviewedAt": "2026-08-05T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-06",
+    "dayNumber": 49,
+    "weekNumber": 10,
+    "tasksCompleted": [
+      {
+        "description": "Setup project repository and Git workflow",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-49"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Project Setup & Planning.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on project setup & planning. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-06T18:30:00Z"
+    },
+    "submittedAt": "2026-08-06T17:00:00Z",
+    "reviewedAt": "2026-08-06T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-07",
+    "dayNumber": 50,
+    "weekNumber": 10,
+    "tasksCompleted": [
+      {
+        "description": "Initialize project technical stack",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-50"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Project Setup & Planning.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Project Setup & Planning. Have a great weekend!",
+      "rating": 5,
+      "submittedAt": "2026-08-07T18:30:00Z"
+    },
+    "submittedAt": "2026-08-07T17:00:00Z",
+    "reviewedAt": "2026-08-07T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-10",
+    "dayNumber": 51,
+    "weekNumber": 11,
+    "tasksCompleted": [
+      {
+        "description": "Implement authentication flow",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-51"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Core Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on core features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-10T18:30:00Z"
+    },
+    "submittedAt": "2026-08-10T17:00:00Z",
+    "reviewedAt": "2026-08-10T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-11",
+    "dayNumber": 52,
+    "weekNumber": 11,
+    "tasksCompleted": [
+      {
+        "description": "Build product listing page",
+        "hoursSpent": 4.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-52"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5.5,
+    "learnings": "Learned about practical implementations of Core Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on core features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-11T18:30:00Z"
+    },
+    "submittedAt": "2026-08-11T17:00:00Z",
+    "reviewedAt": "2026-08-11T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-12",
+    "dayNumber": 53,
+    "weekNumber": 11,
+    "tasksCompleted": [
+      {
+        "description": "Create product detail views",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-53"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Core Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on core features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-12T18:30:00Z"
+    },
+    "submittedAt": "2026-08-12T17:00:00Z",
+    "reviewedAt": "2026-08-12T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-13",
+    "dayNumber": 54,
+    "weekNumber": 11,
+    "tasksCompleted": [
+      {
+        "description": "Implement shopping cart logic",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-54"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Core Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on core features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-13T18:30:00Z"
+    },
+    "submittedAt": "2026-08-13T17:00:00Z",
+    "reviewedAt": "2026-08-13T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-14",
+    "dayNumber": 55,
+    "weekNumber": 11,
+    "tasksCompleted": [
+      {
+        "description": "Build user profile section",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-55"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Core Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Core Features. Have a great weekend!",
+      "rating": 5,
+      "submittedAt": "2026-08-14T18:30:00Z"
+    },
+    "submittedAt": "2026-08-14T17:00:00Z",
+    "reviewedAt": "2026-08-14T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-17",
+    "dayNumber": 56,
+    "weekNumber": 12,
+    "tasksCompleted": [
+      {
+        "description": "Implement order management",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-56"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Advanced Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on advanced features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-17T18:30:00Z"
+    },
+    "submittedAt": "2026-08-17T17:00:00Z",
+    "reviewedAt": "2026-08-17T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-18",
+    "dayNumber": 57,
+    "weekNumber": 12,
+    "tasksCompleted": [
+      {
+        "description": "Build admin dashboard",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-57"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Advanced Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on advanced features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-18T18:30:00Z"
+    },
+    "submittedAt": "2026-08-18T17:00:00Z",
+    "reviewedAt": "2026-08-18T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-19",
+    "dayNumber": 58,
+    "weekNumber": 12,
+    "tasksCompleted": [
+      {
+        "description": "Integrate charts for analytics",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-58"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Learned about practical implementations of Advanced Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on advanced features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-19T18:30:00Z"
+    },
+    "submittedAt": "2026-08-19T17:00:00Z",
+    "reviewedAt": "2026-08-19T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-20",
+    "dayNumber": 59,
+    "weekNumber": 12,
+    "tasksCompleted": [
+      {
+        "description": "Implement real-time updates for notifications",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-59"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "Learned about practical implementations of Advanced Features.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on advanced features. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-20T18:30:00Z"
+    },
+    "submittedAt": "2026-08-20T17:00:00Z",
+    "reviewedAt": "2026-08-20T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-21",
+    "dayNumber": 60,
+    "weekNumber": 12,
+    "tasksCompleted": [
+      {
+        "description": "Progress review milestone, Demonstration of core features, Code quality check",
+        "hoursSpent": 6.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-60"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7.5,
+    "learnings": "Advanced Redux patterns for real-time data.",
+    "challenges": "Integrating real-time features with existing state.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Excellent progress on the project. The code quality has improved significantly.",
+      "rating": 5,
+      "submittedAt": "2026-08-21T18:30:00Z"
+    },
+    "submittedAt": "2026-08-21T17:00:00Z",
+    "reviewedAt": "2026-08-21T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-24",
+    "dayNumber": 61,
+    "weekNumber": 13,
+    "tasksCompleted": [
+      {
+        "description": "Conduct comprehensive testing",
+        "hoursSpent": 6,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-61"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 7,
+    "learnings": "Learned about practical implementations of Polish & Deployment.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on polish & deployment. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-24T18:30:00Z"
+    },
+    "submittedAt": "2026-08-24T17:00:00Z",
+    "reviewedAt": "2026-08-24T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-25",
+    "dayNumber": 62,
+    "weekNumber": 13,
+    "tasksCompleted": [
+      {
+        "description": "Fix UI bugs and inconsistencies",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-62"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Polish & Deployment.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on polish & deployment. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-25T18:30:00Z"
+    },
+    "submittedAt": "2026-08-25T17:00:00Z",
+    "reviewedAt": "2026-08-25T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-26",
+    "dayNumber": 63,
+    "weekNumber": 13,
+    "tasksCompleted": [
+      {
+        "description": "Optimize application bundle size",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-63"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Polish & Deployment.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on polish & deployment. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-26T18:30:00Z"
+    },
+    "submittedAt": "2026-08-26T17:00:00Z",
+    "reviewedAt": "2026-08-26T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-27",
+    "dayNumber": 64,
+    "weekNumber": 13,
+    "tasksCompleted": [
+      {
+        "description": "Deploy app to Vercel/Netlify",
+        "hoursSpent": 4,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-64"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 5,
+    "learnings": "Learned about practical implementations of Polish & Deployment.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Good work on polish & deployment. Keep it up!",
+      "rating": 5,
+      "submittedAt": "2026-08-27T18:30:00Z"
+    },
+    "submittedAt": "2026-08-27T17:00:00Z",
+    "reviewedAt": "2026-08-27T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-28",
+    "dayNumber": 65,
+    "weekNumber": 13,
+    "tasksCompleted": [
+      {
+        "description": "Write project documentation",
+        "hoursSpent": 5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-65"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6,
+    "learnings": "Learned about practical implementations of Polish & Deployment.",
+    "challenges": "Faced some minor bugs initially, resolved them using documentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Solid progress this week on Polish & Deployment. Have a great weekend!",
+      "rating": 5,
+      "submittedAt": "2026-08-28T18:30:00Z"
+    },
+    "submittedAt": "2026-08-28T17:00:00Z",
+    "reviewedAt": "2026-08-28T18:30:00Z"
+  },
+  {
+    "studentId": "69abbbda0d41338e7db3d8de",
+    "internshipId": "69abea9810648a09d56cefdc",
+    "mentorId": "69aba0f175d477ffa16bce3b",
+    "date": "2026-08-31",
+    "dayNumber": 66,
+    "weekNumber": 14,
+    "tasksCompleted": [
+      {
+        "description": "Final project presentation, Final code review and handover, Exit interview",
+        "hoursSpent": 5.5,
+        "status": "completed",
+        "githubLink": "https://github.com/lavanya-s/zoyara-internship/tree/main/day-66"
+      },
+      {
+        "description": "Documentation and code review",
+        "hoursSpent": 1,
+        "status": "completed"
+      }
+    ],
+    "totalHours": 6.5,
+    "learnings": "End-to-end product development lifecycle.",
+    "challenges": "Condensing 3 months of work into a 15-minute presentation.",
+    "tomorrowPlan": "Continue with the planned curriculum and improve code quality.",
+    "status": "approved",
+    "mentorFeedback": {
+      "comment": "Outstanding work throughout the internship, Lavanya. You've grown tremendously as a developer. Wishing you the best!",
+      "rating": 5,
+      "submittedAt": "2026-08-31T18:30:00Z"
+    },
+    "submittedAt": "2026-08-31T17:00:00Z",
+    "reviewedAt": "2026-08-31T18:30:00Z"
+  }
+]

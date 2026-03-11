@@ -303,6 +303,16 @@ const InterviewsDashboardPage = () => {
             </svg>
             <span className="nav-item-text">Manage Internships</span>
           </button>
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') || location.pathname.includes('/recruiter/review-logs') || location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentor-dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
+            </svg>
+            <span className="nav-item-text">Mentor Dashboard</span>
+          </button>
+
 
           <button
             className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}

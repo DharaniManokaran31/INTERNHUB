@@ -162,7 +162,7 @@ exports.getStudentProfile = async (req, res) => {
     if (studentObj.resume?.resumeFile) {
       studentObj.resume.resumeUrl = `${req.protocol}://${req.get('host')}${studentObj.resume.resumeFile}`;
     }
-    
+
     // Generate full URLs for certificate files
     if (studentObj.resume?.certifications) {
       studentObj.resume.certifications = studentObj.resume.certifications.map(cert => ({
@@ -337,7 +337,7 @@ exports.uploadResumeFile = async (req, res) => {
   } catch (error) {
     console.error("❌ Error uploading resume:", error);
     if (req.file?.path) {
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      try { fs.unlinkSync(req.file.path); } catch (e) { }
     }
     res.status(500).json({
       success: false,
@@ -394,7 +394,7 @@ exports.uploadCertificateFile = async (req, res) => {
     if (!student) {
       // Clean up uploaded file if student not found
       if (req.file?.path) {
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        try { fs.unlinkSync(req.file.path); } catch (e) { }
       }
       return res.status(404).json({
         success: false,
@@ -457,7 +457,7 @@ exports.uploadCertificateFile = async (req, res) => {
     console.error("❌ Error uploading certificate:", error);
     // Clean up uploaded file on error
     if (req.file?.path) {
-      try { fs.unlinkSync(req.file.path); } catch (e) {}
+      try { fs.unlinkSync(req.file.path); } catch (e) { }
     }
     res.status(500).json({
       success: false,
@@ -756,8 +756,8 @@ exports.resetPassword = async (req, res) => {
 exports.getStudentApplications = async (req, res) => {
   try {
     const Application = require("../models/Application");
-
-    const applications = await Application.find({ student: req.user.id })
+    const studentId = req.user.id || req.user._id;
+    const applications = await Application.find({ student: studentId })
       .populate({
         path: 'internship',
         populate: {
@@ -770,18 +770,18 @@ exports.getStudentApplications = async (req, res) => {
     // Add full URLs for submitted documents
     const applicationsWithUrls = applications.map(app => {
       const appObj = app.toObject();
-      
+
       if (appObj.submittedResume?.url) {
         appObj.submittedResume.url = `${req.protocol}://${req.get('host')}${appObj.submittedResume.url}`;
       }
-      
+
       if (appObj.submittedCertificates) {
         appObj.submittedCertificates = appObj.submittedCertificates.map(cert => ({
           ...cert,
           url: cert.url ? `${req.protocol}://${req.get('host')}${cert.url}` : null
         }));
       }
-      
+
       return appObj;
     });
 
@@ -805,7 +805,7 @@ exports.getStudentById = async (req, res) => {
   try {
     const student = await Student.findById(req.params.studentId)
       .select("-password -resetPasswordToken -resetPasswordExpires");
-    
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -818,7 +818,7 @@ exports.getStudentById = async (req, res) => {
     if (studentObj.resume?.resumeFile) {
       studentObj.resume.resumeUrl = `${req.protocol}://${req.get('host')}${studentObj.resume.resumeFile}`;
     }
-    
+
     if (studentObj.resume?.certifications) {
       studentObj.resume.certifications = studentObj.resume.certifications.map(cert => ({
         ...cert,

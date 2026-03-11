@@ -1,0 +1,24 @@
+[dotenv@17.2.4] injecting env (8) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.4] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+(node:20448) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20448) [MONGOOSE] Warning: Duplicate schema index on {"certificateId":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+Server running on port 5000
+MongoDB connected successfully
+[0;36mMongoose:[0m applications.createIndex({ student: [33m1[39m, internship: [33m1[39m }, { unique: [33mtrue[39m })
+[0;36mMongoose:[0m students.createIndex({ email: [33m1[39m }, { unique: [33mtrue[39m })
+[0;36mMongoose:[0m recruiters.createIndex({ email: [33m1[39m }, { unique: [33mtrue[39m })
+[0;36mMongoose:[0m notifications.createIndex({ recipient: [33m1[39m, isRead: [33m1[39m, createdAt: [33m-1[39m }, {})
+[0;36mMongoose:[0m certificates.createIndex({ certificateId: [33m1[39m }, { unique: [33mtrue[39m })
+[0;36mMongoose:[0m admins.createIndex({ email: [33m1[39m }, { unique: [33mtrue[39m })
+[0;36mMongoose:[0m recruiters.createIndex({ email: [33m1[39m }, {})
+[0;36mMongoose:[0m certificates.createIndex({ student: [33m1[39m }, {})
+[0;36mMongoose:[0m notifications.createIndex({ expiresAt: [33m1[39m }, { expireAfterSeconds: [33m0[39m })
+[0;36mMongoose:[0m applications.createIndex({ status: [33m1[39m }, {})
+[0;36mMongoose:[0m certificates.createIndex({ certificateId: [33m1[39m }, {})
+[0;36mMongoose:[0m applications.createIndex({ appliedAt: [33m-1[39m }, {})
+[0;36mMongoose:[0m recruiters.createIndex({ role: [33m1[39m }, {})
+[0;36mMongoose:[0m recruiters.createIndex({ invitationStatus: [33m1[39m }, {})
+[0;36mMongoose:[0m recruiters.createIndex({ department: [33m1[39m }, {})
+✅ Email service is ready to send emails
+^C

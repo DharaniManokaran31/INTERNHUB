@@ -12,16 +12,14 @@ const {
 } = require("../controllers/internshipController");
 
 // ===== PUBLIC ROUTES =====
-router.get("/", getAllInternships);
+router.get("/", getAllInternships);  // GET all internships (public)
 
-// ✅ IMPORTANT: This MUST come BEFORE the /:id route
-router.get("/recruiter", authMiddleware, getRecruiterInternships);
-
-// ===== PUBLIC ROUTE WITH PARAM =====
-router.get("/:id", getInternshipById);  // This catches ANY /:id, including "recruiter"!
-
-// ===== PROTECTED ROUTES =====
+// ===== PROTECTED ROUTES (ALL specific routes FIRST) =====
+router.get("/recruiter", authMiddleware, getRecruiterInternships);  // ✅ THIS MUST BE BEFORE /:id
 router.post("/", authMiddleware, createInternship);
+
+// ===== PARAMETERIZED ROUTES - MUST BE LAST =====
+router.get("/:id", getInternshipById);  // GET single internship by ID
 router.put("/:id", authMiddleware, updateInternship);
 router.delete("/:id", authMiddleware, deleteInternship);
 router.patch("/:id/close", authMiddleware, closeInternship);

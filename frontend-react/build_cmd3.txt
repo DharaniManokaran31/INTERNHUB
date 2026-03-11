@@ -1,0 +1,142 @@
+
+> frontend-react@0.1.0 build
+> react-scripts build
+
+(node:14880) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Creating an optimized production build...
+Compiled with warnings.
+
+[eslint] 
+src\components\common\Footer.jsx
+  Line 3:10:  'Link' is defined but never used  no-unused-vars
+
+src\components\common\NotificationBell.jsx
+  Line 11:19:  'setLoading' is assigned a value but never used  no-unused-vars
+
+src\components\modals\InviteRecruiterModal.jsx
+  Line 1:27:  'useEffect' is defined but never used       no-unused-vars
+  Line 2:8:   'companyService' is defined but never used  no-unused-vars
+
+src\pages\admin\DashboardPage.jsx
+  Line 9:9:   'location' is assigned a value but never used                                                                           no-unused-vars
+  Line 49:6:  React Hook useEffect has a missing dependency: 'fetchDashboardStats'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 77:6:  React Hook useEffect has a missing dependency: 'performSearch'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+
+src\pages\admin\ManageInternshipsPage.jsx
+  Line 12:10:  'internships' is assigned a value but never used                                                                     no-unused-vars
+  Line 58:6:   React Hook useEffect has a missing dependency: 'fetchInternships'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 62:6:   React Hook useEffect has a missing dependency: 'fetchInternships'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\admin\ManageUsersPage.jsx
+  Line 51:6:  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\admin\ProfilePage.jsx
+  Line 180:9:  'handleLogout' is assigned a value but never used  no-unused-vars
+
+src\pages\admin\ReportsPage.jsx
+  Line 61:6:   React Hook useEffect has a missing dependency: 'fetchAllReportsData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 282:9:  'calculateTrends' is assigned a value but never used                                                                    no-unused-vars
+
+src\pages\hr\DashboardPage.jsx
+  Line 11:9:    'location' is assigned a value but never used                                                                          no-unused-vars
+  Line 35:6:    React Hook useEffect has a missing dependency: 'fetchDashboardData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 61:6:    React Hook useEffect has a missing dependency: 'performSearch'. Either include it or remove the dependency array       react-hooks/exhaustive-deps
+  Line 216:13:  'response' is assigned a value but never used                                                                          no-unused-vars
+  Line 229:13:  'response' is assigned a value but never used                                                                          no-unused-vars
+
+src\pages\recruiter\DashboardPage.jsx
+  Line 279:6:  React Hook useEffect has a missing dependency: 'performSearch'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 324:9:  'viewAllApplications' is assigned a value but never used                                                          no-unused-vars
+
+src\pages\recruiter\InternProgressPage.jsx
+  Line 10:8:  'api' is defined but never used  no-unused-vars
+
+src\pages\recruiter\InterviewsDashboardPage.jsx
+  Line 39:6:    React Hook useEffect has a missing dependency: 'fetchInterviews'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 600:29:  'badge' is assigned a value but never used                                                                          no-unused-vars
+
+src\pages\recruiter\ManageInternshipsPage.jsx
+  Line 39:6:  React Hook useEffect has a missing dependency: 'fetchInternships'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  Line 43:6:  React Hook useEffect has a missing dependency: 'filterInternships'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\recruiter\MyMenteesPage.jsx
+  Line 38:6:  React Hook useEffect has a missing dependency: 'fetchMentees'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  Line 42:6:  React Hook useEffect has a missing dependency: 'filterMentees'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\recruiter\PostInternshipPage.jsx
+  Line 80:6:  React Hook useEffect has a missing dependency: 'fetchInternshipData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\recruiter\ProfilePage.jsx
+  Line 40:6:   React Hook useEffect has a missing dependency: 'fetchProfile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 215:9:  'handleLogout' is assigned a value but never used                                                                no-unused-vars
+
+src\pages\recruiter\ReviewLogsPage.jsx
+  Line 194:11:  'user' is assigned a value but never used       no-unused-vars
+  Line 202:12:  'rating' is assigned a value but never used     no-unused-vars
+  Line 202:20:  'setRating' is assigned a value but never used  no-unused-vars
+
+src\pages\recruiter\StudentProfileViewPage.jsx
+  Line 28:6:  React Hook useEffect has missing dependencies: 'fetchStudentApplications' and 'fetchStudentProfile'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\recruiter\ViewApplicantsPage.jsx
+  Line 36:6:  React Hook useEffect has a missing dependency: 'fetchInternships'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+  Line 42:6:  React Hook useEffect has a missing dependency: 'fetchApplications'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  Line 55:6:  React Hook useEffect has a missing dependency: 'selectedInternship'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\student\BrowseInternshipsPage.jsx
+  Line 2:38:     'useCallback' is defined but never used                                                                                                                                                                                                                                                                                                                            no-unused-vars
+  Line 2:51:     'useRef' is defined but never used                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  Line 77:10:    'experience' is assigned a value but never used                                                                                                                                                                                                                                                                                                                    no-unused-vars
+  Line 77:22:    'setExperience' is assigned a value but never used                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  Line 78:10:    'available' is assigned a value but never used                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  Line 78:21:    'setAvailable' is assigned a value but never used                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  Line 79:10:    'locationPref' is assigned a value but never used                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  Line 79:24:    'setLocationPref' is assigned a value but never used                                                                                                                                                                                                                                                                                                               no-unused-vars
+  Line 80:10:    'source' is assigned a value but never used                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  Line 80:18:    'setSource' is assigned a value but never used                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  Line 81:10:    'portfolio' is assigned a value but never used                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  Line 81:21:    'setPortfolio' is assigned a value but never used                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  Line 82:10:    'confirmTerms' is assigned a value but never used                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  Line 82:24:    'setConfirmTerms' is assigned a value but never used                                                                                                                                                                                                                                                                                                               no-unused-vars
+  Line 130:6:    React Hook useEffect has missing dependencies: 'fetchInternships' and 'fetchUserProfile'. Either include them or remove the dependency array                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+  Line 632:9:    'getInitials' is assigned a value but never used                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  Line 1932:21:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+src\pages\student\DailyLogFormPage.jsx
+  Line 192:11:  'user' is assigned a value but never used  no-unused-vars
+
+src\pages\student\DashboardPage.jsx
+  Line 157:6:  React Hook useEffect has a missing dependency: 'performSearch'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\student\MyApplicationsPage.jsx
+  Line 39:6:    React Hook useEffect has a missing dependency: 'fetchApplications'. Either include it or remove the dependency array                                                react-hooks/exhaustive-deps
+  Line 155:6:   React Hook useEffect has missing dependencies: 'activeStatus', 'applications.length', and 'filterApplications'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  Line 625:23:  'companyInitials' is assigned a value but never used                                                                                                                no-unused-vars
+
+src\pages\student\MyResumePage.jsx
+  Line 60:6:   React Hook useEffect has a missing dependency: 'fetchResumeData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 657:9:  'getInitials' is assigned a value but never used                                                                    no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  212.72 kB  build\static\js\main.0953c91c.js
+  19.27 kB   build\static\css\main.2afb9aef.css
+  1.76 kB    build\static\js\453.cc8fffa2.chunk.js
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+

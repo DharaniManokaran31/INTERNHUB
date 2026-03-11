@@ -604,6 +604,75 @@ const sendInvitationEmail = async (email, name, inviteLink) => {
 };
 
 // ============================================
+// NEW: LOG REMINDER EMAIL
+// ============================================
+const sendLogReminderEmail = async (email, name, internshipTitle, type) => {
+  try {
+    let subject, message, actionText;
+
+    if (type === 'daily_reminder') {
+      subject = `📝 Reminder: Submit your Daily Log for ${internshipTitle}`;
+      message = `This is a gentle reminder to submit your daily work log for your ${internshipTitle} internship today. Regular logs help your mentor track your progress and provide valuable feedback.`;
+      actionText = `SUBMIT TODAY'S LOG`;
+    } else if (type === 'missed_days_warning') {
+      subject = `⚠️ Warning: Missed Daily Logs for ${internshipTitle}`;
+      message = `We noticed you've missed submitting your daily logs for the past 3 days. Consistent logging is a requirement for the internship program. Please catch up on your logs or contact your mentor if you're facing any issues.`;
+      actionText = `GO TO DASHBOARD`;
+    }
+
+    console.log(`📧 Sending log reminder email to: ${email}`);
+
+    const mailOptions = {
+      from: `"Zoyaraa Internship Program" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            .email-wrapper { background-color: #f4f7fc; padding: 40px 20px; font-family: sans-serif; }
+            .email-container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; }
+            .email-header { background: linear-gradient(135deg, #2440F0 0%, #0a1a7a 100%); padding: 30px; text-align: center; color: white; }
+            .email-content { padding: 40px 35px; color: #1a1f36; }
+            .greeting { font-size: 22px; font-weight: bold; margin-bottom: 20px; }
+            .message { font-size: 16px; line-height: 1.6; color: #4a5568; margin-bottom: 30px; }
+            .btn { display: inline-block; background: #2440F0; color: white; padding: 14px 28px; text-decoration: none; border-radius: 50px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="email-wrapper">
+            <div class="email-container">
+              <div class="email-header">
+                <h2>Zoyaraa Daily Logs</h2>
+              </div>
+              <div class="email-content">
+                <div class="greeting">Hello ${name},</div>
+                <div class="message">${message}</div>
+                <div style="text-align: center;">
+                  <a href="http://localhost:3000/student/active-internship" class="btn">${actionText}</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Log reminder email sent successfully to:', email);
+    return { success: true, messageId: info.messageId };
+
+  } catch (error) {
+    console.error('❌ Error sending log reminder email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ============================================
 // NEW: INTERVIEW RESULT EMAIL
 // ============================================
 const sendResultEmail = async (email, studentName, internshipTitle, result, roundType) => {
@@ -611,9 +680,9 @@ const sendResultEmail = async (email, studentName, internshipTitle, result, roun
     const isPass = result === 'pass' || result === 'selected';
     const isReject = result === 'reject' || result === 'fail';
     const isSelected = result === 'selected';
-    
+
     let subject, emoji, message, nextSteps, color;
-    
+
     if (isSelected) {
       // Final selection after all rounds
       subject = `🎉 Congratulations! You've been selected for ${internshipTitle} at Zoyaraa!`;
@@ -915,9 +984,10 @@ const sendInterviewEmail = async (email, studentName, internshipTitle, round) =>
   }
 };
 
-module.exports = { 
+module.exports = {
   sendPasswordResetEmail,
   sendInvitationEmail,
   sendResultEmail,
-  sendInterviewEmail
+  sendInterviewEmail,
+  sendLogReminderEmail
 };

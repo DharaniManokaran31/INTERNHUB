@@ -1,66 +1,30 @@
 const Recruiter = require('../models/Recruiter');
-const Student = require('../models/Student'); // ✅ ADD THIS
-const Internship = require('../models/Internship'); // ✅ ADD THIS
+const Student = require('../models/Student');
+const Internship = require('../models/Internship');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
 
-// Register Recruiter
-const registerRecruiter = async (req, res) => {
-    try {
-        const { fullName, email, password } = req.body;
+// ============================================
+// AUTHENTICATION (Shared by both Recruiters & HR)
+// ============================================
 
-        const existingRecruiter = await Recruiter.findOne({ email });
-        if (existingRecruiter) {
-            return res.status(400).json({
-                success: false,
-                message: 'Recruiter already exists with this email'
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const recruiter = new Recruiter({
-            fullName,
-            email,
-            password: hashedPassword
-        });
-
-        await recruiter.save();
-
-        const recruiterWithoutPassword = recruiter.toObject();
-        delete recruiterWithoutPassword.password;
-
-        res.status(201).json({
-            success: true,
-            message: 'Recruiter registered successfully',
-            data: {
-                user: recruiterWithoutPassword
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-};
-
-// Login Recruiter
-const loginRecruiter = async (req, res) => {
+// Login (Both Recruiters and HR use this)
+const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const recruiter = await Recruiter.findOne({ email });
-        if (!recruiter) {
+        // Allow login if isActive is explicitly true, or if it doesn't exist (assuming default true)
+        const user = await Recruiter.findOne({ email, isActive: { $ne: false } });
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
             });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, recruiter.password);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
@@ -68,68 +32,81 @@ const loginRecruiter = async (req, res) => {
             });
         }
 
+        // Update last login
+        user.lastLoginAt = new Date();
+        await user.save();
+
         const token = jwt.sign(
-            { id: recruiter._id, email: recruiter.email, role: recruiter.role },
+            {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+                department: user.department
+            },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '7d' }
         );
 
-        const recruiterWithoutPassword = recruiter.toObject();
-        delete recruiterWithoutPassword.password;
+        const userWithoutPassword = user.toObject();
+        delete userWithoutPassword.password;
 
         res.status(200).json({
             success: true,
             message: 'Login successful',
             data: {
-                user: recruiterWithoutPassword,
+                user: userWithoutPassword,
                 token
             }
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// Get Recruiter Profile
-const getRecruiterProfile = async (req, res) => {
+// Get Profile (Both)
+const getProfile = async (req, res) => {
     try {
-        const recruiter = await Recruiter.findById(req.user.id).select('-password');
+        const user = await Recruiter.findById(req.user.id)
+            .select('-password')
+            .populate('addedBy', 'fullName email');
 
-        if (!recruiter) {
+        if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'Recruiter not found'
+                message: 'User not found'
             });
         }
 
         res.status(200).json({
             success: true,
-            data: {
-                user: recruiter
-            }
+            data: { user }
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// Update Recruiter Profile
-const updateRecruiterProfile = async (req, res) => {
+// Update Profile (Both - but limited fields)
+const updateProfile = async (req, res) => {
     try {
         const updates = req.body;
+        const userId = req.user.id;
 
+        // Remove fields that cannot be self-updated
         delete updates.password;
         delete updates.email;
         delete updates.role;
+        delete updates.permissions;
+        delete updates.isActive;
+        delete updates.invitationStatus;
 
-        const recruiter = await Recruiter.findByIdAndUpdate(
-            req.user.id,
+        // Recruiters cannot change department (set by HR)
+        if (req.user.role === 'recruiter') {
+            delete updates.department;
+        }
+
+        const user = await Recruiter.findByIdAndUpdate(
+            userId,
             updates,
             { new: true, runValidators: true }
         ).select('-password');
@@ -137,26 +114,20 @@ const updateRecruiterProfile = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Profile updated successfully',
-            data: {
-                user: recruiter
-            }
+            data: { user }
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// Change Password
+// Change Password (Both)
 const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
+        const user = await Recruiter.findById(req.user.id);
 
-        const recruiter = await Recruiter.findById(req.user.id);
-
-        const isPasswordValid = await bcrypt.compare(currentPassword, recruiter.password);
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
@@ -165,112 +136,99 @@ const changePassword = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        recruiter.password = hashedPassword;
-        await recruiter.save();
+        user.password = hashedPassword;
+        await user.save();
 
         res.status(200).json({
             success: true,
             message: 'Password changed successfully'
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// Forgot Password
+// Forgot Password (Both)
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
-        const recruiter = await Recruiter.findOne({ email });
-        if (!recruiter) {
+        const user = await Recruiter.findOne({ email });
+        if (!user) {
             return res.status(200).json({
                 success: true,
-                message: 'If an account exists with this email, password reset instructions have been sent.'
+                message: 'If an account exists, reset instructions have been sent.'
             });
         }
 
         const resetToken = jwt.sign(
-            { id: recruiter._id },
-            process.env.JWT_SECRET + recruiter.password,
+            { id: user._id },
+            process.env.JWT_SECRET + user.password,
             { expiresIn: '15m' }
         );
 
-        recruiter.resetPasswordToken = resetToken;
-        recruiter.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-        await recruiter.save();
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+        await user.save();
 
         const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
         await sendPasswordResetEmail(email, resetUrl);
 
         res.status(200).json({
             success: true,
-            message: 'If an account exists with this email, password reset instructions have been sent.'
+            message: 'If an account exists, reset instructions have been sent.'
         });
     } catch (error) {
         console.error('Forgot password error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-// Reset Password
+// Reset Password (Both)
 const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
 
-        const recruiter = await Recruiter.findOne({
+        const user = await Recruiter.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() }
         });
 
-        if (!recruiter) {
+        if (!user) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired reset token'
             });
         }
 
-        if (!password || password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password must be at least 6 characters'
-            });
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-        recruiter.password = hashedPassword;
-        recruiter.resetPasswordToken = undefined;
-        recruiter.resetPasswordExpires = undefined;
-        await recruiter.save();
+        user.password = hashedPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
 
         res.status(200).json({
             success: true,
-            message: 'Password reset successful. You can now login with your new password.'
+            message: 'Password reset successful'
         });
     } catch (error) {
         console.error('Reset password error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
-// ✅ NEW: Get recruiter's mentees (interns they are mentoring)
+// ============================================
+// RECRUITER-SPECIFIC FUNCTIONS
+// ============================================
+
+// Get recruiter's mentees
 const getMyMentees = async (req, res) => {
     try {
         const recruiterId = req.user.id;
-        
-        // Find the recruiter to get their mentees array
+
         const recruiter = await Recruiter.findById(recruiterId);
-        
+
         if (!recruiter) {
             return res.status(404).json({
                 success: false,
@@ -278,32 +236,26 @@ const getMyMentees = async (req, res) => {
             });
         }
 
-        // If no mentees, return empty array
         if (!recruiter.mentorFor || recruiter.mentorFor.length === 0) {
             return res.status(200).json({
                 success: true,
-                data: {
-                    mentees: [],
-                    total: 0
-                }
+                data: { mentees: [], total: 0 }
             });
         }
 
-        // Get detailed information for each mentee
         const mentees = await Promise.all(recruiter.mentorFor.map(async (studentId) => {
             const student = await Student.findById(studentId)
                 .select('fullName email profilePicture education skills currentInternship createdAt');
-            
+
             if (!student) return null;
-            
-            // Get their active internship details
+
             let internship = null;
             let progress = 'Not started';
-            
+
             if (student?.currentInternship) {
                 internship = await Internship.findById(student.currentInternship)
                     .select('title department startDate endDate duration');
-                
+
                 if (internship?.startDate) {
                     const start = new Date(internship.startDate);
                     const now = new Date();
@@ -313,7 +265,7 @@ const getMyMentees = async (req, res) => {
                     progress = `Week ${currentWeek}/${totalWeeks}`;
                 }
             }
-            
+
             return {
                 _id: student._id,
                 fullName: student.fullName,
@@ -332,32 +284,58 @@ const getMyMentees = async (req, res) => {
             };
         }));
 
-        // Filter out null values
         const filteredMentees = mentees.filter(m => m !== null);
 
         res.status(200).json({
             success: true,
-            data: {
-                mentees: filteredMentees,
-                total: filteredMentees.length
-            }
+            data: { mentees: filteredMentees, total: filteredMentees.length }
         });
     } catch (error) {
         console.error('Error fetching mentees:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Get recruiter's department stats
+const getMyDepartmentStats = async (req, res) => {
+    try {
+        const recruiter = await Recruiter.findById(req.user.id);
+
+        const internships = await Internship.find({
+            department: recruiter.department,
+            postedBy: req.user.id
         });
+
+        const internshipIds = internships.map(i => i._id);
+        const applications = await Application.find({
+            internship: { $in: internshipIds }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalInternships: internships.length,
+                activeInternships: internships.filter(i => i.status === 'active').length,
+                totalApplications: applications.length,
+                pendingApplications: applications.filter(a => a.status === 'pending').length,
+                acceptedApplications: applications.filter(a => a.status === 'accepted').length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
 module.exports = {
-    registerRecruiter,
-    loginRecruiter,
-    getRecruiterProfile,
-    updateRecruiterProfile,
+    // Shared auth functions
+    login,
+    getProfile,
+    updateProfile,
     changePassword,
     forgotPassword,
     resetPassword,
-    getMyMentees // ✅ ADD THIS
+
+    // Recruiter-specific
+    getMyMentees,
+    getMyDepartmentStats
 };

@@ -1,0 +1,14 @@
+[dotenv@17.2.4] injecting env (8) from ..\.env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+Error seeding logs: MongoParseError: options usenewurlparser, useunifiedtopology are not supported
+    at parseOptions (E:\InternHub\backend\node_modules\mongodb\lib\connection_string.js:272:15)
+    at new MongoClient (E:\InternHub\backend\node_modules\mongodb\lib\mongo_client.js:67:61)
+    at NativeConnection.createClient (E:\InternHub\backend\node_modules\mongoose\lib\drivers\node-mongodb-native\connection.js:334:14)
+    at NativeConnection.openUri (E:\InternHub\backend\node_modules\mongoose\lib\connection.js:1075:34)
+    at Mongoose.connect (E:\InternHub\backend\node_modules\mongoose\lib\mongoose.js:451:15)
+    at seedLogs (E:\InternHub\backend\scripts\seed_logs.js:11:24)
+    at Object.<anonymous> (E:\InternHub\backend\scripts\seed_logs.js:55:1)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32) {
+  errorLabelSet: Set(0) {}
+}

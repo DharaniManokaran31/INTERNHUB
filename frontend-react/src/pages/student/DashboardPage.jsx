@@ -381,6 +381,16 @@ const DashboardPage = () => {
             </svg>
             <span className="nav-item-text">My Resume</span>
           </button>
+          <button
+            className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
+            onClick={() => navigate('/student/active-internship')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span className="nav-item-text">My Internship</span>
+          </button>
+
         </nav>
 
         <div className="sidebar-footer">

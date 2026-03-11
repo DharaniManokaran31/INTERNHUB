@@ -16,7 +16,8 @@ const StudentProfileViewPage = () => {
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'RD',
-    company: ''
+    department: '',
+    company: 'Zoyaraa'
   });
 
   useEffect(() => {
@@ -49,7 +50,8 @@ const StudentProfileViewPage = () => {
         setUserData({
           name: user.fullName,
           initials: initials,
-          company: user.company || ''
+          department: user.department || '',
+          company: 'Zoyaraa'
         });
       }
     } catch (error) {
@@ -66,9 +68,36 @@ const StudentProfileViewPage = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('📊 Student Profile Response:', data);
 
       if (data.success) {
-        setStudent(data.data.student);
+        const studentData = data.data.student;
+        
+        // If student has currentInternship ID, fetch the internship details
+        if (studentData.currentInternship) {
+          try {
+            // Handle if currentInternship is an ID (string) or already populated
+            const internshipId = typeof studentData.currentInternship === 'string' 
+              ? studentData.currentInternship 
+              : studentData.currentInternship._id;
+            
+            if (internshipId) {
+              const internshipResponse = await fetch(
+                `http://localhost:5000/api/internships/${internshipId}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              );
+              const internshipData = await internshipResponse.json();
+              
+              if (internshipData.success) {
+                studentData.currentInternship = internshipData.data.internship;
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching internship details:', err);
+          }
+        }
+        
+        setStudent(studentData);
       }
     } catch (error) {
       console.error('Error fetching student profile:', error);
@@ -81,21 +110,43 @@ const StudentProfileViewPage = () => {
   const fetchStudentApplications = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/applications/${studentId}`, {
+      
+      // Try both possible endpoints
+      let applicationsData = [];
+      
+      // First try the student-specific endpoint
+      const response = await fetch(`http://localhost:5000/api/applications/student/${studentId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('📊 Applications Response:', data);
 
       if (data.success) {
-        // Handle both possible response formats
         if (Array.isArray(data.applications)) {
-          setApplications(data.applications);
+          applicationsData = data.applications;
         } else if (data.data?.applications) {
-          setApplications(data.data.applications);
-        } else {
-          setApplications([]);
+          applicationsData = data.data.applications;
         }
       }
+      
+      // If no applications found, try the general endpoint
+      if (applicationsData.length === 0) {
+        const response2 = await fetch(`http://localhost:5000/api/applications/${studentId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data2 = await response2.json();
+        console.log('📊 Applications Response (alt):', data2);
+        
+        if (data2.success) {
+          if (Array.isArray(data2.applications)) {
+            applicationsData = data2.applications;
+          } else if (data2.data?.applications) {
+            applicationsData = data2.data.applications;
+          }
+        }
+      }
+      
+      setApplications(applicationsData);
     } catch (error) {
       console.error('Error fetching student applications:', error);
     }
@@ -166,6 +217,24 @@ const StudentProfileViewPage = () => {
     }
   };
 
+  const createRippleEffect = (e) => {
+    const button = e.currentTarget;
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+
+    button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  };
+
   const showNotification = (message, type = 'success') => {
     const notification = document.createElement('div');
     notification.className = 'custom-notification';
@@ -208,7 +277,18 @@ const StudentProfileViewPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="sidebar-logo-text">InternHub</span>
+            <span className="sidebar-logo-text">Zoyaraa</span>
+          </div>
+          <div className="department-badge" style={{
+            marginTop: '0.5rem',
+            padding: '0.25rem 0.5rem',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            textAlign: 'center',
+            color: 'white'
+          }}>
+            {userData.department || 'Recruiter'}
           </div>
         </div>
 
@@ -238,6 +318,39 @@ const StudentProfileViewPage = () => {
           </button>
 
           <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentor-dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">Mentor Dashboard</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/review-logs') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/review-logs')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span className="nav-item-text">Review Logs</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentees')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">My Mentees</span>
+          </button>
+
+          <button
             className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
             onClick={() => navigate('/recruiter/post-internship')}
           >
@@ -260,6 +373,17 @@ const StudentProfileViewPage = () => {
             </svg>
             <span className="nav-item-text">View Applicants</span>
           </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/interviews')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span className="nav-item-text">Interviews</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -271,7 +395,7 @@ const StudentProfileViewPage = () => {
             <div className="user-info-sidebar">
               <div className="user-name-sidebar">{userData.name}</div>
               <div className="user-role-sidebar">
-                {userData.company ? `Recruiter • ${userData.company}` : 'Recruiter'}
+                {userData.department} • {userData.company}
               </div>
             </div>
           </button>
@@ -295,7 +419,14 @@ const StudentProfileViewPage = () => {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
-            <h2 className="page-title">Student Profile</h2>
+            <h2 className="page-title">
+              Student Profile
+              {userData.department && (
+                <span style={{ fontSize: '0.9rem', marginLeft: '1rem', color: '#666' }}>
+                  • {userData.department} Department
+                </span>
+              )}
+            </h2>
           </div>
           <div className="top-bar-right">
             <NotificationBell />
@@ -307,6 +438,18 @@ const StudentProfileViewPage = () => {
 
         {/* Content Area */}
         <div className="content-area">
+          {/* Back Button */}
+          <div style={{ marginBottom: '1rem' }}>
+            <button
+              className="secondary-btn"
+              onClick={() => navigate(-1)}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+              onClickCapture={(e) => createRippleEffect(e)}
+            >
+              ← Back
+            </button>
+          </div>
+
           {loading ? (
             <div className="loading-placeholder">Loading student profile...</div>
           ) : !student ? (
@@ -323,6 +466,7 @@ const StudentProfileViewPage = () => {
               <button
                 className="primary-btn"
                 onClick={() => navigate(-1)}
+                onClickCapture={(e) => createRippleEffect(e)}
               >
                 Go Back
               </button>
@@ -372,6 +516,69 @@ const StudentProfileViewPage = () => {
                       📍 {student.location}
                     </p>
                   )}
+                  
+                  {/* Current Internship Display - FIXED */}
+                  {student.currentInternship && (
+                    <div style={{ 
+                      marginTop: '0.75rem', 
+                      padding: '1rem',
+                      background: '#E6F7E6',
+                      borderRadius: '8px',
+                      border: '1px solid #10b981'
+                    }}>
+                      <p style={{ 
+                        color: '#10b981', 
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        margin: 0,
+                        fontSize: '1rem'
+                      }}>
+                        <span style={{ fontSize: '1.2rem' }}>🟢</span>
+                        <span>
+                          <strong>Active Intern:</strong>{' '}
+                          {student.currentInternship.title || 'Internship'}{' '}
+                          {student.currentInternship.companyName && (
+                            <>at <strong>{student.currentInternship.companyName}</strong></>
+                          )}
+                        </span>
+                      </p>
+                      
+                      {student.currentInternship.department && (
+                        <p style={{ 
+                          color: '#4b5563', 
+                          fontSize: '0.9rem',
+                          marginLeft: '2rem',
+                          marginTop: '0.5rem',
+                          marginBottom: '0.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <span>📍</span> {student.currentInternship.department} Department
+                        </p>
+                      )}
+                      
+                      {(student.currentInternship.startDate || student.currentInternship.endDate) && (
+                        <p style={{ 
+                          color: '#6b7280', 
+                          fontSize: '0.85rem',
+                          marginLeft: '2rem',
+                          marginTop: '0.25rem',
+                          marginBottom: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          <span>📅</span> 
+                          {student.currentInternship.startDate ? formatDate(student.currentInternship.startDate) : 'Start date'} 
+                          {' - '} 
+                          {student.currentInternship.endDate ? formatDate(student.currentInternship.endDate) : 'Present'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -388,6 +595,7 @@ const StudentProfileViewPage = () => {
                     fontWeight: activeTab === 'profile' ? '600' : '500',
                     cursor: 'pointer'
                   }}
+                  onClickCapture={(e) => createRippleEffect(e)}
                 >
                   Profile
                 </button>
@@ -402,6 +610,7 @@ const StudentProfileViewPage = () => {
                     fontWeight: activeTab === 'resume' ? '600' : '500',
                     cursor: 'pointer'
                   }}
+                  onClickCapture={(e) => createRippleEffect(e)}
                 >
                   Resume & Certificates
                 </button>
@@ -416,6 +625,7 @@ const StudentProfileViewPage = () => {
                     fontWeight: activeTab === 'applications' ? '600' : '500',
                     cursor: 'pointer'
                   }}
+                  onClickCapture={(e) => createRippleEffect(e)}
                 >
                   Applications ({applications.length})
                 </button>
@@ -461,6 +671,14 @@ const StudentProfileViewPage = () => {
                           </p>
                           <p style={{ fontWeight: '500' }}>{student.education?.yearOfStudy || 'Not provided'}</p>
                         </div>
+                        {student.expectedGraduation && (
+                          <div>
+                            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                              Expected Graduation
+                            </p>
+                            <p style={{ fontWeight: '500' }}>{formatDate(student.expectedGraduation)}</p>
+                          </div>
+                        )}
                         <div style={{ gridColumn: 'span 2' }}>
                           <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
                             Specialization
@@ -483,15 +701,12 @@ const StudentProfileViewPage = () => {
                       </h3>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         {(() => {
-                          // Collect all skills from different possible locations
                           const allSkills = [];
 
-                          // From student.skills (simple array)
                           if (student.skills && Array.isArray(student.skills)) {
                             allSkills.push(...student.skills);
                           }
 
-                          // From student.resume.skills (category based)
                           if (student.resume?.skills && Array.isArray(student.resume.skills)) {
                             student.resume.skills.forEach(category => {
                               if (category.items && Array.isArray(category.items)) {
@@ -518,6 +733,142 @@ const StudentProfileViewPage = () => {
                         })()}
                       </div>
                     </div>
+
+                    {/* Experience */}
+                    {student.resume?.experience && student.resume.experience.length > 0 && (
+                      <div className="profile-card" style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '1.5rem',
+                        marginBottom: '1.5rem',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+                          💼 Experience
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                          {student.resume.experience.map((exp, index) => (
+                            <div key={index} style={{
+                              padding: '1rem',
+                              background: '#f9fafb',
+                              borderRadius: '8px',
+                              border: '1px solid #e5e7eb'
+                            }}>
+                              <div>
+                                <p style={{ fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                                  {exp.title}
+                                </p>
+                                <p style={{ color: '#4b5563', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                                  {exp.company} • {exp.location}
+                                </p>
+                                <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                                  {formatDate(exp.startDate)} - {exp.endDate ? formatDate(exp.endDate) : 'Present'}
+                                </p>
+                              </div>
+                              {exp.description && (
+                                <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: '0.5rem', lineHeight: '1.5' }}>
+                                  {exp.description}
+                                </p>
+                              )}
+                              {exp.skills && exp.skills.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                  {exp.skills.map((skill, idx) => (
+                                    <span key={idx} style={{
+                                      background: '#f3f4f6',
+                                      padding: '0.25rem 0.75rem',
+                                      borderRadius: '16px',
+                                      fontSize: '0.75rem',
+                                      color: '#1f2937'
+                                    }}>
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Projects */}
+                    {student.resume?.projects && student.resume.projects.length > 0 && (
+                      <div className="profile-card" style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '1.5rem',
+                        marginBottom: '1.5rem',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+                          🚀 Projects
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                          {student.resume.projects.map((project, index) => (
+                            <div key={index} style={{
+                              padding: '1rem',
+                              background: '#f9fafb',
+                              borderRadius: '8px',
+                              border: '1px solid #e5e7eb'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                  <p style={{ fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                                    {project.title}
+                                  </p>
+                                  {project.technologies && (
+                                    <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                                      Tech: {project.technologies}
+                                    </p>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  {project.github && (
+                                    <a
+                                      href={project.github}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        padding: '0.25rem 0.75rem',
+                                        background: '#EEF2FF',
+                                        color: '#2440F0',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        textDecoration: 'none'
+                                      }}
+                                    >
+                                      GitHub
+                                    </a>
+                                  )}
+                                  {project.demo && (
+                                    <a
+                                      href={project.demo}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        padding: '0.25rem 0.75rem',
+                                        background: '#10b981',
+                                        color: 'white',
+                                        borderRadius: '6px',
+                                        fontSize: '0.75rem',
+                                        textDecoration: 'none'
+                                      }}
+                                    >
+                                      Live Demo
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                              {project.description && (
+                                <p style={{ color: '#4b5563', fontSize: '0.9rem', marginTop: '0.75rem', lineHeight: '1.5' }}>
+                                  {project.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Social Links */}
                     {(student.linkedin || student.github || student.portfolio) && (
@@ -581,6 +932,7 @@ const StudentProfileViewPage = () => {
                               borderRadius: '6px',
                               cursor: 'pointer'
                             }}
+                            onClickCapture={(e) => createRippleEffect(e)}
                           >
                             View Resume
                           </button>
@@ -629,6 +981,7 @@ const StudentProfileViewPage = () => {
                                     borderRadius: '6px',
                                     cursor: 'pointer'
                                   }}
+                                  onClickCapture={(e) => createRippleEffect(e)}
                                 >
                                   View
                                 </button>
