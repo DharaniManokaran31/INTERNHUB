@@ -1,213 +1,286 @@
 const Notification = require('../models/Notification');
 
-// ----------------------
-// Get user's notifications
-// ----------------------
-const getMyNotifications = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
-    
-    const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
+// ============================================
+// USER NOTIFICATIONS
+// ============================================
 
-    const notifications = await Notification.find({
-      recipient: userId,
-      recipientModel: recipientModel
-    })
-    .sort({ createdAt: -1 })
-    .limit(50); // Limit to 50 most recent
+// Get My Notifications
+exports.getMyNotifications = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        
+        const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
 
-    const unreadCount = await Notification.countDocuments({
-      recipient: userId,
-      recipientModel: recipientModel,
-      isRead: false
-    });
+        const notifications = await Notification.find({
+            recipientId: userId,
+            recipientModel: recipientModel
+        })
+        .sort({ createdAt: -1 })
+        .limit(50);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        notifications,
-        unreadCount
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching notifications'
-    });
-  }
-};
+        const unreadCount = await Notification.countDocuments({
+            recipientId: userId,
+            recipientModel: recipientModel,
+            isRead: false
+        });
 
-// ----------------------
-// Mark notification as read
-// ----------------------
-const markAsRead = async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    const userId = req.user.id;
-
-    const notification = await Notification.findOneAndUpdate(
-      { 
-        _id: notificationId,
-        recipient: userId 
-      },
-      { isRead: true },
-      { new: true }
-    );
-
-    if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+        res.status(200).json({
+            success: true,
+            data: {
+                notifications,
+                unreadCount
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'Notification marked as read',
-      data: { notification }
-    });
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating notification'
-    });
-  }
 };
 
-// ----------------------
-// Mark all notifications as read
-// ----------------------
-const markAllAsRead = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
-    
-    const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
+// Mark Notification as Read
+exports.markAsRead = async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        const userId = req.user.id;
 
-    await Notification.updateMany(
-      {
-        recipient: userId,
-        recipientModel: recipientModel,
-        isRead: false
-      },
-      { isRead: true }
-    );
+        const notification = await Notification.findOneAndUpdate(
+            { 
+                _id: notificationId,
+                recipientId: userId 
+            },
+            { 
+                isRead: true,
+                readAt: new Date()
+            },
+            { new: true }
+        );
 
-    res.status(200).json({
-      success: true,
-      message: 'All notifications marked as read'
-    });
-  } catch (error) {
-    console.error('Error marking all as read:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating notifications'
-    });
-  }
-};
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
+        }
 
-// ----------------------
-// Delete a notification
-// ----------------------
-const deleteNotification = async (req, res) => {
-  try {
-    const { notificationId } = req.params;
-    const userId = req.user.id;
-
-    const notification = await Notification.findOneAndDelete({
-      _id: notificationId,
-      recipient: userId
-    });
-
-    if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notification not found'
-      });
+        res.status(200).json({
+            success: true,
+            message: 'Notification marked as read',
+            data: { notification }
+        });
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    res.status(200).json({
-      success: true,
-      message: 'Notification deleted'
-    });
-  } catch (error) {
-    console.error('Error deleting notification:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting notification'
-    });
-  }
 };
 
-// ----------------------
-// Clear all notifications
-// ----------------------
-const clearAllNotifications = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
-    
-    const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
+// Mark All as Read
+exports.markAllAsRead = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        
+        const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
 
-    await Notification.deleteMany({
-      recipient: userId,
-      recipientModel: recipientModel
-    });
+        await Notification.updateMany(
+            {
+                recipientId: userId,
+                recipientModel: recipientModel,
+                isRead: false
+            },
+            { 
+                isRead: true,
+                readAt: new Date()
+            }
+        );
 
-    res.status(200).json({
-      success: true,
-      message: 'All notifications cleared'
-    });
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error clearing notifications'
-    });
-  }
+        res.status(200).json({
+            success: true,
+            message: 'All notifications marked as read'
+        });
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
 };
 
-// ----------------------
-// Helper function to create notification (called by other controllers)
-// ----------------------
-const createNotification = async ({
-  recipient,
-  recipientModel,
-  type,
-  title,
-  message,
-  data = {}
+// Mark Notification as Clicked
+exports.markAsClicked = async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        const userId = req.user.id;
+
+        const notification = await Notification.findOneAndUpdate(
+            { 
+                _id: notificationId,
+                recipientId: userId 
+            },
+            { 
+                isClicked: true,
+                clickedAt: new Date()
+            },
+            { new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            data: { notification }
+        });
+    } catch (error) {
+        console.error('Error marking notification as clicked:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Delete Notification
+exports.deleteNotification = async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        const userId = req.user.id;
+
+        const notification = await Notification.findOneAndDelete({
+            _id: notificationId,
+            recipientId: userId
+        });
+
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Notification deleted'
+        });
+    } catch (error) {
+        console.error('Error deleting notification:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Clear All Notifications
+exports.clearAllNotifications = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        
+        const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
+
+        await Notification.deleteMany({
+            recipientId: userId,
+            recipientModel: recipientModel
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'All notifications cleared'
+        });
+    } catch (error) {
+        console.error('Error clearing notifications:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Get Unread Count
+exports.getUnreadCount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        
+        const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
+
+        const count = await Notification.countDocuments({
+            recipientId: userId,
+            recipientModel: recipientModel,
+            isRead: false
+        });
+
+        res.status(200).json({
+            success: true,
+            data: { unreadCount: count }
+        });
+    } catch (error) {
+        console.error('Error getting unread count:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// ============================================
+// HELPER FUNCTION (for other controllers)
+// ============================================
+
+// ✅ FIXED: Create Notification with proper error handling (non-blocking)
+exports.createNotification = async ({
+    recipientId,
+    recipientModel,
+    type,
+    title,
+    message,
+    data = {},
+    priority = 'medium'
 }) => {
-  try {
-    const notification = new Notification({
-      recipient,
-      recipientModel,
-      type,
-      title,
-      message,
-      data
-    });
+    try {
+        // Validate recipient exists (optional - non-blocking)
+        try {
+            const Model = recipientModel === 'Student' 
+                ? require('../models/Student')
+                : require('../models/Recruiter');
+            
+            const recipient = await Model.findById(recipientId);
+            if (!recipient) {
+                console.error(`⚠️ Recipient ${recipientId} not found in ${recipientModel}`);
+                return null;
+            }
+        } catch (err) {
+            console.error('⚠️ Error validating recipient:', err.message);
+            // Continue anyway - don't block notification
+        }
 
-    await notification.save();
-    
-    // Here you could also emit socket event for real-time
-    // We'll add socket.io later if needed
-    
-    return notification;
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    return null;
-  }
-};
+        const notification = new (require('../models/Notification'))({
+            recipientId,
+            recipientModel,
+            type,
+            title,
+            message,
+            data,
+            priority,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+        });
 
-module.exports = {
-  getMyNotifications,
-  markAsRead,
-  markAllAsRead,
-  deleteNotification,
-  clearAllNotifications,
-  createNotification
+        await notification.save();
+        
+        // TODO: Emit socket event for real-time notification
+        // if (global.io) {
+        //     global.io.to(`${recipientModel}_${recipientId}`).emit('notification', notification);
+        // }
+
+        return notification;
+    } catch (error) {
+        console.error('⚠️ Error creating notification:', error.message);
+        return null; // Return null instead of throwing
+    }
 };

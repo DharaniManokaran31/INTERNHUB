@@ -16,8 +16,11 @@ const PostInternshipPage = () => {
     department: '',
     companyId: '',
     maxInterns: 3,
-    id: ''
+    id: '',
+    email: '',
+    fullName: ''
   });
+  
   const [formData, setFormData] = useState({
     // Basic Info
     title: '',
@@ -27,7 +30,7 @@ const PostInternshipPage = () => {
     description: '',
 
     // Zoyaraa Work Details
-    workMode: 'Remote',
+    workMode: 'Hybrid',
     officeLocation: '',
     dailyTimings: '10 AM - 6 PM',
     weeklyOff: 'Saturday, Sunday',
@@ -65,8 +68,8 @@ const PostInternshipPage = () => {
   const [perkInput, setPerkInput] = useState('');
   const [errors, setErrors] = useState({});
   const [userData, setUserData] = useState({
-    name: 'Loading...',
-    initials: 'RD',
+    name: '',
+    initials: '',
     department: '',
     company: 'Zoyaraa'
   });
@@ -87,7 +90,10 @@ const PostInternshipPage = () => {
   const fetchRecruiterProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
       const response = await fetch('http://localhost:5000/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -96,37 +102,42 @@ const PostInternshipPage = () => {
 
       if (data.success) {
         const user = data.data.user;
-        const initials = user.fullName
+        const fullName = user.fullName || user.name || '';
+        const initials = fullName
           .split(' ')
           .map(n => n[0])
           .join('')
           .toUpperCase()
-          .slice(0, 2);
+          .slice(0, 2) || 'R';
 
         setUserData({
-          name: user.fullName,
+          name: fullName,
           initials: initials,
           department: user.department || '',
           company: 'Zoyaraa'
         });
 
-        // Store complete recruiter data including ID
+        // Store complete recruiter data
         setRecruiterData({
           department: user.department || '',
           companyId: user.companyId || '',
           maxInterns: user.permissions?.maxInterns || 3,
-          id: user.id || user._id
+          id: user._id || user.id,
+          email: user.email,
+          fullName: fullName
         });
 
-        // Update localStorage user object with ID if missing
+        // Update localStorage user object
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (!storedUser.id && (user.id || user._id)) {
-          storedUser.id = user.id || user._id;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-        }
+        storedUser.id = user._id || user.id;
+        storedUser.department = user.department || '';
+        localStorage.setItem('user', JSON.stringify(storedUser));
+      } else {
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error fetching recruiter:', error);
+      navigate('/login');
     }
   };
 
@@ -144,8 +155,11 @@ const PostInternshipPage = () => {
         const internship = data.data.internship;
 
         // Format dates to YYYY-MM-DD for inputs
-        const formatDate = (date) => date ? new Date(date).toISOString().split('T')[0] : '';
-        const formatDeadline = internship.deadline ? new Date(internship.deadline).toISOString().split('T')[0] : '';
+        const formatDate = (date) => {
+          if (!date) return '';
+          const d = new Date(date);
+          return d.toISOString().split('T')[0];
+        };
 
         setFormData({
           title: internship.title || '',
@@ -154,7 +168,7 @@ const PostInternshipPage = () => {
           category: internship.category || 'technology',
           description: internship.description || '',
 
-          workMode: internship.workMode || 'Remote',
+          workMode: internship.workMode || 'Hybrid',
           officeLocation: internship.officeLocation || '',
           dailyTimings: internship.dailyTimings || '10 AM - 6 PM',
           weeklyOff: internship.weeklyOff || 'Saturday, Sunday',
@@ -170,13 +184,17 @@ const PostInternshipPage = () => {
 
           selectionProcess: internship.selectionProcess || [],
 
-          deadline: formatDeadline,
+          deadline: formatDate(internship.deadline),
           status: internship.status || 'active'
         });
+      } else {
+        showNotification('Failed to load internship data', 'error');
+        navigate('/recruiter/internships');
       }
     } catch (error) {
       console.error('Error fetching internship:', error);
       showNotification('Failed to load internship data', 'error');
+      navigate('/recruiter/internships');
     } finally {
       setFetchingData(false);
     }
@@ -204,7 +222,7 @@ const PostInternshipPage = () => {
   ];
 
   // Work mode options
-  const workModes = ['Remote', 'Hybrid', 'Onsite'];
+  const workModes = ['Remote', 'Hybrid', 'On-site'];
 
   // Selection process types
   const roundTypes = [
@@ -229,8 +247,12 @@ const PostInternshipPage = () => {
         const endDate = new Date(end);
         const diffTime = Math.abs(endDate - startDate);
         const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-        if (diffMonths > 0) {
-          setFormData(prev => ({ ...prev, [name]: value, duration: diffMonths.toString() }));
+        if (diffMonths > 0 && diffMonths <= 12) {
+          setFormData(prev => ({ 
+            ...prev, 
+            [name]: value, 
+            duration: diffMonths.toString() 
+          }));
           return;
         }
       }
@@ -238,6 +260,7 @@ const PostInternshipPage = () => {
 
     setFormData(prev => ({ ...prev, [name]: value }));
 
+    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -246,6 +269,16 @@ const PostInternshipPage = () => {
   // Skills management
   const handleAddSkillWithLevel = () => {
     if (skillInput.trim()) {
+      // Check if skill already exists
+      const exists = formData.skillsRequired.some(
+        s => s.name.toLowerCase() === skillInput.trim().toLowerCase()
+      );
+      
+      if (exists) {
+        showNotification('This skill already exists', 'error');
+        return;
+      }
+
       setFormData(prev => ({
         ...prev,
         skillsRequired: [
@@ -258,6 +291,11 @@ const PostInternshipPage = () => {
       }));
       setSkillInput('');
       setSkillLevel('beginner');
+      
+      // Clear skills error
+      if (errors.skillsRequired) {
+        setErrors(prev => ({ ...prev, skillsRequired: '' }));
+      }
     }
   };
 
@@ -311,7 +349,11 @@ const PostInternshipPage = () => {
         ...prev,
         selectionProcess: [
           ...prev.selectionProcess,
-          { ...currentRound, round: prev.selectionProcess.length + 1 }
+          { 
+            ...currentRound, 
+            round: prev.selectionProcess.length + 1,
+            _id: Date.now().toString() // Temporary ID for UI
+          }
         ]
       }));
       setCurrentRound({
@@ -320,6 +362,8 @@ const PostInternshipPage = () => {
         duration: '',
         details: ''
       });
+    } else {
+      showNotification('Please fill in round details', 'error');
     }
   };
 
@@ -369,6 +413,16 @@ const PostInternshipPage = () => {
       }
     }
 
+    // Deadline validation
+    if (formData.deadline) {
+      const deadline = new Date(formData.deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (deadline < today) {
+        newErrors.deadline = 'Deadline cannot be in the past';
+      }
+    }
+
     return newErrors;
   };
 
@@ -387,36 +441,63 @@ const PostInternshipPage = () => {
     try {
       const token = localStorage.getItem('authToken');
 
-      // Get recruiter info from localStorage
+      // Get recruiter info
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-      // Get company info from recruiterData
       const companyId = recruiterData.companyId;
 
       if (!companyId) {
-        showNotification('Company information missing. Please contact HR.', 'error');
+        showNotification('Company information missing. Please refresh and try again.', 'error');
         setLoading(false);
         return;
       }
 
-      // ✅ Prepare data with ALL required fields
+      if (!recruiterData.id) {
+        showNotification('Recruiter ID missing. Please refresh and try again.', 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Prepare data with ALL required fields
       const internshipData = {
-        ...formData,
-        companyName: 'Zoyaraa', // Add company name
-        companyId: companyId,    // Add company ID from recruiter profile
-        department: recruiterData.department, // Add department from recruiter
-        mentorId: user.id || recruiterData.id, // Add mentor ID (current recruiter)
-        postedBy: user.id || recruiterData.id, // Add postedBy (current recruiter)
-        // Ensure dates are in correct format
+        title: formData.title,
+        location: formData.location,
+        type: formData.type,
+        category: formData.category,
+        description: formData.description,
+        
+        // Company details
+        companyName: 'Zoyaraa',
+        companyId: companyId,
+        department: recruiterData.department,
+        
+        // Work details
+        workMode: formData.workMode,
+        officeLocation: formData.officeLocation,
+        dailyTimings: formData.dailyTimings,
+        weeklyOff: formData.weeklyOff,
+        
+        // Dates
         startDate: formData.startDate,
         endDate: formData.endDate,
         deadline: formData.deadline,
-        // Convert stipend to number
+        
+        // Numbers
+        duration: Number(formData.duration),
         stipend: Number(formData.stipend) || 0,
-        // Ensure positions is number
         positions: Number(formData.positions) || 1,
-        // Ensure duration is number
-        duration: Number(formData.duration)
+        
+        // Arrays
+        skillsRequired: formData.skillsRequired,
+        requirements: formData.requirements,
+        perks: formData.perks,
+        selectionProcess: formData.selectionProcess,
+        
+        // IDs
+        mentorId: recruiterData.id,
+        postedBy: recruiterData.id,
+        
+        // Status
+        status: formData.status
       };
 
       console.log('📤 Sending internship data:', internshipData);
@@ -441,13 +522,19 @@ const PostInternshipPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        showNotification(isEditMode ? 'Internship updated successfully!' : 'Internship posted successfully!');
+        showNotification(
+          isEditMode ? 'Internship updated successfully!' : 'Internship posted successfully!',
+          'success'
+        );
         setTimeout(() => {
           navigate('/recruiter/internships');
         }, 2000);
       } else {
         console.error('❌ Server Error:', data);
-        showNotification(data.message || `Failed to ${isEditMode ? 'update' : 'post'} internship`, 'error');
+        showNotification(
+          data.message || `Failed to ${isEditMode ? 'update' : 'post'} internship`,
+          'error'
+        );
       }
     } catch (error) {
       console.error('❌ Error:', error);
@@ -458,6 +545,7 @@ const PostInternshipPage = () => {
   };
 
   const showNotification = (message, type = 'success') => {
+    // Remove any existing notifications
     document.querySelectorAll('.custom-notification').forEach(n => n.remove());
 
     const notification = document.createElement('div');
@@ -501,7 +589,17 @@ const PostInternshipPage = () => {
       <div className="app-container">
         <main className="main-content">
           <div className="content-area">
-            <div className="loading-placeholder">Loading internship data...</div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div className="loading-spinner"></div>
+              <p style={{ color: '#666' }}>Loading internship data...</p>
+            </div>
           </div>
         </main>
       </div>
@@ -528,16 +626,18 @@ const PostInternshipPage = () => {
             </div>
             <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
-          <div className="department-badge" style={{
-            marginTop: '0.5rem',
-            padding: '0.25rem 0.5rem',
-            background: 'rgba(255,255,255,0.2)',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            textAlign: 'center'
-          }}>
-            {userData.department || 'Department'}
-          </div>
+          {userData.department && (
+            <div className="department-badge" style={{
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              textAlign: 'center'
+            }}>
+              {userData.department}
+            </div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
@@ -559,21 +659,11 @@ const PostInternshipPage = () => {
             onClick={() => navigate('/recruiter/internships')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
             <span className="nav-item-text">Manage Internships</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') || location.pathname.includes('/recruiter/review-logs') || location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/mentor-dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
-            </svg>
-            <span className="nav-item-text">Mentor Dashboard</span>
-          </button>
-
 
           <button
             className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
@@ -599,7 +689,6 @@ const PostInternshipPage = () => {
             <span className="nav-item-text">View Applicants</span>
           </button>
 
-          {/* ✅ Interviews Menu Item */}
           <button
             className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
             onClick={() => navigate('/recruiter/interviews')}
@@ -609,6 +698,16 @@ const PostInternshipPage = () => {
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <span className="nav-item-text">Interviews</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentor-dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
+            </svg>
+            <span className="nav-item-text">Mentor Dashboard</span>
           </button>
 
           <button
@@ -627,11 +726,11 @@ const PostInternshipPage = () => {
             className="user-profile-sidebar"
             onClick={() => navigate('/recruiter/profile')}
           >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
+            <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
             <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
+              <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
               <div className="user-role-sidebar">
-                {userData.department} • Zoyaraa
+                {userData.department || 'Recruiter'} • {userData.company}
               </div>
             </div>
           </button>
@@ -648,8 +747,7 @@ const PostInternshipPage = () => {
               onClick={toggleMobileMenu}
               aria-label="Toggle menu"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -671,14 +769,28 @@ const PostInternshipPage = () => {
             <div className="section">
               <h2 className="section-title">
                 {isEditMode ? 'Edit Internship Details' : 'Post New Internship'}
-                {userData.department && <span style={{ fontSize: '0.9rem', marginLeft: '1rem', color: '#666' }}>
-                  • {userData.department} Department
-                </span>}
+                {userData.department && (
+                  <span style={{ 
+                    fontSize: '0.9rem', 
+                    marginLeft: '1rem', 
+                    color: '#666',
+                    background: '#EEF2FF',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '20px'
+                  }}>
+                    {userData.department} Department
+                  </span>
+                )}
               </h2>
 
               <form onSubmit={handleSubmit}>
                 {/* Basic Information */}
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div className="form-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr', 
+                  gap: '1.5rem', 
+                  marginBottom: '2rem' 
+                }}>
                   <div className="form-group">
                     <label>Job Title *</label>
                     <input
@@ -699,7 +811,7 @@ const PostInternshipPage = () => {
                       name="location"
                       value={formData.location}
                       onChange={handleChange}
-                      placeholder="e.g., Chennai, Remote"
+                      placeholder="e.g., Chennai, Bangalore, Remote"
                       className={errors.location ? 'error' : ''}
                     />
                     {errors.location && <small className="error-text">{errors.location}</small>}
@@ -735,8 +847,15 @@ const PostInternshipPage = () => {
                 </div>
 
                 {/* Work Details Section */}
-                <h3 style={{ margin: '2rem 0 1rem', fontSize: '1.1rem', fontWeight: '600' }}>Work Details</h3>
-                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                <h3 style={{ margin: '2rem 0 1rem', fontSize: '1.1rem', fontWeight: '600' }}>
+                  Work Details
+                </h3>
+                <div className="form-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr', 
+                  gap: '1.5rem', 
+                  marginBottom: '2rem' 
+                }}>
                   <div className="form-group">
                     <label>Work Mode *</label>
                     <select
@@ -759,7 +878,7 @@ const PostInternshipPage = () => {
                       name="officeLocation"
                       value={formData.officeLocation}
                       onChange={handleChange}
-                      placeholder="e.g., Tower A, Chennai"
+                      placeholder="e.g., Tower A, Manyata Tech Park, Bangalore"
                     />
                   </div>
 
@@ -894,8 +1013,8 @@ const PostInternshipPage = () => {
                       type="text"
                       value={skillInput}
                       onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && e.preventDefault()}
-                      placeholder="Type a skill name"
+                      onKeyPress={(e) => handleKeyPress(e, 'skill')}
+                      placeholder="Type a skill name (e.g., React, Python)"
                       style={{ flex: 2, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px' }}
                     />
 
@@ -925,9 +1044,16 @@ const PostInternshipPage = () => {
                     </button>
                   </div>
 
-                  {errors.skillsRequired && <small className="error-text">{errors.skillsRequired}</small>}
+                  {errors.skillsRequired && (
+                    <small className="error-text">{errors.skillsRequired}</small>
+                  )}
 
-                  <div className="tags-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div className="tags-container" style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.5rem', 
+                    marginTop: '0.5rem' 
+                  }}>
                     {formData.skillsRequired.map((skill, index) => (
                       <span key={index} className="skill-tag" style={{
                         background: '#EEF2FF',
@@ -970,7 +1096,11 @@ const PostInternshipPage = () => {
                 {/* Requirements */}
                 <div className="form-group" style={{ marginBottom: '2rem' }}>
                   <label>Requirements (Optional)</label>
-                  <div className="input-with-addon" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div className="input-with-addon" style={{ 
+                    display: 'flex', 
+                    gap: '0.5rem', 
+                    marginBottom: '0.5rem' 
+                  }}>
                     <input
                       type="text"
                       value={requirementInput}
@@ -989,7 +1119,12 @@ const PostInternshipPage = () => {
                     </button>
                   </div>
 
-                  <div className="tags-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div className="tags-container" style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.5rem', 
+                    marginTop: '0.5rem' 
+                  }}>
                     {formData.requirements.map((req, index) => (
                       <span key={index} className="skill-tag" style={{
                         background: '#f3f4f6',
@@ -1023,7 +1158,11 @@ const PostInternshipPage = () => {
                 {/* Perks */}
                 <div className="form-group" style={{ marginBottom: '2rem' }}>
                   <label>Perks & Benefits (Optional)</label>
-                  <div className="input-with-addon" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div className="input-with-addon" style={{ 
+                    display: 'flex', 
+                    gap: '0.5rem', 
+                    marginBottom: '0.5rem' 
+                  }}>
                     <input
                       type="text"
                       value={perkInput}
@@ -1042,7 +1181,12 @@ const PostInternshipPage = () => {
                     </button>
                   </div>
 
-                  <div className="tags-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div className="tags-container" style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '0.5rem', 
+                    marginTop: '0.5rem' 
+                  }}>
                     {formData.perks.map((perk, index) => (
                       <span key={index} className="skill-tag" style={{
                         background: '#E6F7E6',
@@ -1084,14 +1228,29 @@ const PostInternshipPage = () => {
                     borderRadius: '8px',
                     marginBottom: '1rem'
                   }}>
-                    <h4 style={{ marginBottom: '1rem' }}>Add Round {formData.selectionProcess.length + 1}</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <h4 style={{ marginBottom: '1rem', fontSize: '1rem' }}>
+                      Add Round {formData.selectionProcess.length + 1}
+                    </h4>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '1rem', 
+                      marginBottom: '1rem' 
+                    }}>
                       <div>
-                        <label>Round Type</label>
+                        <label style={{ fontSize: '0.9rem', marginBottom: '0.25rem', display: 'block' }}>
+                          Round Type
+                        </label>
                         <select
                           value={currentRound.type}
                           onChange={(e) => setCurrentRound({ ...currentRound, type: e.target.value })}
-                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75rem', 
+                            border: '1px solid #d1d5db', 
+                            borderRadius: '8px',
+                            fontSize: '0.9375rem'
+                          }}
                         >
                           {roundTypes.map(type => (
                             <option key={type} value={type}>{type}</option>
@@ -1099,24 +1258,41 @@ const PostInternshipPage = () => {
                         </select>
                       </div>
                       <div>
-                        <label>Duration (minutes)</label>
+                        <label style={{ fontSize: '0.9rem', marginBottom: '0.25rem', display: 'block' }}>
+                          Duration (minutes)
+                        </label>
                         <input
                           type="text"
                           value={currentRound.duration}
                           onChange={(e) => setCurrentRound({ ...currentRound, duration: e.target.value })}
                           placeholder="e.g., 60 mins"
-                          style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px' }}
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75rem', 
+                            border: '1px solid #d1d5db', 
+                            borderRadius: '8px',
+                            fontSize: '0.9375rem'
+                          }}
                         />
                       </div>
                     </div>
                     <div>
-                      <label>Details</label>
+                      <label style={{ fontSize: '0.9rem', marginBottom: '0.25rem', display: 'block' }}>
+                        Details
+                      </label>
                       <textarea
                         value={currentRound.details}
                         onChange={(e) => setCurrentRound({ ...currentRound, details: e.target.value })}
                         placeholder="Describe what this round involves..."
                         rows="2"
-                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', marginBottom: '1rem' }}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.75rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          marginBottom: '1rem',
+                          fontSize: '0.9375rem'
+                        }}
                       />
                     </div>
                     <button
@@ -1132,7 +1308,7 @@ const PostInternshipPage = () => {
                   {/* Added Rounds */}
                   {formData.selectionProcess.length > 0 && (
                     <div>
-                      <h4 style={{ marginBottom: '0.5rem' }}>Added Rounds:</h4>
+                      <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>Added Rounds:</h4>
                       {formData.selectionProcess.map((round, index) => (
                         <div key={index} style={{
                           background: 'white',
@@ -1144,8 +1320,14 @@ const PostInternshipPage = () => {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                               <strong>Round {round.round}: {round.type}</strong>
-                              {round.duration && <span style={{ marginLeft: '1rem', color: '#666' }}>({round.duration})</span>}
-                              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: '#666' }}>{round.details}</p>
+                              {round.duration && (
+                                <span style={{ marginLeft: '1rem', color: '#666' }}>
+                                  ({round.duration})
+                                </span>
+                              )}
+                              <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: '#666' }}>
+                                {round.details}
+                              </p>
                             </div>
                             <button
                               type="button"
@@ -1155,7 +1337,8 @@ const PostInternshipPage = () => {
                                 border: 'none',
                                 color: '#dc2626',
                                 cursor: 'pointer',
-                                fontSize: '1.2rem'
+                                fontSize: '1.2rem',
+                                padding: '0.25rem 0.5rem'
                               }}
                             >
                               ×
@@ -1167,7 +1350,7 @@ const PostInternshipPage = () => {
                   )}
                 </div>
 
-                {/* ✅ NEW: Interview Process Preview */}
+                {/* Interview Process Preview */}
                 {formData.selectionProcess.length > 0 && (
                   <div className="form-group" style={{ marginBottom: '2rem' }}>
                     <label>Interview Process Preview</label>
@@ -1197,19 +1380,33 @@ const PostInternshipPage = () => {
                           </span>
                         ))}
                       </div>
-                      <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic' }}>
-                        These rounds will be automatically created when you start the interview process for shortlisted candidates.
+                      <p style={{ 
+                        marginTop: '0.5rem', 
+                        fontSize: '0.8rem', 
+                        color: '#6b7280', 
+                        fontStyle: 'italic' 
+                      }}>
+                        These rounds will be automatically created when you start the interview process 
+                        for shortlisted candidates.
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Submit Buttons */}
-                <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
+                <div className="action-buttons" style={{ 
+                  display: 'flex', 
+                  gap: '1rem', 
+                  justifyContent: 'flex-end',
+                  marginTop: '2rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid #e5e7eb'
+                }}>
                   <button
                     type="button"
                     className="secondary-btn"
                     onClick={() => navigate('/recruiter/internships')}
+                    style={{ padding: '0.75rem 2rem' }}
                   >
                     Cancel
                   </button>
@@ -1217,8 +1414,16 @@ const PostInternshipPage = () => {
                     type="submit"
                     className="primary-btn"
                     disabled={loading}
+                    style={{ padding: '0.75rem 2rem' }}
                   >
-                    {loading ? (isEditMode ? 'Updating...' : 'Posting...') : (isEditMode ? 'Update Internship' : 'Post Internship')}
+                    {loading ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="loading-spinner-small"></span>
+                        {isEditMode ? 'Updating...' : 'Posting...'}
+                      </span>
+                    ) : (
+                      isEditMode ? 'Update Internship' : 'Post Internship'
+                    )}
                   </button>
                 </div>
               </form>

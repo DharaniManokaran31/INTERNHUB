@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const { upload } = require("../middleware/upload");
-
 const studentController = require("../controllers/studentController");
 
 // ===== PUBLIC ROUTES =====
@@ -35,8 +34,7 @@ router.delete(
   studentController.removeResumeFile
 );
 
-// ===== CERTIFICATE ROUTES (FULL CRUD) =====
-
+// ===== CERTIFICATE ROUTES =====
 // Get official issued certificates
 router.get(
   "/issued-certificates",

@@ -12,7 +12,7 @@ const authMiddleware = (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // attach decoded user info to req (for both students and recruiters)
+    req.user = decoded; // attaches { id, email, role, department } to req.user
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error.message);

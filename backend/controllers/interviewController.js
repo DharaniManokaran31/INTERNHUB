@@ -1,10 +1,15 @@
-// backend/controllers/interviewController.js
 const Interview = require('../models/Interview');
 const Application = require('../models/Application');
 const Internship = require('../models/Internship');
 const Recruiter = require('../models/Recruiter');
 const Student = require('../models/Student');
-const { sendInterviewEmail, sendResultEmail } = require('../services/emailService');
+const { createNotification } = require('./notificationController');
+const { 
+  sendInterviewScheduledEmail, 
+  sendInterviewRescheduleEmail,
+  sendInterviewResponseEmail,
+  sendResultEmail 
+} = require('../services/emailService');
 
 // ============================================
 // 1. CREATE INTERVIEW (When student is shortlisted)
@@ -18,8 +23,8 @@ exports.createInterview = async (req, res) => {
 
     // Get application details
     const application = await Application.findById(applicationId)
-      .populate('internship')
-      .populate('student');
+      .populate('internshipId')
+      .populate('studentId');
 
     if (!application) {
       return res.status(404).json({
@@ -38,7 +43,7 @@ exports.createInterview = async (req, res) => {
     }
 
     // Get internship selection process rounds
-    const internship = application.internship;
+    const internship = application.internshipId;
     const selectionRounds = internship.selectionProcess || [];
 
     if (selectionRounds.length === 0) {
@@ -53,18 +58,19 @@ exports.createInterview = async (req, res) => {
     // Create interview rounds from internship selection process
     const rounds = selectionRounds.map((round, index) => ({
       roundNumber: index + 1,
-      roundType: round.type,
+      roundType: round.type || round.roundType,
       duration: round.duration || '60 mins',
       status: 'pending',
       result: 'pending',
-      mode: 'online', // Default, will be updated when scheduling
-      emailSent: false
+      mode: 'online',
+      emailSent: false,
+      rescheduleHistory: []
     }));
 
     // Create interview
     const interview = new Interview({
       applicationId,
-      studentId: application.student._id,
+      studentId: application.studentId._id,
       internshipId: internship._id,
       recruiterId,
       rounds,
@@ -72,9 +78,32 @@ exports.createInterview = async (req, res) => {
       overallStatus: 'in_progress'
     });
 
+    // Save with error handling
     await interview.save();
 
     console.log(`✅ Interview created with ID: ${interview._id}`);
+
+    // ✅ FIXED: Non-blocking notification creation
+    // This runs in background and won't affect the response
+    (async () => {
+      try {
+        await createNotification({
+          recipientId: application.studentId._id,
+          recipientModel: 'Student',
+          type: 'interview_scheduled',
+          title: 'Interview Process Started',
+          message: `Your interview process for ${internship.title} has been initiated`,
+          data: {
+            interviewId: interview._id,
+            applicationId,
+            internshipId: internship._id,
+            internshipTitle: internship.title
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Background notification failed (non-critical):', notifError.message);
+      }
+    })();
 
     res.status(201).json({
       success: true,
@@ -86,7 +115,7 @@ exports.createInterview = async (req, res) => {
     console.error('❌ Error creating interview:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message || 'Failed to create interview'
     });
   }
 };
@@ -101,7 +130,7 @@ exports.getInterviewById = async (req, res) => {
     const userRole = req.user.role;
 
     const interview = await Interview.findById(interviewId)
-      .populate('studentId', 'fullName email phone profilePicture education skills')
+      .populate('studentId', 'fullName email phone profilePicture currentEducation skills')
       .populate('recruiterId', 'fullName email department designation')
       .populate('internshipId', 'title department companyName workMode location')
       .populate('applicationId');
@@ -114,23 +143,25 @@ exports.getInterviewById = async (req, res) => {
     }
 
     // Check authorization
-    if (userRole === 'student' && interview.studentId._id.toString() !== userId) {
+    const isStudent = userRole === 'student' && interview.studentId?._id.toString() === userId;
+    const isRecruiter = userRole === 'recruiter' && interview.recruiterId?._id.toString() === userId;
+    const isHR = userRole === 'hr';
+
+    if (!isStudent && !isRecruiter && !isHR) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this interview'
       });
     }
 
-    if (userRole === 'recruiter' && interview.recruiterId._id.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to view this interview'
-      });
-    }
+    // Add virtual fields for UI
+    const interviewObj = interview.toObject();
+    interviewObj.nextRound = interview.nextRound;
+    interviewObj.progressPercentage = interview.progressPercentage;
 
     res.status(200).json({
       success: true,
-      data: { interview }
+      data: { interview: interviewObj }
     });
 
   } catch (error) {
@@ -180,22 +211,18 @@ exports.getInterviewByApplication = async (req, res) => {
 exports.getRecruiterInterviews = async (req, res) => {
   try {
     const recruiterId = req.user.id;
-    const { status, type } = req.query;
+    const { status, type, page = 1, limit = 10 } = req.query;
 
     let query = { recruiterId };
     
     // Filter by overall status if provided
     if (status && status !== 'all') {
       if (status === 'pending') {
-        // Interviews with any round pending
         query['rounds.status'] = 'pending';
       } else if (status === 'scheduled') {
-        // Interviews with any round scheduled
         query['rounds.status'] = 'scheduled';
       } else if (status === 'completed') {
-        // Interviews with all rounds completed
-        query['rounds.status'] = 'completed';
-        query['overallStatus'] = { $in: ['in_progress', 'selected', 'rejected'] };
+        query['overallStatus'] = { $in: ['selected', 'rejected'] };
       }
     }
 
@@ -204,14 +231,21 @@ exports.getRecruiterInterviews = async (req, res) => {
       query['rounds.roundType'] = type;
     }
 
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const interviews = await Interview.find(query)
-      .populate('studentId', 'fullName email profilePicture education')
+      .populate('studentId', 'fullName email profilePicture currentEducation')
       .populate('internshipId', 'title department')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Interview.countDocuments(query);
 
     // Calculate stats
+    const allInterviews = await Interview.find({ recruiterId });
     const stats = {
-      total: interviews.length,
+      total: allInterviews.length,
       pendingSchedule: 0,
       upcoming: 0,
       pendingFeedback: 0,
@@ -220,13 +254,13 @@ exports.getRecruiterInterviews = async (req, res) => {
       rejected: 0
     };
 
-    interviews.forEach(interview => {
+    const now = new Date();
+    allInterviews.forEach(interview => {
       // Count interviews with pending rounds
       const hasPending = interview.rounds.some(r => r.status === 'pending');
       if (hasPending) stats.pendingSchedule++;
 
       // Count interviews with scheduled upcoming rounds
-      const now = new Date();
       const hasUpcoming = interview.rounds.some(r => 
         r.status === 'scheduled' && new Date(r.scheduledDate) > now
       );
@@ -238,18 +272,29 @@ exports.getRecruiterInterviews = async (req, res) => {
       );
       if (hasCompleted) stats.pendingFeedback++;
 
-      // Count completed interviews
-      const allCompleted = interview.rounds.every(r => r.status === 'completed');
-      if (allCompleted) stats.completed++;
-
       // Count final outcomes
       if (interview.overallStatus === 'selected') stats.selected++;
       if (interview.overallStatus === 'rejected') stats.rejected++;
     });
 
+    // Calculate conversion rate
+    const totalDecided = stats.selected + stats.rejected;
+    stats.conversionRate = totalDecided > 0 
+      ? Math.round((stats.selected / totalDecided) * 100) 
+      : 0;
+
     res.status(200).json({
       success: true,
-      data: { interviews, stats }
+      data: { 
+        interviews, 
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
     });
 
   } catch (error) {
@@ -314,34 +359,8 @@ exports.getStudentInterviews = async (req, res) => {
 exports.scheduleRound = async (req, res) => {
   try {
     const { interviewId } = req.params;
-    const {
-      roundNumber,
-      scheduledDate,
-      scheduledTime,
-      mode,
-      // Online fields
-      platform,
-      meetingLink,
-      testLink,
-      testPlatform,
-      accessCode,
-      instructions,
-      // Offline fields
-      venue,
-      address,
-      city,
-      landmark,
-      roomNumber,
-      floor,
-      contactPerson,
-      // Assignment fields
-      assignmentTitle,
-      assignmentDescription,
-      assignmentRequirements,
-      assignmentTechnologies,
-      submissionPlatform,
-      deadline
-    } = req.body;
+    const roundData = req.body;
+    const recruiterId = req.user.id;
 
     const interview = await Interview.findById(interviewId)
       .populate('studentId', 'fullName email')
@@ -355,7 +374,7 @@ exports.scheduleRound = async (req, res) => {
     }
 
     // Find the round
-    const round = interview.rounds.find(r => r.roundNumber === roundNumber);
+    const round = interview.rounds.find(r => r.roundNumber === roundData.roundNumber);
     if (!round) {
       return res.status(404).json({
         success: false,
@@ -363,73 +382,97 @@ exports.scheduleRound = async (req, res) => {
       });
     }
 
-    // Update common fields
+    // Update round with schedule details
     round.status = 'scheduled';
-    round.scheduledDate = scheduledDate;
-    round.scheduledTime = scheduledTime;
+    round.scheduledDate = roundData.scheduledDate;
+    round.scheduledTime = roundData.scheduledTime;
     round.scheduledAt = new Date();
-    round.mode = mode;
+    round.mode = roundData.mode || 'online';
+    round.duration = roundData.duration || '60 mins';
 
     // Set mode-specific details
-    if (mode === 'online') {
+    if (roundData.mode === 'online') {
       round.onlineDetails = {
-        platform: platform || 'Google Meet',
-        meetingLink: meetingLink || generateMeetingLink(platform),
-        testLink,
-        testPlatform,
-        accessCode,
-        instructions
+        platform: roundData.platform || 'Google Meet',
+        meetingLink: roundData.meetingLink || generateMeetingLink(roundData.platform),
+        testLink: roundData.testLink,
+        testPlatform: roundData.testPlatform,
+        accessCode: roundData.accessCode,
+        instructions: roundData.instructions
       };
     } 
-    else if (mode === 'offline') {
+    else if (roundData.mode === 'offline') {
       round.offlineDetails = {
-        venue,
-        address,
-        city,
-        landmark,
-        roomNumber,
-        floor,
-        contactPerson: contactPerson ? {
-          name: contactPerson.name,
-          phone: contactPerson.phone,
-          email: contactPerson.email,
-          designation: contactPerson.designation
+        venue: roundData.venue,
+        address: roundData.address,
+        city: roundData.city,
+        landmark: roundData.landmark,
+        roomNumber: roundData.roomNumber,
+        floor: roundData.floor,
+        contactPerson: roundData.contactPerson ? {
+          name: roundData.contactPerson.name,
+          phone: roundData.contactPerson.phone,
+          email: roundData.contactPerson.email,
+          designation: roundData.contactPerson.designation
         } : undefined
       };
     } 
-    else if (mode === 'assignment') {
+    else if (roundData.mode === 'assignment') {
       round.assignmentDetails = {
-        title: assignmentTitle,
-        description: assignmentDescription,
-        requirements: assignmentRequirements ? assignmentRequirements.split('\n') : [],
-        technologies: assignmentTechnologies ? assignmentTechnologies.split(',').map(t => t.trim()) : [],
-        submissionPlatform,
+        title: roundData.assignmentTitle,
+        description: roundData.assignmentDescription,
+        requirements: roundData.assignmentRequirements ? roundData.assignmentRequirements.split('\n') : [],
+        technologies: roundData.assignmentTechnologies ? roundData.assignmentTechnologies.split(',').map(t => t.trim()) : [],
+        submissionPlatform: roundData.submissionPlatform,
         evaluationCriteria: []
       };
-      round.deadline = deadline;
+      round.deadline = roundData.deadline;
     }
 
     await interview.save();
 
-    // Send email notification
-    try {
-      await sendInterviewEmail(
-        interview.studentId.email,
-        interview.studentId.fullName,
-        interview.internshipId.title,
-        round
-      );
-      round.emailSent = true;
-      round.emailSentAt = new Date();
-      await interview.save();
-    } catch (emailError) {
-      console.error('Email sending failed:', emailError);
-      // Don't fail the request if email fails
-    }
+    // Send email notification (non-blocking)
+    (async () => {
+      try {
+        await sendInterviewScheduledEmail(
+          interview.studentId.email,
+          interview.studentId.fullName,
+          interview.internshipId.title,
+          round
+        );
+        round.emailSent = true;
+        round.emailSentAt = new Date();
+        await interview.save();
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+      }
+    })();
+
+    // Create notification for student (non-blocking)
+    (async () => {
+      try {
+        await createNotification({
+          recipientId: interview.studentId._id,
+          recipientModel: 'Student',
+          type: 'interview_scheduled',
+          title: `Interview Scheduled - Round ${round.roundNumber}`,
+          message: `Your ${round.roundType} round for ${interview.internshipId.title} has been scheduled`,
+          data: {
+            interviewId: interview._id,
+            roundNumber: round.roundNumber,
+            scheduledDate: round.scheduledDate,
+            scheduledTime: round.scheduledTime,
+            mode: round.mode
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Notification failed (non-critical):', notifError.message);
+      }
+    })();
 
     res.status(200).json({
       success: true,
-      message: `Round ${roundNumber} scheduled successfully`,
+      message: `Round ${round.roundNumber} scheduled successfully`,
       data: { interview }
     });
 
@@ -468,8 +511,7 @@ exports.submitRoundResult = async (req, res) => {
       result,
       score,
       percentage,
-      feedback,
-      nextRound
+      feedback
     } = req.body;
 
     const interview = await Interview.findById(interviewId)
@@ -502,7 +544,15 @@ exports.submitRoundResult = async (req, res) => {
     
     if (feedback) {
       round.feedback = {
-        ...feedback,
+        rating: feedback.rating,
+        strengths: feedback.strengths,
+        weaknesses: feedback.weaknesses,
+        technicalSkills: feedback.technicalSkills,
+        communicationSkills: feedback.communicationSkills,
+        problemSolving: feedback.problemSolving,
+        overallImpression: feedback.overallImpression,
+        detailedNotes: feedback.detailedNotes,
+        recommendedNextRound: feedback.recommendedNextRound !== false,
         submittedAt: new Date()
       };
     }
@@ -513,63 +563,148 @@ exports.submitRoundResult = async (req, res) => {
         // There is a next round
         interview.currentRound = roundNumber + 1;
         
-        // Send email about passing
-        await sendResultEmail(
-          interview.studentId.email,
-          interview.studentId.fullName,
-          interview.internshipId.title,
-          'pass',
-          round.roundType
-        );
+        // Send email about passing (non-blocking)
+        (async () => {
+          try {
+            await sendResultEmail(
+              interview.studentId.email,
+              interview.studentId.fullName,
+              interview.internshipId.title,
+              'pass',
+              round.roundType
+            );
+          } catch (emailError) {
+            console.error('Email sending failed:', emailError);
+          }
+        })();
+
+        // Create notification for next round (non-blocking)
+        (async () => {
+          try {
+            await createNotification({
+              recipientId: interview.studentId._id,
+              recipientModel: 'Student',
+              type: 'interview_result',
+              title: `You passed Round ${roundNumber}!`,
+              message: `Congratulations! You've been shortlisted for the next round of ${interview.internshipId.title}`,
+              data: {
+                interviewId: interview._id,
+                roundNumber: roundNumber + 1,
+                nextRoundType: interview.rounds[roundNumber].roundType
+              }
+            });
+          } catch (notifError) {
+            console.log('⚠️ Notification failed (non-critical):', notifError.message);
+          }
+        })();
       } else {
         // This was the last round - student selected!
         interview.overallStatus = 'selected';
-        interview.finalDecision = {
-          madeBy: req.user.id,
-          madeAt: new Date(),
-          decision: 'selected',
-          comments: feedback?.detailedNotes || 'Selected after all rounds'
-        };
         
         // Update application status
         await Application.findByIdAndUpdate(
           interview.applicationId,
-          { status: 'accepted' }
+          { 
+            status: 'accepted',
+            $push: {
+              timeline: {
+                status: 'accepted',
+                comment: 'Selected after interview process',
+                updatedAt: new Date(),
+                updatedBy: req.user.id
+              }
+            }
+          }
         );
         
-        // Send selection email
-        await sendResultEmail(
-          interview.studentId.email,
-          interview.studentId.fullName,
-          interview.internshipId.title,
-          'selected',
-          'final'
-        );
+        // Send selection email (non-blocking)
+        (async () => {
+          try {
+            await sendResultEmail(
+              interview.studentId.email,
+              interview.studentId.fullName,
+              interview.internshipId.title,
+              'selected',
+              'final'
+            );
+          } catch (emailError) {
+            console.error('Email sending failed:', emailError);
+          }
+        })();
+
+        // Create selection notification (non-blocking)
+        (async () => {
+          try {
+            await createNotification({
+              recipientId: interview.studentId._id,
+              recipientModel: 'Student',
+              type: 'interview_result',
+              title: '🎉 Congratulations! You\'re Selected!',
+              message: `We're pleased to inform you that you've been selected for the ${interview.internshipId.title} internship!`,
+              data: {
+                interviewId: interview._id,
+                applicationId: interview.applicationId,
+                internshipId: interview.internshipId._id
+              }
+            });
+          } catch (notifError) {
+            console.log('⚠️ Notification failed (non-critical):', notifError.message);
+          }
+        })();
       }
     } else if (result === 'fail') {
       // Student failed this round - reject
       interview.overallStatus = 'rejected';
-      interview.finalDecision = {
-        madeBy: req.user.id,
-        madeAt: new Date(),
-        decision: 'rejected',
-        comments: feedback?.detailedNotes || `Rejected after round ${roundNumber}`
-      };
       
       // Update application status
       await Application.findByIdAndUpdate(
         interview.applicationId,
-        { status: 'rejected' }
+        { 
+          status: 'rejected',
+          $push: {
+            timeline: {
+              status: 'rejected',
+              comment: feedback?.detailedNotes || 'Not selected after interview',
+              updatedAt: new Date(),
+              updatedBy: req.user.id
+            }
+          }
+        }
       );
       
-      // Send rejection email
-      await sendResultEmail(
-        interview.studentId.email,
-        interview.studentId.fullName,
-        interview.internshipId.title,
-        'reject',
-        round.roundType
-      );
+      // Send rejection email (non-blocking)
+      (async () => {
+        try {
+          await sendResultEmail(
+            interview.studentId.email,
+            interview.studentId.fullName,
+            interview.internshipId.title,
+            'reject',
+            round.roundType
+          );
+        } catch (emailError) {
+          console.error('Email sending failed:', emailError);
+        }
+      })();
+
+      // Create rejection notification (non-blocking)
+      (async () => {
+        try {
+          await createNotification({
+            recipientId: interview.studentId._id,
+            recipientModel: 'Student',
+            type: 'interview_result',
+            title: 'Application Update',
+            message: `Thank you for your interest in ${interview.internshipId.title}. We regret to inform you that you haven't been selected for this position.`,
+            data: {
+              interviewId: interview._id,
+              applicationId: interview.applicationId
+            }
+          });
+        } catch (notifError) {
+          console.log('⚠️ Notification failed (non-critical):', notifError.message);
+        }
+      })();
     }
 
     await interview.save();
@@ -637,6 +772,26 @@ exports.submitAssignment = async (req, res) => {
 
     await interview.save();
 
+    // Notify recruiter (non-blocking)
+    (async () => {
+      try {
+        await createNotification({
+          recipientId: interview.recruiterId,
+          recipientModel: 'Recruiter',
+          type: 'new_progress_log',
+          title: 'Assignment Submitted',
+          message: `Student has submitted assignment for Round ${roundNumber}`,
+          data: {
+            interviewId: interview._id,
+            studentId,
+            roundNumber
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Notification failed (non-critical):', notifError.message);
+      }
+    })();
+
     res.status(200).json({
       success: true,
       message: 'Assignment submitted successfully',
@@ -647,87 +802,6 @@ exports.submitAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error('Error submitting assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// ============================================
-// 11. RESPOND TO INTERVIEW (Student)
-// ============================================
-exports.respondToInterview = async (req, res) => {
-  try {
-    const { interviewId } = req.params;
-    const { roundNumber, response, reason } = req.body; // response: 'accepted' or 'declined'
-    const studentId = req.user.id || req.user._id;
-
-    const interview = await Interview.findById(interviewId)
-      .populate('studentId', 'fullName email')
-      .populate('recruiterId', 'fullName email')
-      .populate('internshipId', 'title');
-
-    if (!interview) {
-      return res.status(404).json({
-        success: false,
-        message: 'Interview not found'
-      });
-    }
-
-    if (interview.studentId._id.toString() !== studentId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized'
-      });
-    }
-
-    const round = interview.rounds.find(r => r.roundNumber === roundNumber);
-    if (!round) {
-      return res.status(404).json({
-        success: false,
-        message: 'Round not found'
-      });
-    }
-
-    round.status = response === 'accepted' ? 'scheduled' : 'declined';
-    if (reason) round.studentFeedback = reason;
-
-    await interview.save();
-
-    // Notify recruiter via email
-    const { sendInterviewResponseEmail } = require('../services/emailService');
-    const { createNotification } = require('./notificationController');
-
-    await sendInterviewResponseEmail(
-      interview.recruiterId.email,
-      interview.recruiterId.fullName,
-      interview.studentId.fullName,
-      response,
-      reason
-    );
-
-    // Create notification for recruiter
-    await createNotification({
-      recipient: interview.recruiterId._id,
-      recipientModel: 'Recruiter',
-      type: response === 'accepted' ? 'interview_rescheduled' : 'interview_cancelled', // Reuse existing types or mapping
-      title: `Interview ${response.toUpperCase()}`,
-      message: `${interview.studentId.fullName} has ${response} the interview for ${interview.internshipId.title}`,
-      data: {
-        interviewId: interview._id,
-        roundNumber,
-        studentName: interview.studentId.fullName
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      message: `Interview ${response} successfully`
-    });
-
-  } catch (error) {
-    console.error('Error responding to interview:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -747,7 +821,8 @@ exports.rescheduleRound = async (req, res) => {
 
     const interview = await Interview.findById(interviewId)
       .populate('studentId', 'fullName email')
-      .populate('recruiterId', 'fullName email');
+      .populate('recruiterId', 'fullName email')
+      .populate('internshipId', 'title');
 
     if (!interview) {
       return res.status(404).json({
@@ -790,8 +865,58 @@ exports.rescheduleRound = async (req, res) => {
 
     await interview.save();
 
-    // Send notification email
-    // (You can implement this based on who requested)
+    // Send email notification (non-blocking)
+    (async () => {
+      try {
+        const recipientEmail = userRole === 'recruiter' 
+          ? interview.studentId.email 
+          : interview.recruiterId.email;
+        
+        const recipientName = userRole === 'recruiter'
+          ? interview.studentId.fullName
+          : interview.recruiterId.fullName;
+
+        await sendInterviewRescheduleEmail(
+          recipientEmail,
+          recipientName,
+          interview.internshipId.title,
+          roundNumber,
+          newDate,
+          newTime,
+          reason
+        );
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+      }
+    })();
+
+    // Create notification for other party (non-blocking)
+    (async () => {
+      try {
+        const notificationRecipient = userRole === 'recruiter'
+          ? interview.studentId._id
+          : interview.recruiterId._id;
+
+        const notificationModel = userRole === 'recruiter' ? 'Student' : 'Recruiter';
+
+        await createNotification({
+          recipientId: notificationRecipient,
+          recipientModel: notificationModel,
+          type: 'interview_rescheduled',
+          title: 'Interview Rescheduled',
+          message: `Round ${roundNumber} interview has been rescheduled to ${new Date(newDate).toLocaleDateString()} at ${newTime}`,
+          data: {
+            interviewId: interview._id,
+            roundNumber,
+            newDate,
+            newTime,
+            reason
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Notification failed (non-critical):', notifError.message);
+      }
+    })();
 
     res.status(200).json({
       success: true,
@@ -808,7 +933,99 @@ exports.rescheduleRound = async (req, res) => {
 };
 
 // ============================================
-// 10. GET INTERVIEW STATS FOR RECRUITER
+// 10. RESPOND TO INTERVIEW (Student)
+// ============================================
+exports.respondToInterview = async (req, res) => {
+  try {
+    const { interviewId } = req.params;
+    const { roundNumber, response, reason } = req.body; // response: 'accepted' or 'declined'
+    const studentId = req.user.id;
+
+    const interview = await Interview.findById(interviewId)
+      .populate('studentId', 'fullName email')
+      .populate('recruiterId', 'fullName email')
+      .populate('internshipId', 'title');
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
+    }
+
+    if (interview.studentId._id.toString() !== studentId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized'
+      });
+    }
+
+    const round = interview.rounds.find(r => r.roundNumber === roundNumber);
+    if (!round) {
+      return res.status(404).json({
+        success: false,
+        message: 'Round not found'
+      });
+    }
+
+    round.status = response === 'accepted' ? 'scheduled' : 'cancelled';
+    if (reason) round.studentFeedback = reason;
+
+    await interview.save();
+
+    // Send email to recruiter (non-blocking)
+    (async () => {
+      try {
+        await sendInterviewResponseEmail(
+          interview.recruiterId.email,
+          interview.recruiterId.fullName,
+          interview.studentId.fullName,
+          response,
+          reason,
+          roundNumber
+        );
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+      }
+    })();
+
+    // Create notification for recruiter (non-blocking)
+    (async () => {
+      try {
+        await createNotification({
+          recipientId: interview.recruiterId._id,
+          recipientModel: 'Recruiter',
+          type: response === 'accepted' ? 'interview_scheduled' : 'interview_cancelled',
+          title: `Interview ${response === 'accepted' ? 'Accepted' : 'Declined'}`,
+          message: `${interview.studentId.fullName} has ${response} the interview for Round ${roundNumber}`,
+          data: {
+            interviewId: interview._id,
+            roundNumber,
+            studentName: interview.studentId.fullName,
+            reason
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Notification failed (non-critical):', notifError.message);
+      }
+    })();
+
+    res.status(200).json({
+      success: true,
+      message: `Interview ${response} successfully`
+    });
+
+  } catch (error) {
+    console.error('Error responding to interview:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ============================================
+// 11. GET INTERVIEW STATS FOR RECRUITER
 // ============================================
 exports.getInterviewStats = async (req, res) => {
   try {
@@ -827,10 +1044,15 @@ exports.getInterviewStats = async (req, res) => {
       byRound: {
         pending: 0,
         scheduled: 0,
-        completed: 0
+        completed: 0,
+        cancelled: 0,
+        rescheduled: 0
       },
-      conversionRate: 0
+      conversionRate: 0,
+      averageRounds: 0
     };
+
+    let totalRounds = 0;
 
     interviews.forEach(interview => {
       // Overall status
@@ -839,17 +1061,43 @@ exports.getInterviewStats = async (req, res) => {
       // Round statuses
       interview.rounds.forEach(round => {
         stats.byRound[round.status]++;
+        totalRounds++;
       });
     });
 
+    // Calculate average rounds per interview
+    stats.averageRounds = interviews.length > 0 
+      ? (totalRounds / interviews.length).toFixed(1)
+      : 0;
+
     // Calculate conversion rate (selected / total completed)
-    const completed = interviews.filter(i => 
-      i.rounds.every(r => r.status === 'completed')
-    ).length;
+    const totalDecided = stats.byStatus.selected + stats.byStatus.rejected;
+    stats.conversionRate = totalDecided > 0 
+      ? Math.round((stats.byStatus.selected / totalDecided) * 100)
+      : 0;
+
+    // Get monthly trend
+    const now = new Date();
+    const monthlyData = [];
     
-    if (completed > 0) {
-      stats.conversionRate = (stats.byStatus.selected / completed) * 100;
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStr = month.toLocaleDateString('en-US', { month: 'short' });
+      
+      const monthInterviews = interviews.filter(interview => {
+        const createdAt = new Date(interview.createdAt);
+        return createdAt.getMonth() === month.getMonth() &&
+               createdAt.getFullYear() === month.getFullYear();
+      });
+
+      monthlyData.push({
+        month: monthStr,
+        count: monthInterviews.length,
+        selected: monthInterviews.filter(i => i.overallStatus === 'selected').length
+      });
     }
+
+    stats.monthlyTrend = monthlyData;
 
     res.status(200).json({
       success: true,
@@ -858,6 +1106,80 @@ exports.getInterviewStats = async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching interview stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ============================================
+// 12. CANCEL INTERVIEW ROUND
+// ============================================
+exports.cancelRound = async (req, res) => {
+  try {
+    const { interviewId } = req.params;
+    const { roundNumber, reason } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const interview = await Interview.findById(interviewId)
+      .populate('studentId', 'fullName email')
+      .populate('recruiterId', 'fullName email');
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: 'Interview not found'
+      });
+    }
+
+    const round = interview.rounds.find(r => r.roundNumber === roundNumber);
+    if (!round) {
+      return res.status(404).json({
+        success: false,
+        message: 'Round not found'
+      });
+    }
+
+    round.status = 'cancelled';
+    if (reason) round.studentFeedback = reason;
+
+    await interview.save();
+
+    // Notify other party (non-blocking)
+    (async () => {
+      try {
+        const notificationRecipient = userRole === 'recruiter'
+          ? interview.studentId._id
+          : interview.recruiterId._id;
+
+        const notificationModel = userRole === 'recruiter' ? 'Student' : 'Recruiter';
+
+        await createNotification({
+          recipientId: notificationRecipient,
+          recipientModel: notificationModel,
+          type: 'interview_cancelled',
+          title: 'Interview Cancelled',
+          message: `Round ${roundNumber} interview has been cancelled. ${reason ? `Reason: ${reason}` : ''}`,
+          data: {
+            interviewId: interview._id,
+            roundNumber,
+            reason
+          }
+        });
+      } catch (notifError) {
+        console.log('⚠️ Notification failed (non-critical):', notifError.message);
+      }
+    })();
+
+    res.status(200).json({
+      success: true,
+      message: `Round ${roundNumber} cancelled successfully`
+    });
+
+  } catch (error) {
+    console.error('Error cancelling round:', error);
     res.status(500).json({
       success: false,
       message: error.message

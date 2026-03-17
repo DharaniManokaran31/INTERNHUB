@@ -1,13 +1,16 @@
 // src/pages/recruiter/ProfilePage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import NotificationBell from '../../components/common/NotificationBell';
 import '../../styles/StudentProfile.css'; // Reuse the same styles
 
 const RecruiterProfilePage = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Added this line
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     fullName: '',
     email: '',
@@ -21,7 +24,8 @@ const RecruiterProfilePage = () => {
     linkedin: '',
     permissions: {
       maxInterns: 3
-    }
+    },
+    profilePicture: ''
   });
   const [menteesCount, setMenteesCount] = useState(0);
   const [originalData, setOriginalData] = useState({});
@@ -65,7 +69,8 @@ const RecruiterProfilePage = () => {
           companyDescription: user.companyDescription || '',
           website: user.website || '',
           linkedin: user.linkedin || '',
-          permissions: user.permissions || { maxInterns: 3 }
+          permissions: user.permissions || { maxInterns: 3 },
+          profilePicture: user.profilePicture || ''
         };
         setProfileData(profile);
         setOriginalData(profile);
@@ -89,7 +94,7 @@ const RecruiterProfilePage = () => {
       const data = await response.json();
 
       if (data.success) {
-        setMenteesCount(data.data.total || 0);
+        setMenteesCount(data.data.total || data.data.mentees?.length || 0);
       }
     } catch (error) {
       console.error('Error fetching mentees count:', error);
@@ -135,7 +140,7 @@ const RecruiterProfilePage = () => {
     setChangingPassword(true);
     try {
       const token = localStorage.getItem('authToken');
-      
+
       const response = await fetch('http://localhost:5000/api/recruiters/change-password', {
         method: 'PUT',
         headers: {
@@ -164,7 +169,7 @@ const RecruiterProfilePage = () => {
       }
     } catch (error) {
       console.error('Error changing password:', error);
-      showNotification('Network error', 'error');
+      showNotification('Network error. Please try again.', 'error');
     } finally {
       setChangingPassword(false);
     }
@@ -174,7 +179,7 @@ const RecruiterProfilePage = () => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('authToken');
-      
+
       const response = await fetch('http://localhost:5000/api/recruiters/profile', {
         method: 'PUT',
         headers: {
@@ -189,19 +194,20 @@ const RecruiterProfilePage = () => {
       if (data.success) {
         setOriginalData(profileData);
         setIsEditMode(false);
-        
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        user.fullName = profileData.fullName;
-        user.department = profileData.department;
-        localStorage.setItem('user', JSON.stringify(user));
-        
+
+        // Update localStorage
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        storedUser.fullName = profileData.fullName;
+        storedUser.department = profileData.department;
+        localStorage.setItem('user', JSON.stringify(storedUser));
+
         showNotification('Profile updated successfully!', 'success');
       } else {
         showNotification(data.message || 'Failed to update profile', 'error');
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      showNotification('Failed to update profile', 'error');
+      showNotification('Network error. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -219,6 +225,10 @@ const RecruiterProfilePage = () => {
       showNotification('Logged out successfully!');
       setTimeout(() => navigate('/login'), 1000);
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   const showNotification = (message, type = 'success') => {
@@ -271,18 +281,18 @@ const RecruiterProfilePage = () => {
     const button = e.currentTarget;
     const ripple = document.createElement('span');
     ripple.classList.add('ripple');
-    
+
     const rect = button.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = e.clientX - rect.left - size / 2;
     const y = e.clientY - rect.top - size / 2;
-    
+
     ripple.style.width = ripple.style.height = size + 'px';
     ripple.style.left = x + 'px';
     ripple.style.top = y + 'px';
-    
+
     button.appendChild(ripple);
-    
+
     setTimeout(() => {
       ripple.remove();
     }, 600);
@@ -300,437 +310,955 @@ const RecruiterProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className="profile-loading-container">
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
         <div className="loading-spinner"></div>
-        <p>Loading your profile...</p>
+        <p style={{ color: '#666' }}>Loading your profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="profile-page">
-      {/* Header Section with Gradient */}
-      <div className="profile-header-gradient">
-        <div className="profile-header-content">
-          <div className="profile-title-section">
-            <h1>Recruiter Profile</h1>
-            <p>Manage your information and recruiter settings</p>
-          </div>
-          <div className="profile-avatar-large">
-            <span className="avatar-initials">{getInitials(profileData.fullName)}</span>
-          </div>
-        </div>
-      </div>
+    <div className="app-container">
+      {/* Sidebar Overlay */}
+      <div
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      ></div>
 
-      {/* Main Content */}
-      <div className="profile-content-wrapper">
-        {/* Action Buttons */}
-        <div className="profile-actions-bar">
-          {!isEditMode ? (
-            <>
-              <button 
-                className="profile-edit-btn"
-                onClick={(e) => { createRippleEffect(e); setIsEditMode(true); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path>
-                </svg>
-                Edit Profile
-              </button>
-              <button 
-                className="profile-edit-btn"
-                onClick={() => setShowPasswordModal(true)}
-                style={{ background: '#f3f4f6', color: '#1f2937', marginLeft: '0.5rem' }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Change Password
-              </button>
-            </>
-          ) : (
-            <div className="profile-action-group">
-              <button 
-                className="profile-save-btn"
-                onClick={(e) => { createRippleEffect(e); handleSave(); }}
-                disabled={isSaving}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button 
-                className="profile-cancel-btn"
-                onClick={(e) => { createRippleEffect(e); handleCancel(); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                Cancel
-              </button>
+      {/* Sidebar */}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <div className="sidebar-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+              </svg>
+            </div>
+            <span className="sidebar-logo-text">Zoyaraa</span>
+          </div>
+          {profileData.department && (
+            <div className="department-badge" style={{
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              textAlign: 'center'
+            }}>
+              {profileData.department}
             </div>
           )}
         </div>
 
-        {/* Profile Stats Cards */}
-        <div className="profile-stats-grid">
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon blue">
+        <nav className="sidebar-nav">
+          <button
+            className={`nav-item ${location.pathname === '/recruiter/dashboard' ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span className="nav-item-text">Dashboard</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/internships') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/internships')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            <span className="nav-item-text">Manage Internships</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/post-internship')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span className="nav-item-text">Post Internship</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/applicants') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/applicants')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+            </svg>
+            <span className="nav-item-text">View Applicants</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/interviews')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span className="nav-item-text">Interviews</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentor-dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">Mentor Dashboard</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/review-logs') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/review-logs')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span className="nav-item-text">Review Logs</span>
+          </button>
+
+          <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentees')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+            <span className="nav-item-text">My Mentees</span>
+          </button>
+
+          <button
+            className={`nav-item active`}
+            onClick={() => navigate('/recruiter/profile')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span className="nav-item-text">Profile</span>
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button
+            className="user-profile-sidebar"
+            onClick={() => navigate('/recruiter/profile')}
+          >
+            <div className="user-avatar-sidebar">{getInitials(profileData.fullName)}</div>
+            <div className="user-info-sidebar">
+              <div className="user-name-sidebar">{profileData.fullName || 'Recruiter'}</div>
+              <div className="user-role-sidebar">
+                {profileData.department || 'Recruiter'} • Zoyaraa
+              </div>
+            </div>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content">
+        {/* Top Bar */}
+        <div className="top-bar">
+          <div className="top-bar-left">
+            <button
+              className="menu-toggle"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle menu"
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
-            </div>
-            <div className="profile-stat-info">
-              <span className="profile-stat-label">Recruiter Name</span>
-              <span className="profile-stat-value">{profileData.fullName || 'Not set'}</span>
-            </div>
+            </button>
+            <h2 className="page-title">
+              Recruiter Profile
+              {profileData.department && (
+                <span style={{
+                  fontSize: '0.9rem',
+                  marginLeft: '1rem',
+                  color: '#666',
+                  background: '#EEF2FF',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px'
+                }}>
+                  {profileData.department} Department
+                </span>
+              )}
+            </h2>
           </div>
-
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                <path d="m22 7-10 7L2 7"></path>
-              </svg>
-            </div>
-            <div className="profile-stat-info">
-              <span className="profile-stat-label">Email</span>
-              <span className="profile-stat-value">{profileData.email}</span>
-            </div>
-          </div>
-
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-              </svg>
-            </div>
-            <div className="profile-stat-info">
-              <span className="profile-stat-label">Company</span>
-              <span className="profile-stat-value">Zoyaraa</span>
-            </div>
-          </div>
-
-          {/* NEW: Department Card */}
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon purple" style={{ background: '#f3e8ff' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
-                <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-              </svg>
-            </div>
-            <div className="profile-stat-info">
-              <span className="profile-stat-label">Department</span>
-              <span className="profile-stat-value">{profileData.department || 'Not assigned'}</span>
-            </div>
-          </div>
-
-          {/* NEW: Mentors Limit Card */}
-          <div className="profile-stat-card">
-            <div className="profile-stat-icon blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <div className="profile-stat-info">
-              <span className="profile-stat-label">Mentor Capacity</span>
-              <span className="profile-stat-value">
-                {menteesCount}/{profileData.permissions?.maxInterns || 3}
-              </span>
-            </div>
+          <div className="top-bar-right">
+            <NotificationBell />
+            <button className="logout-btn" onClick={handleLogout}>
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
-        {/* Profile Sections */}
-        <div className="profile-sections">
-          {/* Personal Information */}
-          <div className="profile-section-card">
-            <div className="profile-section-header">
-              <div className="profile-section-title">
+        {/* Content Area */}
+        <div className="content-area">
+          {/* Header Section with Gradient */}
+          <div className="profile-header-gradient" style={{
+            background: 'linear-gradient(135deg, #2440F0, #0B1DC1)',
+            borderRadius: '16px',
+            padding: '2rem',
+            marginBottom: '2rem',
+            color: 'white'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '2rem'
+            }}>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  Recruiter Profile
+                </h1>
+                <p style={{ opacity: 0.9 }}>Manage your information and recruiter settings</p>
+              </div>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'white',
+                color: '#2440F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                fontWeight: '600'
+              }}>
+                {getInitials(profileData.fullName)}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            marginBottom: '2rem',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            {!isEditMode ? (
+              <>
+                <button
+                  className="primary-btn"
+                  onClick={(e) => { createRippleEffect(e); setIsEditMode(true); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path>
+                  </svg>
+                  Edit Profile
+                </button>
+                <button
+                  className="secondary-btn"
+                  onClick={() => setShowPasswordModal(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  Change Password
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="primary-btn"
+                  onClick={(e) => { createRippleEffect(e); handleSave(); }}
+                  disabled={isSaving}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  className="secondary-btn"
+                  onClick={(e) => { createRippleEffect(e); handleCancel(); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Profile Stats Cards - FIXED ALIGNMENT */}
+          <div className="stats-grid" style={{
+            marginBottom: '2rem',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '1rem'
+          }}>
+            <div className="stat-card" style={{ padding: '1.25rem 1rem' }}>
+              <div className="stat-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="stat-label" style={{
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Recruiter Name
+                </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {profileData.fullName ? (
+                    profileData.fullName.length > 15
+                      ? profileData.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
+                      : profileData.fullName
+                  ) : 'Not set'}
+                </div>
+                {profileData.fullName && profileData.fullName.length > 15 && (
+                  <div style={{
+                    fontSize: '0.7rem',
+                    color: '#6b7280',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {profileData.fullName}
+                  </div>
+                )}
+              </div>
+              <div className="stat-icon blue" style={{ flexShrink: 0 }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <h2>Personal Information</h2>
               </div>
             </div>
 
-            <div className="profile-form-grid">
-              <div className="profile-form-field full-width">
-                <label>FULL NAME</label>
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={profileData.fullName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your full name"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.fullName || 'Not provided'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="profile-form-field full-width">
-                <label>EMAIL ADDRESS</label>
-                <div className="profile-field-display email-field">
-                  <span>{profileData.email}</span>
-                  <small>Email cannot be changed</small>
+            <div className="stat-card" style={{ padding: '1.25rem 1rem' }}>
+              <div className="stat-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="stat-label" style={{
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Email
+                </div>
+                <div className="stat-value" style={{
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {profileData.email ? (
+                    profileData.email.length > 18
+                      ? profileData.email.substring(0, 15) + '...'
+                      : profileData.email
+                  ) : 'Not set'}
                 </div>
               </div>
-
-              <div className="profile-form-field">
-                <label>DEPARTMENT</label>
-                {isEditMode ? (
-                  <select
-                    name="department"
-                    value={profileData.department}
-                    onChange={handleInputChange}
-                    className="profile-input"
-                  >
-                    <option value="">Select Department</option>
-                    <option value="Frontend">Frontend</option>
-                    <option value="Backend">Backend</option>
-                    <option value="DevOps">DevOps</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="HR">HR</option>
-                    <option value="Sales">Sales</option>
-                    <option value="UI/UX">UI/UX</option>
-                    <option value="Mobile">Mobile</option>
-                  </select>
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.department || 'Not assigned'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="profile-form-field">
-                <label>DESIGNATION</label>
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    name="designation"
-                    value={profileData.designation}
-                    onChange={handleInputChange}
-                    placeholder="e.g., Tech Lead, Senior Recruiter"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.designation || 'Not provided'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="profile-form-field">
-                <label>POSITION/TITLE</label>
-                {isEditMode ? (
-                  <input
-                    type="text"
-                    name="position"
-                    value={profileData.position}
-                    onChange={handleInputChange}
-                    placeholder="e.g., HR Manager, Technical Recruiter"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.position || 'Not provided'}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="profile-form-field">
-                <label>PHONE NUMBER</label>
-                {isEditMode ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleInputChange}
-                    placeholder="Enter your phone number"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.phone || 'Not provided'}</span>
-                  </div>
-                )}
+              <div className="stat-icon green" style={{ flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                  <path d="m22 7-10 7L2 7"></path>
+                </svg>
               </div>
             </div>
-          </div>
 
-          {/* Company Information */}
-          <div className="profile-section-card">
-            <div className="profile-section-header">
-              <div className="profile-section-title">
+            <div className="stat-card" style={{ padding: '1.25rem 1rem' }}>
+              <div className="stat-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="stat-label" style={{
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Company
+                </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Zoyaraa
+                </div>
+              </div>
+              <div className="stat-icon orange" style={{ flexShrink: 0 }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                   <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
-                <h2>Company Information</h2>
               </div>
-              <p className="profile-section-subtitle">Zoyaraa - Your organization</p>
             </div>
 
-            <div className="profile-form-grid">
-              <div className="profile-form-field full-width">
-                <label>COMPANY NAME</label>
-                <div className="profile-field-display">
-                  <span>Zoyaraa</span>
+            <div className="stat-card" style={{ padding: '1.25rem 1rem' }}>
+              <div className="stat-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="stat-label" style={{
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Department
+                </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {profileData.department || 'Not set'}
                 </div>
               </div>
+              <div className="stat-icon purple" style={{ flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+              </div>
+            </div>
 
-              <div className="profile-form-field full-width">
-                <label>COMPANY DESCRIPTION</label>
-                {isEditMode ? (
-                  <textarea
-                    name="companyDescription"
-                    value={profileData.companyDescription}
-                    onChange={handleInputChange}
-                    placeholder="Tell applicants about your company, culture, and values..."
-                    rows="4"
-                    className="profile-textarea"
-                  />
-                ) : (
-                  <div className="profile-field-display">
-                    <span>{profileData.companyDescription || 'Not provided'}</span>
-                  </div>
-                )}
+            <div className="stat-card" style={{ padding: '1.25rem 1rem' }}>
+              <div className="stat-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="stat-label" style={{
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  Mentor Capacity
+                </div>
+                <div className="stat-value" style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {menteesCount}/{profileData.permissions?.maxInterns || 3}
+                </div>
+              </div>
+              <div className="stat-icon blue" style={{ flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Profile Sections */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Personal Information */}
+            <div className="section" style={{ padding: '1.5rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1.5rem'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: '#1e293b' }}>
+                  Personal Information
+                </h3>
               </div>
 
-              <div className="profile-form-field">
-                <label>WEBSITE</label>
-                {isEditMode ? (
-                  <input
-                    type="url"
-                    name="website"
-                    value={profileData.website}
-                    onChange={handleInputChange}
-                    placeholder="https://yourcompany.com"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display link-field">
-                    {profileData.website ? (
-                      <a href={profileData.website} target="_blank" rel="noopener noreferrer">
-                        {profileData.website}
-                      </a>
-                    ) : (
-                      <span>Not provided</span>
-                    )}
-                  </div>
-                )}
-              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1.5rem'
+              }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    FULL NAME
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={profileData.fullName}
+                      onChange={handleInputChange}
+                      placeholder="Enter your full name"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span>{profileData.fullName || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
 
-              <div className="profile-form-field">
-                <label>LINKEDIN</label>
-                {isEditMode ? (
-                  <input
-                    type="url"
-                    name="linkedin"
-                    value={profileData.linkedin}
-                    onChange={handleInputChange}
-                    placeholder="https://linkedin.com/company/yourcompany"
-                    className="profile-input"
-                  />
-                ) : (
-                  <div className="profile-field-display link-field">
-                    {profileData.linkedin ? (
-                      <a href={profileData.linkedin} target="_blank" rel="noopener noreferrer">
-                        {profileData.linkedin}
-                      </a>
-                    ) : (
-                      <span>Not provided</span>
-                    )}
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    EMAIL ADDRESS
+                  </label>
+                  <div style={{
+                    padding: '0.75rem',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <span>{profileData.email}</span>
+                    <small style={{ display: 'block', color: '#9ca3af', fontSize: '0.7rem', marginTop: '0.25rem' }}>
+                      Email cannot be changed
+                    </small>
                   </div>
-                )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    DEPARTMENT
+                  </label>
+                  {isEditMode ? (
+                    <select
+                      name="department"
+                      value={profileData.department}
+                      onChange={handleInputChange}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Frontend">Frontend</option>
+                      <option value="Backend">Backend</option>
+                      <option value="DevOps">DevOps</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="HR">HR</option>
+                      <option value="Sales">Sales</option>
+                      <option value="UI/UX">UI/UX</option>
+                      <option value="Mobile">Mobile</option>
+                    </select>
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span>{profileData.department || 'Not assigned'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    DESIGNATION
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      name="designation"
+                      value={profileData.designation}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Tech Lead"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span>{profileData.designation || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    POSITION
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="text"
+                      name="position"
+                      value={profileData.position}
+                      onChange={handleInputChange}
+                      placeholder="e.g., HR Manager"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span>{profileData.position || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    PHONE NUMBER
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={profileData.phone}
+                      onChange={handleInputChange}
+                      placeholder="Enter your phone number"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span>{profileData.phone || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Company Information */}
+            <div className="section" style={{ padding: '1.5rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1rem'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: '#1e293b' }}>
+                  Company Information
+                </h3>
+              </div>
+              <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                Zoyaraa - Your organization
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1.5rem'
+              }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    COMPANY NAME
+                  </label>
+                  <div style={{
+                    padding: '0.75rem',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <span>Zoyaraa</span>
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    COMPANY DESCRIPTION
+                  </label>
+                  {isEditMode ? (
+                    <textarea
+                      name="companyDescription"
+                      value={profileData.companyDescription}
+                      onChange={handleInputChange}
+                      placeholder="Tell applicants about your company, culture, and values..."
+                      rows="4"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem',
+                        fontFamily: 'inherit',
+                        resize: 'vertical'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      minHeight: '100px'
+                    }}>
+                      <span>{profileData.companyDescription || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    WEBSITE
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="url"
+                      name="website"
+                      value={profileData.website}
+                      onChange={handleInputChange}
+                      placeholder="https://yourcompany.com"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      {profileData.website ? (
+                        <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#2440F0' }}>
+                          {profileData.website}
+                        </a>
+                      ) : (
+                        <span>Not provided</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>
+                    LINKEDIN
+                  </label>
+                  {isEditMode ? (
+                    <input
+                      type="url"
+                      name="linkedin"
+                      value={profileData.linkedin}
+                      onChange={handleInputChange}
+                      placeholder="https://linkedin.com/company/yourcompany"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.9375rem'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      {profileData.linkedin ? (
+                        <a href={profileData.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#2440F0' }}>
+                          {profileData.linkedin}
+                        </a>
+                      ) : (
+                        <span>Not provided</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Change Password Modal */}
       {showPasswordModal && (
         <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h2>Change Password</h2>
+            <div className="modal-header" style={{
+              background: 'linear-gradient(135deg, #2440F0, #0B1DC1)',
+              color: 'white',
+              padding: '1rem 1.5rem',
+              borderTopLeftRadius: '12px',
+              borderTopRightRadius: '12px'
+            }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>Change Password</h2>
               <button
                 className="close-modal"
                 onClick={() => setShowPasswordModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer'
+                }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                ×
               </button>
             </div>
 
             <div className="modal-body" style={{ padding: '1.5rem' }}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Current Password</label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Current Password
+                </label>
                 <input
                   type="password"
                   name="currentPassword"
                   value={passwordData.currentPassword}
                   onChange={handlePasswordChange}
-                  className={passwordErrors.currentPassword ? 'error' : ''}
-                  style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', width: '100%' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: passwordErrors.currentPassword ? '1px solid #dc2626' : '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem'
+                  }}
                 />
                 {passwordErrors.currentPassword && (
-                  <small className="error-text">{passwordErrors.currentPassword}</small>
+                  <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    {passwordErrors.currentPassword}
+                  </small>
                 )}
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>New Password</label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  New Password
+                </label>
                 <input
                   type="password"
                   name="newPassword"
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
-                  className={passwordErrors.newPassword ? 'error' : ''}
-                  style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', width: '100%' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: passwordErrors.newPassword ? '1px solid #dc2626' : '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem'
+                  }}
                 />
                 {passwordErrors.newPassword && (
-                  <small className="error-text">{passwordErrors.newPassword}</small>
+                  <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    {passwordErrors.newPassword}
+                  </small>
                 )}
-                <small style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                <small style={{ color: '#6b7280', fontSize: '0.7rem', marginTop: '0.25rem', display: 'block' }}>
                   Must be at least 8 characters
                 </small>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label>Confirm New Password</label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Confirm New Password
+                </label>
                 <input
                   type="password"
                   name="confirmPassword"
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
-                  className={passwordErrors.confirmPassword ? 'error' : ''}
-                  style={{ padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', width: '100%' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: passwordErrors.confirmPassword ? '1px solid #dc2626' : '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '0.9375rem'
+                  }}
                 />
                 {passwordErrors.confirmPassword && (
-                  <small className="error-text">{passwordErrors.confirmPassword}</small>
+                  <small style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    {passwordErrors.confirmPassword}
+                  </small>
                 )}
               </div>
             </div>
 
-            <div className="modal-footer" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div className="modal-footer" style={{
+              display: 'flex',
+              gap: '0.75rem',
+              justifyContent: 'flex-end',
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid #e5e7eb'
+            }}>
               <button
                 className="secondary-btn"
                 onClick={() => setShowPasswordModal(false)}

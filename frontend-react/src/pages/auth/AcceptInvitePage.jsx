@@ -1,7 +1,6 @@
 // src/pages/auth/AcceptInvitePage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import companyService from '../../services/companyService';
 import '../../styles/Auth.css';
 
 const AcceptInvitePage = () => {
@@ -10,86 +9,12 @@ const AcceptInvitePage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [validToken, setValidToken] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (!token) {
-      setValidToken(false);
-    }
-  }, [token]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (password.length < 6) {
-      alert('Password must be at least 6 characters');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await companyService.acceptInvitation(token, password);
-      
-      localStorage.setItem('authToken', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      const notification = document.createElement('div');
-      notification.className = 'custom-notification';
-      notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: linear-gradient(135deg, #2440F0, #0B1DC1);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 10px 25px rgba(36, 64, 240, 0.3);
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-        font-family: inherit;
-        font-size: 0.9375rem;
-        font-weight: 500;
-      `;
-      notification.textContent = 'Account created successfully! Redirecting to dashboard...';
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.remove();
-        navigate('/recruiter/dashboard');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Accept invitation error:', error);
-      alert(error.response?.data?.message || 'Failed to accept invitation');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createRippleEffect = (e) => {
-    const button = e.currentTarget;
-    const ripple = document.createElement('span');
-    ripple.classList.add('ripple');
-    const rect = button.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-    ripple.style.width = ripple.style.height = size + 'px';
-    ripple.style.left = x + 'px';
-    ripple.style.top = y + 'px';
-    button.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-  };
-
-  if (!validToken) {
+  // If no token, show error
+  if (!token) {
     return (
       <div className="signin-container">
         <div className="branding-section">
@@ -106,7 +31,7 @@ const AcceptInvitePage = () => {
             <div>
               <h1 className="branding-heading">Invalid Invitation</h1>
               <p className="branding-subtext">
-                The invitation link is invalid or has expired. Please contact your HR administrator.
+                No invitation token provided. Please check your email link.
               </p>
             </div>
           </div>
@@ -125,12 +50,11 @@ const AcceptInvitePage = () => {
           <div className="form-container">
             <div className="form-header">
               <h2 className="form-heading">Invalid Token</h2>
-              <p className="form-subtext">The invitation link you clicked is invalid or expired.</p>
+              <p className="form-subtext">The invitation link is missing a token.</p>
             </div>
             <button
               className="submit-button"
               onClick={() => navigate('/login')}
-              onClickCapture={createRippleEffect}
             >
               Go to Login
             </button>
@@ -139,6 +63,105 @@ const AcceptInvitePage = () => {
       </div>
     );
   }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/recruiters/accept-invite/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem('authToken', data.data.token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+
+        showNotification('Account created successfully! Redirecting to dashboard...');
+
+        setTimeout(() => {
+          navigate('/recruiter/dashboard');
+        }, 2000);
+      } else {
+        setError(data.message);
+
+        // If already accepted or link used, redirect to login
+        if (data.message.includes('already accepted') ||
+          data.message.includes('already been used') ||
+          data.redirectTo === '/login') {
+
+          // Add a note that we're redirecting
+          setError(data.message + ' Redirecting to login...');
+
+          setTimeout(() => {
+            navigate('/login');
+          }, 3000);
+        }
+      }
+    } catch (error) {
+      console.error('Accept invitation error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showNotification = (message) => {
+    const notification = document.createElement('div');
+    notification.className = 'custom-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: linear-gradient(135deg, #2440F0, #0B1DC1);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(36, 64, 240, 0.3);
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      font-weight: 500;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  };
+
+  const createRippleEffect = (e) => {
+    const button = e.currentTarget;
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    button.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  };
 
   return (
     <div className="signin-container">
@@ -186,6 +209,21 @@ const AcceptInvitePage = () => {
             <h2 className="form-heading">Create your account</h2>
             <p className="form-subtext">Set your password to activate your recruiter account</p>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              color: '#b91c1c',
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              marginBottom: '1.5rem',
+              fontSize: '0.875rem',
+              border: '1px solid #ef4444'
+            }}>
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {/* Password Field */}
@@ -285,9 +323,9 @@ const AcceptInvitePage = () => {
             }}>
               <p style={{ fontWeight: '600', marginBottom: '0.5rem', color: '#000' }}>Password Requirements:</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                <li style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: '0.5rem',
                   color: password.length >= 6 ? '#10b981' : '#6b7280',
                   marginBottom: '0.25rem'
@@ -295,9 +333,9 @@ const AcceptInvitePage = () => {
                   <span>{password.length >= 6 ? '✓' : '○'}</span>
                   At least 6 characters
                 </li>
-                <li style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <li style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: '0.5rem',
                   color: (password === confirmPassword && password !== '') ? '#10b981' : '#6b7280'
                 }}>
@@ -312,7 +350,6 @@ const AcceptInvitePage = () => {
               type="submit"
               className="submit-button"
               disabled={loading}
-              onClickCapture={createRippleEffect}
             >
               {loading ? 'Creating Account...' : 'Create Account & Login'}
             </button>

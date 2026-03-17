@@ -1,6 +1,6 @@
+// src/components/modals/EditRecruiterModal.jsx
 import React, { useState } from 'react';
-import hrService from '../../services/hrService';
-import '../../styles/HrDashboard.css';
+import '../../styles/StudentDashboard.css';
 
 const EditRecruiterModal = ({ onClose, recruiter, onSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -8,116 +8,217 @@ const EditRecruiterModal = ({ onClose, recruiter, onSuccess }) => {
         fullName: recruiter.fullName || '',
         department: recruiter.department || '',
         designation: recruiter.designation || '',
-        maxMentees: recruiter.maxMentees || 5
+        phone: recruiter.phone || '',
+        maxInterns: recruiter.permissions?.maxInterns || 3
     });
 
-    const handleRipple = (e) => {
-        const btn = e.currentTarget;
+    const createRippleEffect = (e) => {
+        const button = e.currentTarget;
         const ripple = document.createElement('span');
-        const rect = btn.getBoundingClientRect();
+        ripple.classList.add('ripple');
+        const rect = button.getBoundingClientRect();
         const size = Math.max(rect.width, rect.height);
         const x = e.clientX - rect.left - size / 2;
         const y = e.clientY - rect.top - size / 2;
-        ripple.style.width = ripple.style.height = `${size}px`;
-        ripple.style.left = `${x}px`;
-        ripple.style.top = `${y}px`;
-        ripple.classList.add('ripple');
-        btn.appendChild(ripple);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = x + 'px';
+        ripple.style.top = y + 'px';
+        button.appendChild(ripple);
         setTimeout(() => ripple.remove(), 600);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        
         try {
-            const res = await hrService.updateRecruiter(recruiter._id, formData);
-            if (res.success) {
+            const token = localStorage.getItem('authToken');
+            
+            const response = await fetch(`http://localhost:5000/api/hr/recruiters/${recruiter._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    fullName: formData.fullName,
+                    department: formData.department,
+                    designation: formData.designation,
+                    phone: formData.phone,
+                    permissions: {
+                        maxInterns: formData.maxInterns
+                    }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
                 onSuccess();
                 onClose();
+            } else {
+                alert(data.message || 'Failed to update recruiter');
             }
         } catch (error) {
             console.error('Error updating recruiter:', error);
+            alert('Network error. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '450px' }}>
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                 <div className="modal-header">
                     <h2 className="modal-title">Edit Team Member</h2>
-                    <button className="modal-close" onClick={onClose}>&times;</button>
+                    <button 
+                        className="close-btn" 
+                        onClick={onClose}
+                        style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
+                    >
+                        &times;
+                    </button>
                 </div>
 
-                <div className="badge badge-info mb-4 w-full p-3" style={{ textAlign: 'left', borderRadius: '8px' }}>
-                    Modifying profile for <strong>{recruiter.email}</strong>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label className="form-label">Full Name</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={formData.fullName}
-                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                            required
-                        />
+                <div className="modal-body">
+                    {/* Info Banner */}
+                    <div style={{
+                        background: '#EEF2FF',
+                        color: '#2440F0',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        marginBottom: '1.5rem',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <circle cx="12" cy="8" r="1" fill="currentColor"></circle>
+                        </svg>
+                        <span>Editing profile for <strong>{recruiter.email}</strong></span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div className="form-group">
-                            <label className="form-label">Department</label>
-                            <select
-                                className="form-select"
-                                value={formData.department}
-                                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                required
-                            >
-                                <option value="Engineering">Engineering</option>
-                                <option value="Design">Design</option>
-                                <option value="Marketing">Marketing</option>
-                                <option value="Product">Product</option>
-                                <option value="Sales">Sales</option>
-                                <option value="HR">HR</option>
-                                <option value="Finance">Finance</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Designation</label>
+                    <form onSubmit={handleSubmit}>
+                        {/* Full Name */}
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                                Full Name
+                            </label>
                             <input
                                 type="text"
                                 className="form-input"
-                                placeholder="Lead, Senior..."
-                                value={formData.designation}
-                                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                                value={formData.fullName}
+                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                 required
+                                style={{ width: '100%', padding: '0.75rem' }}
                             />
                         </div>
-                    </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Mentee Assignment Limit</label>
-                        <input
-                            type="number"
-                            className="form-input"
-                            value={formData.maxMentees}
-                            onChange={(e) => setFormData({ ...formData, maxMentees: parseInt(e.target.value) })}
-                            min="1"
-                            max="50"
-                            required
-                        />
-                        <p className="text-xs text-gray-400 mt-1">This recruiter can manage up to {formData.maxMentees} active interns.</p>
-                    </div>
+                        {/* Department & Designation */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <div className="form-group">
+                                <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                                    Department
+                                </label>
+                                <select
+                                    className="form-input"
+                                    value={formData.department}
+                                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                    required
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                >
+                                    <option value="">Select Department</option>
+                                    <option value="Frontend">Frontend</option>
+                                    <option value="Backend">Backend</option>
+                                    <option value="DevOps">DevOps</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="HR">HR</option>
+                                    <option value="UI/UX">UI/UX</option>
+                                    <option value="Mobile">Mobile</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                                    Designation
+                                </label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="e.g., Senior Developer"
+                                    value={formData.designation}
+                                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                                    required
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                />
+                            </div>
+                        </div>
 
-                    <div className="modal-footer">
-                        <button type="button" className="secondary-btn" onClick={(e) => { handleRipple(e); onClose(); }}>Discard</button>
-                        <button type="submit" className="primary-btn" disabled={loading} onClick={(e) => handleRipple(e)}>
-                            {loading ? 'Saving...' : 'Update Member'}
-                        </button>
-                    </div>
-                </form>
+                        {/* Phone Number */}
+                        <div className="form-group" style={{ marginBottom: '1rem' }}>
+                            <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                                Phone Number
+                            </label>
+                            <input
+                                type="tel"
+                                className="form-input"
+                                placeholder="Enter phone number"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                style={{ width: '100%', padding: '0.75rem' }}
+                            />
+                        </div>
+
+                        {/* Max Interns */}
+                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                            <label className="form-label" style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                                Max Interns Allowed
+                            </label>
+                            <input
+                                type="number"
+                                className="form-input"
+                                value={formData.maxInterns}
+                                onChange={(e) => setFormData({ ...formData, maxInterns: parseInt(e.target.value) })}
+                                min="1"
+                                max="20"
+                                required
+                                style={{ width: '100%', padding: '0.75rem' }}
+                            />
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                This recruiter can mentor up to {formData.maxInterns} interns simultaneously.
+                            </p>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+                            <button 
+                                type="button" 
+                                className="secondary-btn" 
+                                onClick={(e) => { createRippleEffect(e); onClose(); }}
+                                style={{ padding: '0.75rem 1.5rem' }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                className="primary-btn" 
+                                disabled={loading}
+                                onClick={createRippleEffect}
+                                style={{ 
+                                    padding: '0.75rem 1.5rem',
+                                    background: loading ? '#9ca3af' : 'linear-gradient(135deg, #2440F0, #0B1DC1)',
+                                    cursor: loading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {loading ? 'Updating...' : 'Update Member'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

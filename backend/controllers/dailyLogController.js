@@ -1,29 +1,60 @@
-const Notification = require('../models/Notification');
 const DailyLog = require('../models/DailyLog');
 const Internship = require('../models/Internship');
 const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
+const Notification = require('../models/Notification');
 
-// @desc    Submit new daily log
-// @route   POST /api/daily-logs
-// @access  Private (Student)
+// ============================================
+// STUDENT FUNCTIONS
+// ============================================
+
+// Submit Daily Log
 exports.submitDailyLog = async (req, res) => {
     try {
+        const studentId = req.user.id;
         const {
-            internshipId, mentorId, date, tasksCompleted,
-            totalHours, learnings, challenges, tomorrowPlan
+            internshipId,
+            date,
+            tasksCompleted,
+            totalHours,
+            learnings,
+            challenges,
+            tomorrowPlan,
+            mood
         } = req.body;
 
-        const studentId = req.user.id || req.user._id;
-
-        // Validate student is accepted in this internship
-        const internship = await Internship.findById(internshipId);
-        if (!internship) {
-            return res.status(404).json({ message: 'Internship not found' });
+        // Validation
+        if (!internshipId || !date || !tasksCompleted || !totalHours) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please fill all required fields'
+            });
         }
 
-        // Check if a log already exists for this date
-        // Normalize date to start of day
+        // Check if student has active internship
+        const internship = await Internship.findById(internshipId);
+        if (!internship) {
+            return res.status(404).json({
+                success: false,
+                message: 'Internship not found'
+            });
+        }
+
+        // Check if student is accepted in this internship
+        const isAccepted = await require('../models/Application').exists({
+            studentId,
+            internshipId,
+            status: 'accepted'
+        });
+
+        if (!isAccepted && req.user.role !== 'hr') {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not enrolled in this internship'
+            });
+        }
+
+        // Check for duplicate log on same date
         const logDate = new Date(date);
         logDate.setHours(0, 0, 0, 0);
         const nextDay = new Date(logDate);
@@ -36,173 +67,318 @@ exports.submitDailyLog = async (req, res) => {
         });
 
         if (existingLog) {
-            return res.status(400).json({ message: 'A log has already been submitted for this date' });
+            return res.status(400).json({
+                success: false,
+                message: 'You have already submitted a log for this date'
+            });
         }
 
-        // Determine day number
-        const completedDays = await DailyLog.countDocuments({ studentId, internshipId, status: 'approved' });
-        const dayNumber = completedDays + 1;
-
-        // Create the log
-        const newLog = await DailyLog.create({
+        // Calculate day number
+        const completedDays = await DailyLog.countDocuments({
             studentId,
             internshipId,
-            mentorId,
+            status: 'approved'
+        });
+        const dayNumber = completedDays + 1;
+
+        // Create log
+        const newLog = new DailyLog({
+            studentId,
+            internshipId,
+            mentorId: internship.mentorId,
             date: logDate,
             dayNumber,
-            tasksCompleted,
+            tasksCompleted: tasksCompleted.map(task => ({
+                ...task,
+                status: task.status || 'completed'
+            })),
             totalHours,
-            learnings,
-            challenges,
-            tomorrowPlan,
-            status: 'pending'
+            learnings: learnings || '',
+            challenges: challenges || '',
+            tomorrowPlan: tomorrowPlan || '',
+            mood: mood || '🙂 Good',
+            status: 'pending',
+            submittedAt: new Date()
         });
 
+        await newLog.save();
+
         // Notify mentor
-        if (mentorId) {
+        if (internship.mentorId) {
             const student = await Student.findById(studentId);
             await Notification.create({
-                recipient: mentorId,
+                recipientId: internship.mentorId,
                 recipientModel: 'Recruiter',
+                type: 'new_progress_log',
                 title: 'New Daily Log Submitted',
-                message: `${student.fullName} has submitted their daily log for Day ${dayNumber}.`,
-                type: 'log_submission',
-                relatedId: newLog._id,
-                relatedModel: 'DailyLog',
-                link: '/recruiter/review-logs'
+                message: `${student.fullName} submitted their daily log for Day ${dayNumber}`,
+                data: {
+                    logId: newLog._id,
+                    studentId,
+                    studentName: student.fullName,
+                    internshipId,
+                    internshipTitle: internship.title,
+                    dayNumber
+                }
             });
         }
 
         res.status(201).json({
             success: true,
             message: 'Daily log submitted successfully',
-            log: newLog
+            data: { log: newLog }
         });
-
     } catch (error) {
         console.error('Error submitting daily log:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Get student's logs
-// @route   GET /api/daily-logs/my-logs
-// @access  Private (Student)
+// Get My Logs (Student)
 exports.getMyLogs = async (req, res) => {
     try {
-        const studentId = req.user.id || req.user._id;
-        const { internshipId } = req.query; // Optional filter
+        const studentId = req.user.id;
+        const { internshipId } = req.query;
 
         let filter = { studentId };
         if (internshipId) filter.internshipId = internshipId;
 
         const logs = await DailyLog.find(filter)
-            .populate('internshipId', 'title companyName department mentorId')
+            .populate('internshipId', 'title department')
             .populate('mentorId', 'fullName email')
             .sort({ date: -1 });
 
+        // Calculate stats
+        const stats = {
+            total: logs.length,
+            approved: logs.filter(l => l.status === 'approved').length,
+            pending: logs.filter(l => l.status === 'pending').length,
+            rejected: logs.filter(l => l.status === 'rejected').length,
+            totalHours: logs.reduce((sum, l) => sum + (l.totalHours || 0), 0)
+        };
+
         res.status(200).json({
             success: true,
-            count: logs.length,
-            logs
+            data: { logs, stats }
         });
     } catch (error) {
-        console.error('Error fetching student logs:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error fetching logs:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Get pending logs for mentor
-// @route   GET /api/daily-logs/pending
-// @access  Private (Recruiter/Mentor)
+// Get Single Log by ID
+exports.getLogById = async (req, res) => {
+    try {
+        const { logId } = req.params;
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        const log = await DailyLog.findById(logId)
+            .populate('studentId', 'fullName email profilePicture')
+            .populate('internshipId', 'title department')
+            .populate('mentorId', 'fullName email');
+
+        if (!log) {
+            return res.status(404).json({
+                success: false,
+                message: 'Log not found'
+            });
+        }
+
+        // Check permission
+        const isStudent = userRole === 'student' && log.studentId._id.toString() === userId;
+        const isMentor = userRole === 'recruiter' && log.mentorId?._id.toString() === userId;
+        const isHR = userRole === 'hr';
+
+        if (!isStudent && !isMentor && !isHR) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to view this log'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: { log }
+        });
+    } catch (error) {
+        console.error('Error fetching log:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Update Log (Student - only if pending)
+exports.updateLog = async (req, res) => {
+    try {
+        const { logId } = req.params;
+        const studentId = req.user.id;
+
+        const log = await DailyLog.findOne({
+            _id: logId,
+            studentId
+        });
+
+        if (!log) {
+            return res.status(404).json({
+                success: false,
+                message: 'Log not found'
+            });
+        }
+
+        if (log.status !== 'pending' && log.status !== 'needs-revision') {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot update log that has been reviewed'
+            });
+        }
+
+        const {
+            tasksCompleted,
+            totalHours,
+            learnings,
+            challenges,
+            tomorrowPlan,
+            mood
+        } = req.body;
+
+        if (tasksCompleted) log.tasksCompleted = tasksCompleted;
+        if (totalHours) log.totalHours = totalHours;
+        if (learnings) log.learnings = learnings;
+        if (challenges) log.challenges = challenges;
+        if (tomorrowPlan) log.tomorrowPlan = tomorrowPlan;
+        if (mood) log.mood = mood;
+
+        log.status = 'pending'; // Reset to pending for review
+        log.submittedAt = new Date();
+
+        await log.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Log updated successfully',
+            data: { log }
+        });
+    } catch (error) {
+        console.error('Error updating log:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// ============================================
+// MENTOR FUNCTIONS
+// ============================================
+
+// Get Pending Logs for Review
 exports.getPendingLogs = async (req, res) => {
     try {
-        const mentorId = req.user.id || req.user._id;
+        const mentorId = req.user.id;
 
-        const logs = await DailyLog.find({ mentorId, status: 'pending' })
+        const logs = await DailyLog.find({
+            mentorId,
+            status: 'pending'
+        })
             .populate('studentId', 'fullName email profilePicture')
             .populate('internshipId', 'title department')
             .sort({ date: 1 });
 
         res.status(200).json({
             success: true,
-            count: logs.length,
-            logs
+            data: { logs }
         });
     } catch (error) {
         console.error('Error fetching pending logs:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Get logs for specific intern
-// @route   GET /api/daily-logs/intern/:id
-// @access  Private (Recruiter/Mentor)
+// Get Logs for Specific Intern
 exports.getInternLogs = async (req, res) => {
     try {
-        const mentorId = req.user.id || req.user._id;
-        const studentId = req.params.id;
+        const { studentId } = req.params;
+        const mentorId = req.user.id;
 
-        // Security check: Verify mentor is assigned to this intern's internship
-        const logs = await DailyLog.find({ mentorId, studentId })
+        const logs = await DailyLog.find({
+            studentId,
+            mentorId
+        })
             .populate('internshipId', 'title department')
             .sort({ date: -1 });
 
-        // Also get progress stats
-        const totalLogs = logs.length;
-        const approvedLogs = logs.filter(log => log.status === 'approved').length;
-        const pendingLogs = logs.filter(log => log.status === 'pending').length;
-
-        // Calculate total hours
-        const totalHours = logs.reduce((sum, log) => sum + (log.totalHours || 0), 0);
+        // Calculate stats
+        const stats = {
+            total: logs.length,
+            approved: logs.filter(l => l.status === 'approved').length,
+            pending: logs.filter(l => l.status === 'pending').length,
+            rejected: logs.filter(l => l.status === 'rejected').length,
+            totalHours: logs.reduce((sum, l) => sum + (l.totalHours || 0), 0)
+        };
 
         res.status(200).json({
             success: true,
-            stats: {
-                totalLogs,
-                approvedLogs,
-                pendingLogs,
-                totalHours
-            },
-            logs
+            data: { logs, stats }
         });
     } catch (error) {
         console.error('Error fetching intern logs:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Approve log
-// @route   PUT /api/daily-logs/:id/approve
-// @access  Private (Recruiter/Mentor)
+// Approve Log
 exports.approveLog = async (req, res) => {
     try {
+        const { logId } = req.params;
         const { feedback, rating } = req.body;
-        const logId = req.params.id;
+        const mentorId = req.user.id;
 
-        const log = await DailyLog.findById(logId);
+        const log = await DailyLog.findOne({
+            _id: logId,
+            mentorId
+        }).populate('studentId', 'fullName email');
+
         if (!log) {
-            return res.status(404).json({ message: 'Log not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Log not found'
+            });
         }
 
         if (log.status === 'approved') {
-            return res.status(400).json({ message: 'Log is already approved' });
+            return res.status(400).json({
+                success: false,
+                message: 'Log is already approved'
+            });
         }
 
         log.status = 'approved';
-        log.reviewedAt = Date.now();
-
-        if (feedback || rating) {
-            log.mentorFeedback = {
-                comment: feedback || '',
-                rating: rating || 5, // Default to 5 if approved without rating
-                submittedAt: Date.now()
-            };
-        }
+        log.reviewedAt = new Date();
+        log.mentorFeedback = {
+            comment: feedback || '',
+            rating: rating || 5,
+            submittedAt: new Date()
+        };
 
         await log.save();
 
-        // Update internship progress (completedDays)
+        // Update internship completed days
         await Internship.findByIdAndUpdate(
             log.internshipId,
             { $inc: { completedDays: 1 } }
@@ -210,153 +386,256 @@ exports.approveLog = async (req, res) => {
 
         // Notify student
         await Notification.create({
-            recipient: log.studentId,
+            recipientId: log.studentId._id,
             recipientModel: 'Student',
+            type: 'log_feedback',
             title: 'Daily Log Approved',
-            message: `Your daily log for Day ${log.dayNumber} has been approved.`,
-            type: 'log_approved',
-            relatedId: log._id,
-            relatedModel: 'DailyLog',
-            link: '/student/my-logs'
+            message: `Your log for Day ${log.dayNumber} has been approved`,
+            data: {
+                logId: log._id,
+                dayNumber: log.dayNumber,
+                feedback
+            }
         });
 
         res.status(200).json({
             success: true,
             message: 'Log approved successfully',
-            log
+            data: { log }
         });
     } catch (error) {
         console.error('Error approving log:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Reject log with reason
-// @route   PUT /api/daily-logs/:id/reject
-// @access  Private (Recruiter/Mentor)
+// Reject Log with Feedback
 exports.rejectLog = async (req, res) => {
     try {
+        const { logId } = req.params;
         const { reason } = req.body;
-        const logId = req.params.id;
+        const mentorId = req.user.id;
 
         if (!reason) {
-            return res.status(400).json({ message: 'Reason for rejection is required' });
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide reason for rejection'
+            });
         }
 
-        const log = await DailyLog.findById(logId);
+        const log = await DailyLog.findOne({
+            _id: logId,
+            mentorId
+        }).populate('studentId', 'fullName email');
+
         if (!log) {
-            return res.status(404).json({ message: 'Log not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Log not found'
+            });
         }
 
         log.status = 'rejected';
-        log.reviewedAt = Date.now();
+        log.reviewedAt = new Date();
         log.mentorFeedback = {
             comment: reason,
-            submittedAt: Date.now()
+            submittedAt: new Date()
         };
 
         await log.save();
 
         // Notify student
         await Notification.create({
-            recipient: log.studentId,
+            recipientId: log.studentId._id,
             recipientModel: 'Student',
-            title: 'Daily Log Rejected',
-            message: `Your daily log for Day ${log.dayNumber} requires revision. Reason: ${reason}`,
-            type: 'log_rejected',
-            relatedId: log._id,
-            relatedModel: 'DailyLog',
-            link: `/student/my-logs?id=${log._id}`
+            type: 'log_feedback',
+            title: 'Daily Log Needs Revision',
+            message: `Your log for Day ${log.dayNumber} needs revision: ${reason}`,
+            data: {
+                logId: log._id,
+                dayNumber: log.dayNumber,
+                reason
+            }
         });
 
         res.status(200).json({
             success: true,
             message: 'Log rejected',
-            log
+            data: { log }
         });
     } catch (error) {
         console.error('Error rejecting log:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Add feedback without changing status
-// @route   PUT /api/daily-logs/:id/feedback
-// @access  Private (Recruiter/Mentor)
+// Add Feedback Without Changing Status
 exports.addFeedback = async (req, res) => {
     try {
+        const { logId } = req.params;
         const { comment, rating, suggestions } = req.body;
-        const logId = req.params.id;
+        const mentorId = req.user.id;
 
-        const log = await DailyLog.findById(logId);
+        const log = await DailyLog.findOne({
+            _id: logId,
+            mentorId
+        });
+
         if (!log) {
-            return res.status(404).json({ message: 'Log not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Log not found'
+            });
         }
 
         log.mentorFeedback = {
-            ...log.mentorFeedback,
             comment: comment || log.mentorFeedback?.comment,
             rating: rating || log.mentorFeedback?.rating,
             suggestions: suggestions || log.mentorFeedback?.suggestions,
-            submittedAt: Date.now()
+            submittedAt: new Date()
         };
 
         await log.save();
 
         // Notify student
         await Notification.create({
-            recipient: log.studentId,
+            recipientId: log.studentId,
             recipientModel: 'Student',
-            title: 'New Feedback on Daily Log',
-            message: `Your mentor left feedback on your log for Day ${log.dayNumber}.`,
             type: 'log_feedback',
-            relatedId: log._id,
-            relatedModel: 'DailyLog',
-            link: `/student/my-logs?id=${log._id}`
+            title: 'New Feedback on Your Log',
+            message: `Your mentor left feedback on your Day ${log.dayNumber} log`,
+            data: {
+                logId: log._id,
+                dayNumber: log.dayNumber
+            }
         });
 
         res.status(200).json({
             success: true,
             message: 'Feedback added successfully',
-            log
+            data: { log }
         });
     } catch (error) {
         console.error('Error adding feedback:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// @desc    Get progress stats (generic)
-// @route   GET /api/daily-logs/stats
-// @access  Private
-exports.getStats = async (req, res) => {
+// ============================================
+// STATS FUNCTIONS
+// ============================================
+
+// Get Stats for Student
+exports.getStudentStats = async (req, res) => {
     try {
-        // Determine context (student or mentor)
-        const isMentor = req.user.role === 'recruiter' || req.user.role === 'hr';
-        const query = {};
+        const studentId = req.params.studentId || req.user.id;
 
-        if (isMentor) {
-            query.mentorId = req.user.id || req.user._id;
-        } else {
-            query.studentId = req.user.id || req.user._id;
+        const logs = await DailyLog.find({ studentId });
+
+        const totalLogs = logs.length;
+        const approvedLogs = logs.filter(l => l.status === 'approved').length;
+        const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+
+        // Streak calculation
+        let currentStreak = 0;
+        const sortedLogs = logs
+            .filter(l => l.status === 'approved')
+            .sort((a, b) => b.date - a.date);
+
+        if (sortedLogs.length > 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const lastLogDate = new Date(sortedLogs[0].date);
+            lastLogDate.setHours(0, 0, 0, 0);
+            
+            const diffDays = Math.round((today - lastLogDate) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 1) {
+                currentStreak = 1;
+                for (let i = 1; i < sortedLogs.length; i++) {
+                    const prevDate = new Date(sortedLogs[i-1].date);
+                    const currDate = new Date(sortedLogs[i].date);
+                    prevDate.setHours(0, 0, 0, 0);
+                    currDate.setHours(0, 0, 0, 0);
+                    
+                    if ((prevDate - currDate) / (1000 * 60 * 60 * 24) === 1) {
+                        currentStreak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
         }
-
-        const totalLogs = await DailyLog.countDocuments(query);
-        const approvedLogs = await DailyLog.countDocuments({ ...query, status: 'approved' });
-        const pendingLogs = await DailyLog.countDocuments({ ...query, status: 'pending' });
-        const rejectedLogs = await DailyLog.countDocuments({ ...query, status: 'rejected' });
 
         res.status(200).json({
             success: true,
-            stats: {
+            data: {
                 totalLogs,
                 approvedLogs,
-                pendingLogs,
-                rejectedLogs
+                pendingLogs: logs.filter(l => l.status === 'pending').length,
+                rejectedLogs: logs.filter(l => l.status === 'rejected').length,
+                totalHours,
+                averageHours: totalLogs > 0 ? (totalHours / totalLogs).toFixed(1) : 0,
+                currentStreak
             }
         });
     } catch (error) {
-        console.error('Error fetching stats:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Error getting student stats:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Get Mentor Stats
+exports.getMentorStats = async (req, res) => {
+    try {
+        const mentorId = req.user.id;
+
+        const logs = await DailyLog.find({ mentorId });
+
+        const uniqueStudents = [...new Set(logs.map(l => l.studentId.toString()))];
+
+        const stats = {
+            totalMentees: uniqueStudents.length,
+            totalLogs: logs.length,
+            pendingReviews: logs.filter(l => l.status === 'pending').length,
+            approvedToday: logs.filter(l => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return l.status === 'approved' &&
+                    l.reviewedAt &&
+                    l.reviewedAt >= today;
+            }).length,
+            averageRating: 0
+        };
+
+        const logsWithRating = logs.filter(l => l.mentorFeedback?.rating);
+        if (logsWithRating.length > 0) {
+            const totalRating = logsWithRating.reduce((sum, l) => sum + l.mentorFeedback.rating, 0);
+            stats.averageRating = (totalRating / logsWithRating.length).toFixed(1);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Error getting mentor stats:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };

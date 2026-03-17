@@ -1,4 +1,4 @@
-/* Auth Pages Styles - InternHub */
+/* Auth Pages Styles - Zoyaraa */
 .signin-container, .registration-container {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
@@ -9,6 +9,7 @@
   overflow: hidden;
 }
 
+/* ===== BRANDING SECTION ===== */
 .branding-section {
   flex: 1;
   background: #0B1DC1;
@@ -59,19 +60,22 @@
   color: white;
 }
 
+/* ===== FIXED: Branding Heading - Better text wrapping ===== */
 .branding-heading {
   font-size: 3.5rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
   line-height: 1.1;
-  max-width: 500px;
+  max-width: 600px;  /* Increased from 500px */
   color: white;
+  word-break: break-word;
 }
 
+/* ===== FIXED: Branding Subtext - Better text wrapping ===== */
 .branding-subtext {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.85);
-  max-width: 420px;
+  max-width: 520px;  /* Increased from 420px */
   line-height: 1.6;
   font-weight: 400;
 }
@@ -103,6 +107,7 @@
   font-weight: 400;
 }
 
+/* ===== FORM SECTION ===== */
 .form-section {
   flex: 1;
   padding: 3rem;
@@ -276,6 +281,7 @@
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
+/* ===== ROLE SELECTION ===== */
 .role-selection {
   margin-bottom: 1.5rem;
 }
@@ -348,6 +354,7 @@
   display: block;
 }
 
+/* ===== FOCUS STATES ===== */
 .form-input:focus-visible,
 .submit-button:focus-visible,
 .role-button:focus-visible,
@@ -356,7 +363,7 @@
   outline-offset: 2px;
 }
 
-/* Notification Styles */
+/* ===== NOTIFICATION STYLES ===== */
 .custom-notification {
   position: fixed;
   top: 100px;
@@ -388,6 +395,8 @@
   to { transform: translateX(400px); opacity: 0; }
 }
 
+/* ===== RESPONSIVE FIXES FOR TEXT WRAPPING ===== */
+
 /* Large Desktop Screens */
 @media (min-width: 1400px) {
   .signin-container, .registration-container {
@@ -401,6 +410,17 @@
   
   .form-container {
     max-width: 480px;
+  }
+  
+  /* Keep heading together on large screens */
+  .branding-heading {
+    max-width: 700px;
+    font-size: 4rem;
+  }
+  
+  .branding-subtext {
+    max-width: 600px;
+    font-size: 1.1rem;
   }
 }
 
@@ -417,9 +437,23 @@
   .branding-section {
     padding: 3rem 2.5rem;
   }
+  
+  /* Medium screens - allow natural break */
+  .branding-heading {
+    max-width: 550px;
+    font-size: 3.2rem;
+  }
 }
 
-/* Tablet and below */
+/* Tablet landscape - optimized break */
+@media (min-width: 1025px) and (max-width: 1199px) {
+  .branding-heading {
+    max-width: 480px;
+    font-size: 2.8rem;
+  }
+}
+
+/* Tablet and below - switch to stacked layout */
 @media (max-width: 1024px) {
   .signin-container, .registration-container {
     flex-direction: column;
@@ -443,8 +477,15 @@
     height: auto;
   }
 
+  /* Full width on tablet - text will wrap naturally */
   .branding-heading {
+    max-width: 100%;
     font-size: 2.5rem;
+  }
+  
+  .branding-subtext {
+    max-width: 100%;
+    font-size: 1rem;
   }
 
   .logo-container {
@@ -549,20 +590,18 @@
   }
 }
 
-/* Loading State */
+/* ===== UTILITY CLASSES ===== */
 .loading {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* Success State */
 .success-message {
   color: #10b981;
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
 
-/* Additional Utility Classes */
 .text-center {
   text-align: center;
 }
@@ -577,11 +616,53 @@
 .mb-3 { margin-bottom: 0.75rem; }
 .mb-4 { margin-bottom: 1rem; }
 
-/* Ultra specific - forces white color */
+/* ===== ULTRA SPECIFIC - FORCE WHITE TEXT ===== */
 .branding-section .stats-container .stat-item .stat-value {
   color: white !important;
 }
 
 .branding-section .stats-container .stat-item .stat-label {
   color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* ===== FIXES FOR REGISTRATION PAGE SPACING ===== */
+.registration-container .form-section {
+  padding: 1.5rem 3rem;
+  align-items: flex-start;
+}
+
+.registration-container .form-container {
+  margin: 1rem auto;
+}
+
+.registration-container .form-header {
+  margin-bottom: 1.25rem;
+}
+
+.registration-container .form-heading {
+  margin-bottom: 0.2rem;
+}
+
+.registration-container .form-group {
+  margin-bottom: 0.9rem;
+}
+
+.registration-container .form-group:last-of-type {
+  margin-bottom: 1.25rem;
+}
+
+.registration-container .submit-button {
+  margin-top: 0.5rem;
+}
+
+/* Reduce size of password hint text */
+.registration-container .form-group small {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+/* Make input fields slightly smaller */
+.registration-container .form-input {
+  padding: 0.6rem 1rem;
 }

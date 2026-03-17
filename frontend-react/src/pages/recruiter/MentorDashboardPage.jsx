@@ -1,3 +1,4 @@
+// src/pages/recruiter/MentorDashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '../../components/common/NotificationBell';
@@ -6,7 +7,11 @@ import '../../styles/StudentDashboard.css';
 const MentorDashboardPage = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState({
+        profile: true,
+        mentees: true,
+        stats: true
+    });
     const [stats, setStats] = useState({
         totalMentees: 0,
         pendingReviews: 0,
@@ -22,15 +27,26 @@ const MentorDashboardPage = () => {
     });
     const [greeting, setGreeting] = useState('Welcome back');
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(3);
+    const [totalPages, setTotalPages] = useState(1);
+
     useEffect(() => {
         fetchUserProfile();
-        fetchMentorData();
     }, []);
+
+    // Fetch mentor data after profile is loaded
+    useEffect(() => {
+        if (userData.name !== 'Loading...') {
+            fetchMentorData();
+        }
+    }, [userData]);
 
     // Update greeting based on time
     useEffect(() => {
         const hour = new Date().getHours();
-        const firstName = userData.name.split(' ')[0];
+        const firstName = userData.name.split(' ')[0] || 'Mentor';
         let greetingText = 'Welcome back';
 
         if (hour < 12) {
@@ -47,7 +63,10 @@ const MentorDashboardPage = () => {
     const fetchUserProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            if (!token) return;
+            if (!token) {
+                navigate('/login');
+                return;
+            }
 
             const response = await fetch('http://localhost:5000/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -56,15 +75,16 @@ const MentorDashboardPage = () => {
 
             if (data.success) {
                 const user = data.data.user;
-                const initials = user.fullName
+                const fullName = user.fullName || user.name || '';
+                const initials = fullName
                     .split(' ')
                     .map(n => n[0])
                     .join('')
                     .toUpperCase()
-                    .slice(0, 2);
+                    .slice(0, 2) || 'M';
 
                 setUserData({
-                    name: user.fullName,
+                    name: fullName,
                     initials: initials,
                     department: user.department || '',
                     company: 'Zoyaraa'
@@ -79,12 +99,15 @@ const MentorDashboardPage = () => {
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
+            showNotification('Failed to load profile', 'error');
+        } finally {
+            setLoading(prev => ({ ...prev, profile: false }));
         }
     };
 
     const fetchMentorData = async () => {
         try {
-            setLoading(true);
+            setLoading(prev => ({ ...prev, mentees: true, stats: true }));
             const token = localStorage.getItem('authToken');
 
             // Fetch mentees list
@@ -126,14 +149,15 @@ const MentorDashboardPage = () => {
                 );
                 
                 setMentees(menteesWithProgress);
+                setTotalPages(Math.ceil(menteesWithProgress.length / itemsPerPage));
             }
 
             if (statsData.success) {
-                setStats(statsData.stats || {
-                    totalMentees: 0,
-                    pendingReviews: 0,
-                    approvedToday: 0,
-                    avgHoursPerDay: 0
+                setStats({
+                    totalMentees: statsData.data?.totalMentees || 0,
+                    pendingReviews: statsData.data?.pendingReviews || 0,
+                    approvedToday: statsData.data?.approvedToday || 0,
+                    avgHoursPerDay: statsData.data?.avgHoursPerDay || 0
                 });
             }
 
@@ -141,7 +165,7 @@ const MentorDashboardPage = () => {
             console.error('❌ Error fetching mentor data:', error);
             showNotification('Failed to load mentor data', 'error');
         } finally {
-            setLoading(false);
+            setLoading(prev => ({ ...prev, mentees: false, stats: false }));
         }
     };
 
@@ -159,12 +183,28 @@ const MentorDashboardPage = () => {
     };
 
     const showNotification = (message, type = 'success') => {
+        // Remove existing notifications
+        document.querySelectorAll('.custom-notification').forEach(n => n.remove());
+
         const notification = document.createElement('div');
         notification.className = 'custom-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: ${type === 'error'
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #2440F0, #0B1DC1)'};
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(36, 64, 240, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            font-size: 0.9375rem;
+            font-weight: 500;
+        `;
         notification.textContent = message;
-        notification.style.background = type === 'error'
-            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-            : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 3000);
     };
@@ -187,7 +227,7 @@ const MentorDashboardPage = () => {
         setTimeout(() => ripple.remove(), 600);
     };
 
-    // ✅ FIXED: Calculate progress percentage from multiple sources
+    // Calculate progress percentage from multiple sources
     const getProgressPercentage = (mentee) => {
         // Source 1: From progressStats API
         if (mentee.progressStats?.percentage) {
@@ -217,13 +257,28 @@ const MentorDashboardPage = () => {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        } catch {
+            return 'Invalid date';
+        }
     };
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        document.querySelector('.mentees-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentMentees = mentees.slice(indexOfFirstItem, indexOfLastItem);
+    const isLoading = loading.mentees || loading.stats;
 
     return (
         <div className="app-container">
@@ -245,17 +300,18 @@ const MentorDashboardPage = () => {
                         </div>
                         <span className="sidebar-logo-text">Zoyaraa</span>
                     </div>
-                    <div className="department-badge" style={{
-                        marginTop: '0.5rem',
-                        padding: '0.25rem 0.5rem',
-                        background: 'rgba(255,255,255,0.2)',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        textAlign: 'center',
-                        color: 'white'
-                    }}>
-                        {userData.department || 'Mentor'}
-                    </div>
+                    {userData.department && (
+                        <div className="department-badge" style={{
+                            marginTop: '0.5rem',
+                            padding: '0.25rem 0.5rem',
+                            background: 'rgba(255,255,255,0.2)',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            textAlign: 'center'
+                        }}>
+                            {userData.department}
+                        </div>
+                    )}
                 </div>
 
                 <nav className="sidebar-nav">
@@ -277,8 +333,8 @@ const MentorDashboardPage = () => {
                         onClick={() => navigate('/recruiter/internships')}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                         </svg>
                         <span className="nav-item-text">Manage Internships</span>
                     </button>
@@ -339,6 +395,16 @@ const MentorDashboardPage = () => {
                         </svg>
                         <span className="nav-item-text">Interviews</span>
                     </button>
+
+                    <button
+                        className="nav-item"
+                        onClick={() => navigate('/recruiter/mentees')}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <span className="nav-item-text">My Mentees</span>
+                    </button>
                 </nav>
 
                 <div className="sidebar-footer">
@@ -346,11 +412,11 @@ const MentorDashboardPage = () => {
                         className="user-profile-sidebar"
                         onClick={() => navigate('/recruiter/profile')}
                     >
-                        <div className="user-avatar-sidebar">{userData.initials}</div>
+                        <div className="user-avatar-sidebar">{userData.initials || 'M'}</div>
                         <div className="user-info-sidebar">
-                            <div className="user-name-sidebar">{userData.name}</div>
+                            <div className="user-name-sidebar">{userData.name || 'Mentor'}</div>
                             <div className="user-role-sidebar">
-                                {userData.department} • {userData.company}
+                                {userData.department || 'Mentor'} • {userData.company}
                             </div>
                         </div>
                     </button>
@@ -371,13 +437,20 @@ const MentorDashboardPage = () => {
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
-                              </svg>
+                            </svg>
                         </button>
                         <h2 className="page-title">
                             Mentor Dashboard
                             {userData.department && (
-                                <span style={{ fontSize: '0.9rem', marginLeft: '1rem', color: '#666' }}>
-                                    • {userData.department} Department
+                                <span style={{ 
+                                    fontSize: '0.9rem', 
+                                    marginLeft: '1rem', 
+                                    color: '#666',
+                                    background: '#EEF2FF',
+                                    padding: '0.25rem 0.75rem',
+                                    borderRadius: '20px'
+                                }}>
+                                    {userData.department} Department
                                 </span>
                             )}
                         </h2>
@@ -399,8 +472,18 @@ const MentorDashboardPage = () => {
                         </p>
                     </div>
 
-                    {loading ? (
-                        <div className="loading-placeholder">Loading mentor dashboard...</div>
+                    {isLoading ? (
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            minHeight: '400px',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                        }}>
+                            <div className="loading-spinner"></div>
+                            <p style={{ color: '#666' }}>Loading mentor dashboard...</p>
+                        </div>
                     ) : (
                         <>
                             {/* Stats Grid */}
@@ -452,8 +535,8 @@ const MentorDashboardPage = () => {
                                             <div className="stat-label">Avg Daily Hours</div>
                                             <div className="stat-value">{stats.avgHoursPerDay}h</div>
                                         </div>
-                                        <div className="stat-icon purple" style={{ background: '#f3e8ff' }}>
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                                        <div className="stat-icon purple">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <circle cx="12" cy="12" r="10"></circle>
                                                 <path d="M12 6v6l4 2"></path>
                                             </svg>
@@ -489,12 +572,18 @@ const MentorDashboardPage = () => {
 
                             {/* Mentees List */}
                             <section className="section">
-                                <div className="section-header">
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: '1rem'
+                                }}>
                                     <h2 className="section-title">Your Assigned Mentees</h2>
                                     {mentees.length > 0 && (
                                         <button
-                                            className="view-all-link"
+                                            className="secondary-btn"
                                             onClick={() => navigate('/recruiter/mentees')}
+                                            style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}
                                         >
                                             View All ({mentees.length})
                                         </button>
@@ -503,94 +592,247 @@ const MentorDashboardPage = () => {
 
                                 {mentees.length === 0 ? (
                                     <div className="empty-state" style={{ padding: '3rem' }}>
-                                        <div className="empty-state-icon" style={{ width: '64px', height: '64px' }}>
+                                        <div className="empty-state-icon" style={{ width: '80px', height: '80px' }}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                             </svg>
                                         </div>
-                                        <h3>No Mentees Assigned</h3>
-                                        <p>You haven't been assigned as a mentor for any active internships yet.</p>
+                                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No Mentees Assigned</h3>
+                                        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                                            You haven't been assigned as a mentor for any active internships yet.
+                                        </p>
                                         <button
                                             className="primary-btn"
                                             onClick={() => navigate('/recruiter/applicants')}
-                                            style={{ marginTop: '1rem' }}
+                                            style={{ padding: '0.75rem 2rem' }}
                                         >
                                             View Applicants
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="recent-applications-list">
-                                        {mentees.slice(0, 5).map((mentee) => {
-                                            const progressPercentage = getProgressPercentage(mentee);
-                                            const displayProgress = mentee.internship?.progress || 
-                                                                  (progressPercentage > 0 ? `${progressPercentage}% Complete` : 'Active');
-                                            
-                                            return (
-                                                <div 
-                                                    key={mentee._id} 
-                                                    className="recent-application-card" 
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => navigate(`/recruiter/intern-progress/${mentee._id}`)}
-                                                >
-                                                    <div className="recent-app-header">
-                                                        <h4>{mentee.fullName}</h4>
-                                                        <span className="status-badge status-active">
-                                                            {displayProgress}
-                                                        </span>
-                                                    </div>
-                                                    <div className="recent-app-company">
-                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                                        </svg>
-                                                        {mentee.internship?.title || 'Internship'} • {mentee.education?.department || 'Department'}
-                                                    </div>
-                                                    
-                                                    {/* Progress Bar */}
-                                                    <div style={{ margin: '0.75rem 0' }}>
+                                    <>
+                                        <div className="mentees-list">
+                                            {currentMentees.map((mentee) => {
+                                                const progressPercentage = getProgressPercentage(mentee);
+                                                const displayProgress = mentee.internship?.progress || 
+                                                                      (progressPercentage > 0 ? `${progressPercentage}% Complete` : 'Active');
+                                                
+                                                return (
+                                                    <div 
+                                                        key={mentee._id} 
+                                                        className="recent-application-card" 
+                                                        style={{ 
+                                                            cursor: 'pointer',
+                                                            background: 'white',
+                                                            border: '1px solid #e5e7eb',
+                                                            borderRadius: '12px',
+                                                            padding: '1.5rem',
+                                                            marginBottom: '1rem',
+                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                                        }}
+                                                        onClick={() => navigate(`/recruiter/intern-progress/${mentee._id}`)}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                                                            e.currentTarget.style.transform = 'translateY(0)';
+                                                        }}
+                                                    >
                                                         <div style={{
                                                             display: 'flex',
                                                             justifyContent: 'space-between',
-                                                            fontSize: '0.75rem',
-                                                            color: '#6b7280',
-                                                            marginBottom: '0.25rem'
+                                                            alignItems: 'flex-start',
+                                                            marginBottom: '0.5rem'
                                                         }}>
-                                                            <span>Progress</span>
-                                                            <span>{progressPercentage}%</span>
+                                                            <h4 style={{ fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
+                                                                {mentee.fullName || 'Unknown Student'}
+                                                            </h4>
+                                                            <span style={{
+                                                                padding: '0.25rem 0.75rem',
+                                                                borderRadius: '20px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '600',
+                                                                background: progressPercentage >= 100 ? '#E6F7E6' : '#EEF2FF',
+                                                                color: progressPercentage >= 100 ? '#10b981' : '#2440F0'
+                                                            }}>
+                                                                {displayProgress}
+                                                            </span>
                                                         </div>
+                                                        
                                                         <div style={{
-                                                            width: '100%',
-                                                            height: '6px',
-                                                            background: '#e5e7eb',
-                                                            borderRadius: '3px',
-                                                            overflow: 'hidden'
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.5rem',
+                                                            color: '#4b5563',
+                                                            fontSize: '0.875rem',
+                                                            marginBottom: '1rem'
                                                         }}>
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                                            </svg>
+                                                            {mentee.internship?.title || 'Internship'} • {mentee.education?.department || 'Department'}
+                                                        </div>
+                                                        
+                                                        {/* Progress Bar */}
+                                                        <div style={{ marginBottom: '1rem' }}>
                                                             <div style={{
-                                                                width: `${progressPercentage}%`,
-                                                                height: '100%',
-                                                                background: 'linear-gradient(90deg, #8b5cf6, #c084fc)',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                fontSize: '0.75rem',
+                                                                color: '#6b7280',
+                                                                marginBottom: '0.25rem'
+                                                            }}>
+                                                                <span>Progress</span>
+                                                                <span>{progressPercentage}%</span>
+                                                            </div>
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '6px',
+                                                                background: '#e5e7eb',
                                                                 borderRadius: '3px',
-                                                                transition: 'width 0.3s ease'
-                                                            }} />
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                <div style={{
+                                                                    width: `${progressPercentage}%`,
+                                                                    height: '100%',
+                                                                    background: 'linear-gradient(90deg, #8b5cf6, #c084fc)',
+                                                                    borderRadius: '3px',
+                                                                    transition: 'width 0.3s ease'
+                                                                }} />
+                                                            </div>
+                                                        </div>
+
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                            fontSize: '0.875rem',
+                                                            color: '#6b7280'
+                                                        }}>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                                                </svg>
+                                                                Joined: {formatDate(mentee.createdAt)}
+                                                            </span>
+                                                            <span style={{ color: '#8b5cf6', fontWeight: '500' }}>
+                                                                View Progress →
+                                                            </span>
                                                         </div>
                                                     </div>
+                                                );
+                                            })}
+                                        </div>
 
-                                                    <div className="recent-app-meta" style={{ justifyContent: 'space-between' }}>
-                                                        <span>
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <circle cx="12" cy="12" r="10"></circle>
-                                                                <polyline points="12 6 12 12 16 14"></polyline>
-                                                            </svg>
-                                                            Joined: {formatDate(mentee.createdAt)}
-                                                        </span>
-                                                        <span style={{ color: '#8b5cf6', fontWeight: '500' }}>
-                                                            View Progress →
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                        {/* Pagination Controls */}
+                                        {totalPages > 1 && (
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                marginTop: '2rem',
+                                                marginBottom: '1rem'
+                                            }}>
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage - 1)}
+                                                    disabled={currentPage === 1}
+                                                    style={{
+                                                        padding: '0.5rem 1rem',
+                                                        border: '1px solid #d1d5db',
+                                                        borderRadius: '6px',
+                                                        background: currentPage === 1 ? '#f3f4f6' : 'white',
+                                                        color: currentPage === 1 ? '#9ca3af' : '#1f2937',
+                                                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '500',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.25rem'
+                                                    }}
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                                    </svg>
+                                                    Previous
+                                                </button>
+
+                                                {[...Array(totalPages)].map((_, index) => {
+                                                    const pageNumber = index + 1;
+                                                    if (
+                                                        pageNumber === 1 ||
+                                                        pageNumber === totalPages ||
+                                                        (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                                    ) {
+                                                        return (
+                                                            <button
+                                                                key={pageNumber}
+                                                                onClick={() => handlePageChange(pageNumber)}
+                                                                style={{
+                                                                    padding: '0.5rem 1rem',
+                                                                    border: '1px solid #d1d5db',
+                                                                    borderRadius: '6px',
+                                                                    background: currentPage === pageNumber ? '#2440F0' : 'white',
+                                                                    color: currentPage === pageNumber ? 'white' : '#1f2937',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '0.875rem',
+                                                                    fontWeight: '500',
+                                                                    minWidth: '40px'
+                                                                }}
+                                                            >
+                                                                {pageNumber}
+                                                            </button>
+                                                        );
+                                                    } else if (
+                                                        pageNumber === currentPage - 2 ||
+                                                        pageNumber === currentPage + 2
+                                                    ) {
+                                                        return <span key={pageNumber} style={{ color: '#9ca3af' }}>...</span>;
+                                                    }
+                                                    return null;
+                                                })}
+
+                                                <button
+                                                    onClick={() => handlePageChange(currentPage + 1)}
+                                                    disabled={currentPage === totalPages}
+                                                    style={{
+                                                        padding: '0.5rem 1rem',
+                                                        border: '1px solid #d1d5db',
+                                                        borderRadius: '6px',
+                                                        background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                                                        color: currentPage === totalPages ? '#9ca3af' : '#1f2937',
+                                                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '500',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.25rem'
+                                                    }}
+                                                >
+                                                    Next
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Items per page info */}
+                                        {mentees.length > 0 && (
+                                            <div style={{
+                                                textAlign: 'center',
+                                                fontSize: '0.875rem',
+                                                color: '#6b7280',
+                                                marginTop: '0.5rem'
+                                            }}>
+                                                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, mentees.length)} of {mentees.length} mentees
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </section>
                         </>

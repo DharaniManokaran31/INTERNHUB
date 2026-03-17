@@ -10,7 +10,9 @@ const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' // 'student' or 'recruiter' ONLY
+    college: '',
+    department: '',
+    yearOfStudy: '1st Year'
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -36,14 +38,6 @@ const RegisterPage = () => {
         ...prev,
         [name]: ''
       }));
-    }
-  };
-
-  // Handle role selection
-  const handleRoleSelect = (role) => {
-    setFormData(prev => ({ ...prev, role }));
-    if (errors.role) {
-      setErrors(prev => ({ ...prev, role: '' }));
     }
   };
 
@@ -89,9 +83,19 @@ const RegisterPage = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    // Role
-    if (!formData.role) {
-      newErrors.role = 'Please select a role';
+    // College
+    if (!formData.college.trim()) {
+      newErrors.college = 'College name is required';
+    }
+
+    // Department
+    if (!formData.department.trim()) {
+      newErrors.department = 'Department is required';
+    }
+
+    // Year of Study
+    if (!formData.yearOfStudy) {
+      newErrors.yearOfStudy = 'Year of study is required';
     }
 
     return newErrors;
@@ -121,27 +125,19 @@ const RegisterPage = () => {
     // Show loading state
     setIsLoading(true);
 
-    // DETERMINING CORRECT API ENDPOINT BASED ON SELECTED ROLE
     try {
-      let apiUrl;
-      
-      if (formData.role === 'student') {
-        apiUrl = 'http://localhost:5000/api/students/register';
-      } else if (formData.role === 'recruiter') {
-        apiUrl = 'http://localhost:5000/api/recruiters/register';
-      } else {
-        showNotification('Please select a valid role', 'error');
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch('http://localhost:5000/api/students/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          education: {
+            college: formData.college,
+            department: formData.department,
+            yearOfStudy: formData.yearOfStudy
+          }
         })
       });
 
@@ -151,19 +147,16 @@ const RegisterPage = () => {
         // Store email for auto-fill
         localStorage.setItem('registeredEmail', formData.email);
         
-        // Store role for login redirection
-        localStorage.setItem('registeredRole', formData.role);
-        
         // Show success notification
-        showNotification(`✅ ${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} account created successfully! Redirecting to login...`);
+        showNotification(`✅ Student account created successfully! Redirecting to login...`);
         
         // Redirect to login page
         setTimeout(() => {
           navigate('/login', { 
             state: { 
               registeredEmail: formData.email,
-              registeredRole: formData.role,
-              successMessage: `${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} account created successfully! Please sign in.`
+              registeredRole: 'student',
+              successMessage: 'Student account created successfully! Please sign in.'
             }
           });
         }, 2000);
@@ -171,6 +164,7 @@ const RegisterPage = () => {
         showNotification(data.message, 'error');
       }
     } catch (error) {
+      console.error('Registration error:', error);
       showNotification('Network error. Please try again.', 'error');
     } finally {
       setIsLoading(false);
@@ -241,29 +235,30 @@ const RegisterPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="logo-text">InternHub</span>
+            <span className="logo-text">Zoyaraa</span>
           </div>
 
           <div>
-            <h1 className="branding-heading">Connect talent with opportunity.</h1>
+            <h1 className="branding-heading">Join Zoyaraa's Internship Program</h1>
             <p className="branding-subtext">
-              The complete internship management platform for students, recruiters, and administrators.
+              Launch your career with India's fastest growing tech company. Work on real projects, 
+              learn from industry experts, and get certified.
             </p>
           </div>
         </div>
 
         <div className="stats-container">
           <div className="stat-item">
-            <div className="stat-value">500+</div>
-            <div className="stat-label">Internships Posted</div>
+            <div className="stat-value">50+</div>
+            <div className="stat-label">Interns Completed</div>
           </div>
           <div className="stat-item">
             <div className="stat-value">2,000+</div>
-            <div className="stat-label">Students Placed</div>
+            <div className="stat-label">Applications Received</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">150+</div>
-            <div className="stat-label">Companies</div>
+            <div className="stat-value">92%</div>
+            <div className="stat-label">Placement Rate</div>
           </div>
         </div>
       </div>
@@ -272,8 +267,8 @@ const RegisterPage = () => {
       <div className="form-section">
         <div className="form-container">
           <div className="form-header">
-            <h2 className="form-heading">Create an account</h2>
-            <p className="form-subtext">Start your internship journey today</p>
+            <h2 className="form-heading">Student Registration</h2>
+            <p className="form-subtext">Create your account to apply for internships at Zoyaraa</p>
           </div>
 
           <form id="registrationForm" onSubmit={handleSubmit} noValidate>
@@ -363,7 +358,7 @@ const RegisterPage = () => {
                 </button>
               </div>
               {errors.password && <small className="error-message">{errors.password}</small>}
-              <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                 Must be at least 8 characters with uppercase, lowercase, number, and special character
               </small>
             </div>
@@ -411,45 +406,61 @@ const RegisterPage = () => {
               {errors.confirmPassword && <small className="error-message">{errors.confirmPassword}</small>}
             </div>
 
-            {/* Role Selection - ONLY Student and Recruiter */}
+            {/* College */}
             <div className="form-group">
-              <label className="form-label">I am a</label>
-              <div className="role-buttons">
-                {/* Student Role */}
-                <button
-                  type="button"
-                  className={`role-button ${formData.role === 'student' ? 'active' : ''}`}
-                  onClick={() => handleRoleSelect('student')}
-                  disabled={isLoading}
-                >
-                  <div className="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                  </div>
-                  <span className="role-text">Student</span>
-                </button>
+              <label htmlFor="college" className="form-label">College / University</label>
+              <input
+                type="text"
+                id="college"
+                name="college"
+                className={`form-input ${errors.college ? 'input-error' : ''}`}
+                placeholder="Enter your college name"
+                value={formData.college}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+              {errors.college && <small className="error-message">{errors.college}</small>}
+            </div>
 
-                {/* Recruiter Role */}
-                <button
-                  type="button"
-                  className={`role-button ${formData.role === 'recruiter' ? 'active' : ''}`}
-                  onClick={() => handleRoleSelect('recruiter')}
-                  disabled={isLoading}
-                >
-                  <div className="role-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                    </svg>
-                  </div>
-                  <span className="role-text">Recruiter</span>
-                </button>
-              </div>
-              {errors.role && <small className="error-message">{errors.role}</small>}
+            {/* Department */}
+            <div className="form-group">
+              <label htmlFor="department" className="form-label">Department / Branch</label>
+              <input
+                type="text"
+                id="department"
+                name="department"
+                className={`form-input ${errors.department ? 'input-error' : ''}`}
+                placeholder="e.g., Computer Science, Information Technology"
+                value={formData.department}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+              {errors.department && <small className="error-message">{errors.department}</small>}
+            </div>
+
+            {/* Year of Study */}
+            <div className="form-group">
+              <label htmlFor="yearOfStudy" className="form-label">Year of Study</label>
+              <select
+                id="yearOfStudy"
+                name="yearOfStudy"
+                className={`form-input ${errors.yearOfStudy ? 'input-error' : ''}`}
+                value={formData.yearOfStudy}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              >
+                <option value="">Select Year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+                <option value="5th Year">5th Year</option>
+                <option value="Graduated">Graduated</option>
+              </select>
+              {errors.yearOfStudy && <small className="error-message">{errors.yearOfStudy}</small>}
             </div>
 
             {/* Submit Button */}
@@ -458,7 +469,7 @@ const RegisterPage = () => {
               className="submit-button"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating Account...' : 'Create'}
+              {isLoading ? 'Creating Account...' : 'Register as Student'}
             </button>
 
             {/* Already have an account link */}

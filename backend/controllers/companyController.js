@@ -1,241 +1,540 @@
 const Company = require('../models/Company');
 const Recruiter = require('../models/Recruiter');
-const { sendInvitationEmail } = require('../services/emailService'); // ✅ ADD THIS
+const Internship = require('../models/Internship');
+const Application = require('../models/Application');
+const Student = require('../models/Student');
 
-// Get company profile
+// ============================================
+// PUBLIC COMPANY INFO
+// ============================================
+
+// Get Company Profile (Public)
 exports.getCompanyProfile = async (req, res) => {
   try {
-    const company = await Company.findOne({});
+    const company = await Company.findOne();
+    
     if (!company) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Company not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
       });
     }
-    
-    res.json({ 
-      success: true, 
-      data: { company } 
+
+    // Return only public information
+    const publicInfo = {
+      name: company.name,
+      description: company.description,
+      website: company.website,
+      logo: company.logo,
+      industry: company.industry,
+      size: company.size,
+      foundedYear: company.foundedYear,
+      address: company.address,
+      socialMedia: company.socialMedia,
+      departments: company.departments?.filter(d => d.isActive).map(d => d.name)
+    };
+
+    res.status(200).json({
+      success: true,
+      data: { company: publicInfo }
     });
   } catch (error) {
     console.error('Error in getCompanyProfile:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
 
-// Get all recruiters
-exports.getAllRecruiters = async (req, res) => {
+// ============================================
+// ADMIN/HR FUNCTIONS
+// ============================================
+
+// Get Full Company Details (Admin/HR only)
+exports.getCompanyDetails = async (req, res) => {
   try {
-    const company = await Company.findOne({});
+    const company = await Company.findOne();
+    
     if (!company) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Company not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
       });
     }
 
-    const recruiters = await Recruiter.find({ companyId: company._id });
-    
-    const active = recruiters.filter(r => r.invitationStatus === 'accepted');
-    const pending = recruiters.filter(r => r.invitationStatus === 'pending');
-    
-    res.json({ 
-      success: true, 
-      data: { 
-        active, 
-        pending,
-        total: recruiters.length 
-      } 
-    });
-  } catch (error) {
-    console.error('Error in getAllRecruiters:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
-};
+    // Get additional stats
+    const [
+      totalRecruiters,
+      activeRecruiters,
+      totalInternships,
+      activeInternships,
+      totalStudents,
+      activeInterns
+    ] = await Promise.all([
+      Recruiter.countDocuments({ role: 'recruiter' }),
+      Recruiter.countDocuments({ 
+        role: 'recruiter', 
+        isActive: true, 
+        invitationStatus: 'accepted' 
+      }),
+      Internship.countDocuments(),
+      Internship.countDocuments({ status: 'active' }),
+      Student.countDocuments(),
+      Application.countDocuments({ status: 'accepted' })
+    ]);
 
-// Invite recruiter
-exports.inviteRecruiter = async (req, res) => {
-  try {
-    const { fullName, email, department, designation, maxInterns } = req.body;
-    
-    // Check if recruiter already exists
-    const existingRecruiter = await Recruiter.findOne({ email });
-    if (existingRecruiter) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Recruiter with this email already exists' 
-      });
+    // Populate HR team details
+    if (company.hrTeam && company.hrTeam.length > 0) {
+      await company.populate('hrTeam', 'fullName email department');
     }
 
-    const company = await Company.findOne({});
-    if (!company) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Company not found' 
-      });
-    }
-    
-    // Generate invitation token
-    const crypto = require('crypto');
-    const invitationToken = crypto.randomBytes(32).toString('hex');
-    const invitationExpires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-
-    const recruiter = new Recruiter({
-      fullName,
-      email,
-      department,
-      designation,
-      companyId: company._id,
-      isInvited: true,
-      invitationStatus: 'pending',
-      invitationToken,
-      invitationExpires,
-      permissions: { 
-        maxInterns: maxInterns || 3,
-        canPostInternship: true,
-        departmentOnly: true 
-      },
-      // Temporary password (will be set when they accept)
-      password: await require('bcryptjs').hash('temp123', 10)
-    });
-    
-    await recruiter.save();
-    
-    // ✅ SEND INVITATION EMAIL
-    try {
-      const inviteLink = `http://localhost:3000/accept-invite/${invitationToken}`;
-      await sendInvitationEmail(email, fullName, inviteLink);
-      console.log(`✅ Invitation email sent to ${email}`);
-    } catch (emailError) {
-      console.error('❌ Failed to send email:', emailError);
-      // Don't fail the request if email fails - just log it
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Invitation sent successfully',
-      data: { 
-        recruiter: {
-          id: recruiter._id,
-          fullName: recruiter.fullName,
-          email: recruiter.email,
-          department: recruiter.department
+    res.status(200).json({
+      success: true,
+      data: {
+        company,
+        stats: {
+          ...company.stats,
+          totalRecruiters,
+          activeRecruiters,
+          totalInternships,
+          activeInternships,
+          totalStudents,
+          activeInterns
         }
       }
     });
   } catch (error) {
-    console.error('Error in inviteRecruiter:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error('Error in getCompanyDetails:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
 
-// Resend invitation
-exports.resendInvitation = async (req, res) => {
+// Update Company Details
+exports.updateCompany = async (req, res) => {
   try {
-    const { recruiterId } = req.params;
+    const company = await Company.findOne();
     
-    const recruiter = await Recruiter.findById(recruiterId);
-    if (!recruiter) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Recruiter not found' 
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
       });
     }
-    
-    // Generate new token
-    const crypto = require('crypto');
-    const invitationToken = crypto.randomBytes(32).toString('hex');
-    const invitationExpires = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    
-    recruiter.invitationToken = invitationToken;
-    recruiter.invitationExpires = invitationExpires;
-    await recruiter.save();
-    
-    // ✅ SEND INVITATION EMAIL AGAIN
-    try {
-      const inviteLink = `http://localhost:3000/accept-invite/${invitationToken}`;
-      await sendInvitationEmail(recruiter.email, recruiter.fullName, inviteLink);
-      console.log(`✅ Resent invitation email to ${recruiter.email}`);
-    } catch (emailError) {
-      console.error('❌ Failed to resend email:', emailError);
+
+    const updates = req.body;
+
+    // Prevent updating sensitive fields
+    delete updates._id;
+    delete updates.stats;
+    delete updates.verificationStatus;
+    delete updates.verifiedBy;
+    delete updates.verifiedAt;
+
+    // Handle nested objects
+    if (updates.address) {
+      company.address = { ...company.address, ...updates.address };
+      delete updates.address;
     }
+
+    if (updates.socialMedia) {
+      company.socialMedia = { ...company.socialMedia, ...updates.socialMedia };
+      delete updates.socialMedia;
+    }
+
+    if (updates.settings) {
+      company.settings = { ...company.settings, ...updates.settings };
+      delete updates.settings;
+    }
+
+    // Apply remaining updates
+    Object.assign(company, updates);
     
-    res.json({ 
-      success: true, 
-      message: 'Invitation resent successfully' 
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Company updated successfully',
+      data: { company }
     });
   } catch (error) {
-    console.error('Error in resendInvitation:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error('Error in updateCompany:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
 
-// Accept invitation
-exports.acceptInvitation = async (req, res) => {
+// ============================================
+// DEPARTMENT MANAGEMENT
+// ============================================
+
+// Get All Departments
+exports.getDepartments = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const company = await Company.findOne();
     
-    const recruiter = await Recruiter.findOne({
-      invitationToken: token,
-      invitationExpires: { $gt: Date.now() }
-    });
-    
-    if (!recruiter) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid or expired invitation token' 
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
       });
     }
+
+    // Get department stats
+    const departments = await Promise.all(company.departments.map(async (dept) => {
+      const recruiters = await Recruiter.countDocuments({ 
+        department: dept.name,
+        role: 'recruiter',
+        isActive: true
+      });
+      
+      const internships = await Internship.countDocuments({ 
+        department: dept.name,
+        status: 'active'
+      });
+
+      return {
+        ...dept.toObject(),
+        stats: {
+          recruiters,
+          internships
+        }
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: { departments }
+    });
+  } catch (error) {
+    console.error('Error in getDepartments:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Add Department
+exports.addDepartment = async (req, res) => {
+  try {
+    const { name, description, headId } = req.body;
+
+    const company = await Company.findOne();
     
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    // Check if department already exists
+    if (company.departments.some(d => d.name === name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Department already exists'
+      });
+    }
+
+    company.departments.push({
+      name,
+      description,
+      headId,
+      isActive: true
+    });
+
+    await company.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Department added successfully',
+      data: { departments: company.departments }
+    });
+  } catch (error) {
+    console.error('Error in addDepartment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Update Department
+exports.updateDepartment = async (req, res) => {
+  try {
+    const { departmentName } = req.params;
+    const updates = req.body;
+
+    const company = await Company.findOne();
     
-    recruiter.password = hashedPassword;
-    recruiter.invitationStatus = 'accepted';
-    recruiter.invitationToken = undefined;
-    recruiter.invitationExpires = undefined;
-    recruiter.isInvited = false;
-    await recruiter.save();
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    const department = company.departments.find(d => d.name === departmentName);
     
-    const jwt = require('jsonwebtoken');
-    const token_jwt = jwt.sign(
-      { id: recruiter._id, email: recruiter.email, role: recruiter.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    if (!department) {
+      return res.status(404).json({
+        success: false,
+        message: 'Department not found'
+      });
+    }
+
+    Object.assign(department, updates);
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Department updated successfully',
+      data: { departments: company.departments }
+    });
+  } catch (error) {
+    console.error('Error in updateDepartment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+
+// Upload Company Document
+exports.uploadDocument = async (req, res) => {
+  try {
+    const { type, filename } = req.body;
     
-    res.json({ 
-      success: true, 
-      message: 'Account created successfully',
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const company = await Company.findOne();
+    
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    const document = {
+      type,
+      url: `/uploads/company/${req.file.filename}`,
+      filename: filename || req.file.originalname,
+      uploadedAt: new Date()
+    };
+
+    company.documents.push(document);
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Document uploaded successfully',
+      data: { document }
+    });
+  } catch (error) {
+    console.error('Error in uploadDocument:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Verify Document
+exports.verifyDocument = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const company = await Company.findOne();
+    
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    const document = company.documents.id(documentId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+    document.verified = true;
+    document.verifiedAt = new Date();
+    document.verifiedBy = req.user.id;
+
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Document verified successfully',
+      data: { document }
+    });
+  } catch (error) {
+    console.error('Error in verifyDocument:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ============================================
+// STATS & ANALYTICS
+// ============================================
+
+// Get Company Stats
+exports.getCompanyStats = async (req, res) => {
+  try {
+    const company = await Company.findOne();
+    
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    // Refresh stats
+    const [
+      totalInternships,
+      activeInternships,
+      totalRecruiters,
+      totalStudentsHired,
+      totalApplications
+    ] = await Promise.all([
+      Internship.countDocuments(),
+      Internship.countDocuments({ status: 'active' }),
+      Recruiter.countDocuments({ role: 'recruiter', isActive: true }),
+      Application.countDocuments({ status: 'accepted' }),
+      Application.countDocuments()
+    ]);
+
+    company.stats = {
+      totalInternships,
+      activeInternships,
+      totalRecruiters,
+      totalStudentsHired,
+      totalApplications
+    };
+
+    await company.save();
+
+    // Monthly trends
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const recentStats = {
+      internships: await Internship.countDocuments({ 
+        createdAt: { $gte: thirtyDaysAgo } 
+      }),
+      applications: await Application.countDocuments({ 
+        appliedAt: { $gte: thirtyDaysAgo } 
+      }),
+      hires: await Application.countDocuments({ 
+        status: 'accepted',
+        updatedAt: { $gte: thirtyDaysAgo } 
+      })
+    };
+
+    res.status(200).json({
+      success: true,
       data: {
-        user: {
-          id: recruiter._id,
-          fullName: recruiter.fullName,
-          email: recruiter.email,
-          role: recruiter.role,
-          department: recruiter.department
-        },
-        token: token_jwt
+        stats: company.stats,
+        recent: recentStats
       }
     });
   } catch (error) {
-    console.error('Error in acceptInvitation:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    console.error('Error in getCompanyStats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Get Growth Chart Data
+exports.getGrowthData = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query; // week, month, year
+
+    let startDate = new Date();
+    let groupFormat;
+
+    switch(period) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        groupFormat = '%Y-%m-%d';
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        groupFormat = '%Y-%m';
+        break;
+      default: // month
+        startDate.setMonth(startDate.getMonth() - 1);
+        groupFormat = '%Y-%m-%d';
+    }
+
+    const [internshipGrowth, applicationGrowth, hireGrowth] = await Promise.all([
+      Internship.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $group: {
+          _id: { $dateToString: { format: groupFormat, date: '$createdAt' } },
+          count: { $sum: 1 }
+        }},
+        { $sort: { '_id': 1 } }
+      ]),
+      Application.aggregate([
+        { $match: { appliedAt: { $gte: startDate } } },
+        { $group: {
+          _id: { $dateToString: { format: groupFormat, date: '$appliedAt' } },
+          count: { $sum: 1 }
+        }},
+        { $sort: { '_id': 1 } }
+      ]),
+      Application.aggregate([
+        { $match: { status: 'accepted', updatedAt: { $gte: startDate } } },
+        { $group: {
+          _id: { $dateToString: { format: groupFormat, date: '$updatedAt' } },
+          count: { $sum: 1 }
+        }},
+        { $sort: { '_id': 1 } }
+      ])
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        period,
+        internships: internshipGrowth,
+        applications: applicationGrowth,
+        hires: hireGrowth
+      }
+    });
+  } catch (error) {
+    console.error('Error in getGrowthData:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

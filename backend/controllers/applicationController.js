@@ -1,56 +1,83 @@
+// backend/controllers/applicationController.js
 const Application = require("../models/Application");
 const Internship = require("../models/Internship");
 const Student = require("../models/Student");
 const Recruiter = require("../models/Recruiter");
-const { createNotification } = require('./notificationController');
+const Notification = require("../models/Notification");
+const { sendApplicationStatusEmail } = require("../services/emailService");
+const { checkAndCloseInternship } = require("./internshipController"); // ✅ IMPORT helper
 
 // ----------------------
-// Apply to an internship
+// Apply to Internship
 // ----------------------
-const applyToInternship = async (req, res) => {
+exports.applyToInternship = async (req, res) => {
   try {
-    const { studentId, internshipId, coverLetter } = req.body;
+    const studentId = req.user.id;
+    const { internshipId, coverLetter } = req.body;
 
-    // Validate input
-    if (!studentId || !internshipId) {
-      return res.status(400).json({ message: "studentId and internshipId are required" });
+    if (!internshipId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Internship ID is required" 
+      });
     }
 
-    // Check if student exists and get their resume data
+    // Check if student exists
     const student = await Student.findById(studentId);
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Student not found" 
+      });
     }
 
-    // Check if student has a resume uploaded
+    // Check if student has resume
     if (!student.resume || !student.resume.resumeFile) {
       return res.status(400).json({
+        success: false,
         message: "Please upload your resume before applying"
       });
     }
 
-    // Check if internship exists AND populate the recruiter who posted it
-    const internship = await Internship.findById(internshipId).populate('postedBy');
+    // Check internship
+    const internship = await Internship.findById(internshipId);
     if (!internship) {
-      return res.status(404).json({ message: "Internship not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Internship not found" 
+      });
     }
 
-    // Check if deadline has passed
+    // Check deadline
     if (internship.deadline && new Date() > new Date(internship.deadline)) {
-      return res.status(400).json({ message: "Cannot apply. Internship deadline has passed." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Application deadline has passed" 
+      });
     }
 
-    // Prevent duplicate application
+    // Check if positions available
+    if (internship.filledPositions >= internship.positions) {
+      return res.status(400).json({ 
+        success: false,
+        message: "All positions for this internship have been filled" 
+      });
+    }
+
+    // Prevent duplicate
     const existingApplication = await Application.findOne({
-      student: studentId,
-      internship: internshipId,
+      studentId,
+      internshipId
     });
 
     if (existingApplication) {
-      return res.status(400).json({ message: "You have already applied to this internship" });
+      return res.status(400).json({ 
+        success: false,
+        message: "You have already applied to this internship" 
+      });
     }
 
-    // Get student's certificates if any
+    // Get student's certificates
     const studentCertificates = (student.resume?.certifications || [])
       .filter(cert => cert.certificateUrl)
       .map(cert => ({
@@ -62,165 +89,534 @@ const applyToInternship = async (req, res) => {
 
     // Create application
     const application = new Application({
-      student: studentId,
-      internship: internshipId,
+      studentId,
+      internshipId,
+      recruiterId: internship.mentorId,
       coverLetter: coverLetter || '',
       submittedResume: {
         url: student.resume.resumeFile,
         fileName: student.resume.resumeFileName || 'resume.pdf',
+        fileSize: 0,
         uploadedAt: student.resume.lastUpdated || new Date()
       },
       submittedCertificates: studentCertificates,
-      resumeVersion: student.resume.lastUpdated?.toString() || null
+      status: 'pending',
+      timeline: [{
+        status: 'pending',
+        comment: 'Application submitted',
+        updatedAt: new Date(),
+        updatedBy: studentId
+      }]
     });
 
     const savedApplication = await application.save();
 
-    // ✅ CREATE NOTIFICATION FOR RECRUITER
-    if (internship.postedBy) {
-      try {
-        await createNotification({
-          recipient: internship.postedBy._id,
-          recipientModel: 'Recruiter',
-          type: 'application_received',
-          title: 'New Application Received',
-          message: `${student.fullName} applied for ${internship.title}`,
-          data: {
-            applicationId: savedApplication._id,
-            internshipId: internship._id,
-            internshipTitle: internship.title,
-            studentId: student._id,
-            studentName: student.fullName,
-            hasCoverLetter: !!coverLetter
-          }
-        });
+    // Update internship application count
+    internship.applicationCount += 1;
+    await internship.save();
 
-      } catch (notifError) {
-        console.error('❌ Error creating notification:', notifError);
-      }
-    } else {
-      console.log('❌ No recruiter found for this internship - notification skipped');
+    // Create notification for recruiter
+    if (internship.mentorId) {
+      await Notification.create({
+        recipientId: internship.mentorId,
+        recipientModel: 'Recruiter',
+        type: 'application_received',
+        title: 'New Application Received',
+        message: `${student.fullName} applied for ${internship.title}`,
+        data: {
+          applicationId: savedApplication._id,
+          internshipId: internship._id,
+          internshipTitle: internship.title,
+          studentId: student._id,
+          studentName: student.fullName
+        }
+      });
     }
 
     res.status(201).json({
       success: true,
       message: "Application submitted successfully",
-      application: savedApplication,
+      data: { application: savedApplication }
     });
   } catch (error) {
-    console.error("❌ Error in applyToInternship:", error);
+    console.error("Error in applyToInternship:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error while applying"
+      message: error.message
     });
   }
 };
 
 // ----------------------
-// View all applications of a student
+// Get My Applications (Student)
 // ----------------------
-const getStudentApplications = async (req, res) => {
+exports.getMyApplications = async (req, res) => {
   try {
-    const { studentId } = req.params;
+    const studentId = req.user.id;
 
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: "studentId is required"
-      });
-    }
-
-    // Fetch applications with internship details
-    const applications = await Application.find({ student: studentId })
+    const applications = await Application.find({ studentId })
       .populate({
-        path: 'internship',
-        select: 'title companyName'
+        path: 'internshipId',
+        select: 'title companyName department workMode location stipend duration startDate endDate deadline'
       })
+      .populate('recruiterId', 'fullName department')
       .sort({ appliedAt: -1 });
 
-    // Format applications for frontend
-    const formattedApplications = applications.map(app => ({
-      _id: app._id,
-      status: app.status,
-      appliedAt: app.appliedAt,
-      internship: app.internship ? {
-        _id: app.internship._id,
-        title: app.internship.title,
-        companyName: app.internship.companyName
-      } : null
-    }));
-
-    // Send response in the format frontend expects
-    res.status(200).json({
-      success: true,
-      applications: formattedApplications
-    });
-
-  } catch (error) {
-    console.error("Error in getStudentApplications:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching applications"
-    });
-  }
-};
-
-// ----------------------
-// Get MY applications (from auth token)
-// ----------------------
-const getMyApplications = async (req, res) => {
-  try {
-    // Get student ID from the auth token (set by authMiddleware)
-    const studentId = req.user.id || req.user._id;
-
-    console.log('🔍 Getting applications for student ID from token:', studentId);
-
-    // Fetch applications
-    const applications = await Application.find({ student: studentId })
-      .populate(
-        "internship",
-        "title companyName location type stipend duration description skillsRequired deadline"
-      )
-      .sort({ appliedAt: -1 });
-
-    console.log(`🔍 Found ${applications.length} applications`);
-
-    // Add expired flag for frontend
-    const today = new Date();
-    const applicationsWithStatus = applications.map((app) => {
-      const deadline = app.internship?.deadline ? new Date(app.internship.deadline) : null;
-      return {
-        ...app._doc,
-        internship: {
-          ...app.internship?._doc,
-          expired: deadline ? today > deadline : false,
-        },
-      };
+    // Add status flags
+    const now = new Date();
+    const applicationsWithFlags = applications.map(app => {
+      const appObj = app.toObject();
+      appObj.isDeadlinePassed = app.internshipId?.deadline ? 
+        new Date(app.internshipId.deadline) < now : false;
+      return appObj;
     });
 
     res.status(200).json({
       success: true,
-      data: {
-        applications: applicationsWithStatus
-      }
+      data: { applications: applicationsWithFlags }
     });
   } catch (error) {
     console.error("Error in getMyApplications:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error while fetching applications"
+      message: error.message
     });
   }
 };
 
-// =============== RECRUITER FUNCTIONS ===============
+// ----------------------
+// Get Applications for Internship (Recruiter/HR)
+// ----------------------
+exports.getInternshipApplications = async (req, res) => {
+  try {
+    const { internshipId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Check internship exists
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+      return res.status(404).json({
+        success: false,
+        message: "Internship not found"
+      });
+    }
+
+    // Check permission
+    if (userRole !== 'hr' && internship.mentorId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view these applications"
+      });
+    }
+
+    const applications = await Application.find({ internshipId })
+      .populate('studentId', 'fullName email profilePicture phone location skills currentEducation')
+      .sort({ appliedAt: -1 });
+
+    // Format response
+    const formattedApplications = applications.map(app => ({
+      id: app._id,
+      student: app.studentId ? {
+        id: app.studentId._id,
+        name: app.studentId.fullName,
+        email: app.studentId.email,
+        profilePicture: app.studentId.profilePicture,
+        phone: app.studentId.phone,
+        location: app.studentId.location,
+        skills: app.studentId.skills || [],
+        education: app.studentId.currentEducation
+      } : null,
+      status: app.status,
+      appliedAt: app.appliedAt,
+      coverLetter: app.coverLetter,
+      hasResume: !!app.submittedResume?.url,
+      hasCertificates: app.submittedCertificates?.length > 0
+    }));
+
+    // Calculate stats
+    const stats = {
+      total: applications.length,
+      pending: applications.filter(a => a.status === 'pending').length,
+      shortlisted: applications.filter(a => a.status === 'shortlisted').length,
+      accepted: applications.filter(a => a.status === 'accepted').length,
+      rejected: applications.filter(a => a.status === 'rejected').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        internship: {
+          id: internship._id,
+          title: internship.title,
+          department: internship.department,
+          positions: internship.positions,
+          filled: internship.filledPositions
+        },
+        stats,
+        applications: formattedApplications
+      }
+    });
+  } catch (error) {
+    console.error("Error in getInternshipApplications:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 
 // ----------------------
-// Get recruiter's application stats
+// Get Application by ID
 // ----------------------
-const getRecruiterApplicationStats = async (req, res) => {
+exports.getApplicationById = async (req, res) => {
   try {
-    const recruiterId = req.user.id; // From auth middleware
+    const { applicationId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const application = await Application.findById(applicationId)
+      .populate('studentId', 'fullName email profilePicture phone location education skills resume')
+      .populate('internshipId', 'title department companyName workMode location startDate endDate')
+      .populate('recruiterId', 'fullName department')
+      .populate('timeline.updatedBy', 'fullName');
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    // Check permission
+    const isStudent = userRole === 'student' && application.studentId._id.toString() === userId;
+    const isRecruiter = userRole === 'recruiter' && application.recruiterId?._id.toString() === userId;
+    const isHR = userRole === 'hr';
+
+    if (!isStudent && !isRecruiter && !isHR) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to view this application"
+      });
+    }
+
+    // Add full URLs
+    const appObj = application.toObject();
+    
+    if (appObj.submittedResume?.url) {
+      appObj.submittedResume.url = `${req.protocol}://${req.get('host')}${appObj.submittedResume.url}`;
+    }
+    
+    if (appObj.submittedCertificates) {
+      appObj.submittedCertificates = appObj.submittedCertificates.map(cert => ({
+        ...cert,
+        url: cert.url ? `${req.protocol}://${req.get('host')}${cert.url}` : null
+      }));
+    }
+
+    if (appObj.studentId?.resume?.resumeFile) {
+      appObj.studentId.resume.resumeUrl = `${req.protocol}://${req.get('host')}${appObj.studentId.resume.resumeFile}`;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { application: appObj }
+    });
+  } catch (error) {
+    console.error("Error in getApplicationById:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Update Application Status
+// ----------------------
+exports.updateApplicationStatus = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { status, comment } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Validate status
+    const validStatuses = ['pending', 'shortlisted', 'rejected', 'accepted'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status"
+      });
+    }
+
+    const application = await Application.findById(applicationId)
+      .populate('studentId')
+      .populate('internshipId')
+      .populate('recruiterId');
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    // Check permission
+    const isRecruiter = userRole === 'recruiter' && application.recruiterId?._id.toString() === userId;
+    const isHR = userRole === 'hr';
+
+    if (!isRecruiter && !isHR) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to update this application"
+      });
+    }
+
+    const oldStatus = application.status;
+    application.status = status;
+
+    // Add timeline entry
+    application.timeline.push({
+      status,
+      comment: comment || `Application status changed to ${status}`,
+      updatedAt: new Date(),
+      updatedBy: userId
+    });
+
+    await application.save();
+
+    // If accepted, update internship filled positions and set up mentoring
+    if (status === 'accepted' && oldStatus !== 'accepted') {
+      const internship = await Internship.findById(application.internshipId);
+      if (internship) {
+        internship.filledPositions += 1;
+        if (internship.filledPositions >= internship.positions) {
+          internship.status = 'closed';
+        }
+        await internship.save();
+
+        // ✅ Use helper method to check if internship should auto-close
+        await checkAndCloseInternship(internship._id);
+
+        // Add student to recruiter's mentor list
+        await Recruiter.findByIdAndUpdate(application.recruiterId, {
+          $addToSet: { mentorFor: application.studentId._id }
+        });
+
+        // Update student's current internship
+        await Student.findByIdAndUpdate(application.studentId._id, {
+          currentInternship: internship._id
+        });
+      }
+    }
+
+    // Send email notification
+    try {
+      await sendApplicationStatusEmail(
+        application.studentId.email,
+        application.studentId.fullName,
+        application.internshipId.title,
+        status,
+        comment
+      );
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+    }
+
+    // Create notification for student
+    await Notification.create({
+      recipientId: application.studentId._id,
+      recipientModel: 'Student',
+      type: 'application_status_change',
+      title: `Application ${status}`,
+      message: `Your application for ${application.internshipId.title} has been ${status}`,
+      data: {
+        applicationId: application._id,
+        internshipId: application.internshipId._id,
+        internshipTitle: application.internshipId.title,
+        status
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Application ${status} successfully`,
+      data: { application }
+    });
+  } catch (error) {
+    console.error("Error in updateApplicationStatus:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Add Note to Application
+// ----------------------
+exports.addApplicationNote = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { note } = req.body;
+    const userId = req.user.id;
+
+    if (!note) {
+      return res.status(400).json({
+        success: false,
+        message: "Note is required"
+      });
+    }
+
+    const application = await Application.findById(applicationId);
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    application.recruiterNotes.push({
+      note,
+      addedAt: new Date(),
+      addedBy: userId
+    });
+
+    await application.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Note added successfully",
+      data: { notes: application.recruiterNotes }
+    });
+  } catch (error) {
+    console.error("Error in addApplicationNote:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Get Funnel Stats for Internship
+// ----------------------
+exports.getInternshipFunnelStats = async (req, res) => {
+  try {
+    const { internshipId } = req.params;
+    const mongoose = require('mongoose');
+
+    const stats = await Application.aggregate([
+      { $match: { internshipId: new mongoose.Types.ObjectId(internshipId) } },
+      { $group: {
+        _id: '$status',
+        count: { $sum: 1 }
+      }}
+    ]);
+
+    const funnel = {
+      total: 0,
+      pending: 0,
+      shortlisted: 0,
+      accepted: 0,
+      rejected: 0
+    };
+
+    stats.forEach(stat => {
+      funnel[stat._id] = stat.count;
+      funnel.total += stat.count;
+    });
+
+    // Calculate conversion rates
+    if (funnel.total > 0) {
+      funnel.shortlistRate = Math.round((funnel.shortlisted / funnel.total) * 100);
+      funnel.acceptanceRate = Math.round((funnel.accepted / funnel.total) * 100);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: funnel
+    });
+  } catch (error) {
+    console.error("Error in getInternshipFunnelStats:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Recommend Certificate
+// ----------------------
+exports.recommendCertificate = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const { feedback } = req.body;
+    const userId = req.user.id;
+
+    const application = await Application.findById(applicationId)
+      .populate('internshipId')
+      .populate('studentId');
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found"
+      });
+    }
+
+    // Check if application is accepted
+    if (application.status !== 'accepted') {
+      return res.status(400).json({
+        success: false,
+        message: "Only accepted applications can be recommended for certification"
+      });
+    }
+
+    application.certificateRecommended = true;
+    application.certificationFeedback = feedback || '';
+    await application.save();
+
+    // Notify HR
+    const hrs = await Recruiter.find({ role: 'hr' });
+    for (const hr of hrs) {
+      await Notification.create({
+        recipientId: hr._id,
+        recipientModel: 'Recruiter',
+        type: 'certificate_recommendation',
+        title: 'Certificate Recommendation',
+        message: `${application.studentId.fullName} has been recommended for certification`,
+        data: {
+          applicationId: application._id,
+          studentId: application.studentId._id,
+          studentName: application.studentId.fullName,
+          internshipTitle: application.internshipId.title
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Certificate recommendation submitted"
+    });
+  } catch (error) {
+    console.error("Error in recommendCertificate:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ----------------------
+// Get Recruiter Application Stats
+// ----------------------
+exports.getRecruiterApplicationStats = async (req, res) => {
+  try {
+    const recruiterId = req.user.id;
 
     console.log('🔍 Getting application stats for recruiter:', recruiterId);
 
@@ -243,7 +639,7 @@ const getRecruiterApplicationStats = async (req, res) => {
 
     // Get all applications for these internships
     const applications = await Application.find({
-      internship: { $in: internshipIds }
+      internshipId: { $in: internshipIds }
     });
 
     // Calculate stats
@@ -265,23 +661,23 @@ const getRecruiterApplicationStats = async (req, res) => {
     console.error("Error in getRecruiterApplicationStats:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error while fetching application stats"
+      message: error.message
     });
   }
 };
 
 // ----------------------
-// Get recent applications for recruiter
+// Get Recruiter Recent Applications
 // ----------------------
-const getRecruiterRecentApplications = async (req, res) => {
+exports.getRecruiterRecentApplications = async (req, res) => {
   try {
-    const recruiterId = req.user.id; // From auth middleware
-    const limit = parseInt(req.query.limit) || 5; // Default to 5 recent applications
+    const recruiterId = req.user.id;
+    const limit = parseInt(req.query.limit) || 5;
 
     console.log('🔍 Getting recent applications for recruiter:', recruiterId);
 
     // First, get all internships posted by this recruiter
-    const internships = await Internship.find({ postedBy: recruiterId }).select('_id title companyName');
+    const internships = await Internship.find({ postedBy: recruiterId }).select('_id title');
     const internshipIds = internships.map(internship => internship._id);
 
     if (internshipIds.length === 0) {
@@ -297,28 +693,26 @@ const getRecruiterRecentApplications = async (req, res) => {
     const internshipMap = {};
     internships.forEach(internship => {
       internshipMap[internship._id.toString()] = {
-        title: internship.title,
-        companyName: internship.companyName
+        title: internship.title
       };
     });
 
     // Get recent applications with student details
     const applications = await Application.find({
-      internship: { $in: internshipIds }
+      internshipId: { $in: internshipIds }
     })
-      .populate('student', 'fullName email profilePicture')
+      .populate('studentId', 'fullName email profilePicture')
       .sort({ appliedAt: -1 })
       .limit(limit);
 
     // Format the response
     const formattedApplications = applications.map(app => ({
       id: app._id,
-      studentName: app.student?.fullName || 'Unknown Student',
-      studentEmail: app.student?.email,
-      studentId: app.student?._id,
-      internshipId: app.internship,
-      internshipTitle: internshipMap[app.internship.toString()]?.title || 'Unknown Internship',
-      companyName: internshipMap[app.internship.toString()]?.companyName || '',
+      studentName: app.studentId?.fullName || 'Unknown Student',
+      studentEmail: app.studentId?.email,
+      studentId: app.studentId?._id,
+      internshipId: app.internshipId,
+      internshipTitle: internshipMap[app.internshipId.toString()]?.title || 'Unknown Internship',
       status: app.status,
       appliedDate: app.appliedAt,
       appliedAt: app.appliedAt
@@ -336,480 +730,7 @@ const getRecruiterRecentApplications = async (req, res) => {
     console.error("Error in getRecruiterRecentApplications:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error while fetching recent applications"
-    });
-  }
-};
-
-// ----------------------
-// Get all applications for a specific internship (FIXED for HR)
-// ----------------------
-const getInternshipApplications = async (req, res) => {
-  try {
-    const recruiterId = req.user.id; // From auth middleware
-    const { internshipId } = req.params;
-    const userRole = req.user.role; // Get user role from auth token
-
-    console.log(`🔍 Getting applications for internship ${internshipId} by user ${recruiterId} with role ${userRole}`);
-
-    // For HR: Don't check ownership - they can see all applications
-    // For Recruiters: Check if they own the internship
-    if (userRole !== 'hr' && userRole !== 'admin') {
-      // Verify the internship belongs to this recruiter
-      const internship = await Internship.findOne({
-        _id: internshipId,
-        postedBy: recruiterId
-      });
-
-      if (!internship) {
-        return res.status(404).json({
-          success: false,
-          message: "Internship not found or you don't have permission to view it"
-        });
-      }
-    } else {
-      // For HR, just check if the internship exists (without ownership check)
-      const internship = await Internship.findById(internshipId);
-
-      if (!internship) {
-        return res.status(404).json({
-          success: false,
-          message: "Internship not found"
-        });
-      }
-    }
-
-    // Get applications with student details
-    const applications = await Application.find({ internship: internshipId })
-      .populate('student', 'fullName email profilePicture phone location skills resume')
-      .sort({ appliedAt: -1 });
-
-    console.log(`✅ Found ${applications.length} applications for internship ${internshipId}`);
-
-    // Format the response
-    const formattedApplications = applications.map(app => ({
-      id: app._id,
-      student: {
-        id: app.student?._id,
-        name: app.student?.fullName || 'Unknown Student',
-        email: app.student?.email,
-        profilePicture: app.student?.profilePicture,
-        phone: app.student?.phone,
-        location: app.student?.location,
-        skills: app.student?.skills || []
-      },
-      status: app.status,
-      appliedDate: app.appliedAt,
-      appliedAt: app.appliedAt
-    }));
-
-    // Get internship details for response
-    const internship = await Internship.findById(internshipId).select('title companyName');
-
-    res.status(200).json({
-      success: true,
-      data: {
-        internship: {
-          id: internshipId,
-          title: internship?.title || 'Unknown',
-          companyName: internship?.companyName || 'Zoyaraa'
-        },
-        applications: formattedApplications,
-        stats: {
-          total: applications.length,
-          pending: applications.filter(app => app.status === 'pending').length,
-          shortlisted: applications.filter(app => app.status === 'shortlisted').length,
-          accepted: applications.filter(app => app.status === 'accepted').length,
-          rejected: applications.filter(app => app.status === 'rejected').length
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Error in getInternshipApplications:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching internship applications"
-    });
-  }
-};
-
-// ----------------------
-// Update application status (shortlist/reject/accept)
-// ----------------------
-const updateApplicationStatus = async (req, res) => {
-  try {
-    const recruiterId = req.user.id; // From auth middleware
-    const { applicationId } = req.params;
-    const { status } = req.body;
-
-    // Validate status
-    const validStatuses = ['pending', 'shortlisted', 'rejected', 'accepted'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status. Must be one of: pending, shortlisted, rejected, accepted"
-      });
-    }
-
-    console.log(`🔍 Updating application ${applicationId} to status: ${status}`);
-
-    // Find the application and check if the internship belongs to this recruiter
-    const application = await Application.findById(applicationId)
-      .populate({
-        path: 'internship',
-        populate: {
-          path: 'postedBy'
-        }
-      })
-      .populate('student');
-
-    if (!application) {
-      return res.status(404).json({
-        success: false,
-        message: "Application not found"
-      });
-    }
-
-    // Check if user is HR or the recruiter who own the internship
-    const isHR = req.user.role === 'hr' || req.user.role === 'admin';
-    const isOwner = application.internship?.postedBy?._id?.toString() === recruiterId;
-
-    if (!isHR && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        message: "You don't have permission to update this application"
-      });
-    }
-
-    const oldStatus = application.status;
-    application.status = status;
-
-    // Record timeline entry
-    application.timeline.push({
-      status: status,
-      comment: req.body.comment || `Application status changed to ${status}`,
-      updatedBy: recruiterId
-    });
-
-    await application.save();
-
-    // Send status change email
-    const { sendApplicationStatusEmail } = require('../services/emailService');
-    await sendApplicationStatusEmail(
-      application.student.email,
-      application.student.fullName,
-      application.internship.title,
-      status,
-      req.body.comment
-    );
-
-    // When status changes to 'accepted', set up mentoring
-    if (status === 'accepted' && oldStatus !== 'accepted') {
-      try {
-        // 1. Update student's currentInternship
-        await Student.findByIdAndUpdate(application.student._id, {
-          currentInternship: application.internship._id
-        });
-
-        // 2. Add student to recruiter's mentorFor array
-        const actualMentorId = application.internship.postedBy._id;
-        await Recruiter.findByIdAndUpdate(actualMentorId, {
-          $addToSet: { mentorFor: application.student._id }
-        });
-
-        console.log(`✅ Student ${application.student._id} added to mentor ${actualMentorId}'s list`);
-
-        // 3. Also update internship to mark it as active with this student
-        await Internship.findByIdAndUpdate(application.internship._id, {
-          $inc: { filledPositions: 1 },
-          'internDetails.status': 'active'
-        });
-
-      } catch (mentorError) {
-        console.error('❌ Error setting up mentorship:', mentorError);
-      }
-    }
-
-    // CREATE NOTIFICATION FOR STUDENT
-    if (application.student) {
-      let title, message;
-
-      switch (status) {
-        case 'shortlisted':
-          title = 'Application Shortlisted!';
-          message = `Your application for ${application.internship.title} has been shortlisted`;
-          break;
-        case 'accepted':
-          title = '🎉 Congratulations! Application Accepted';
-          message = `You have been selected for the ${application.internship.title} internship at Zoyaraa!`;
-          break;
-        case 'rejected':
-          title = 'Application Update';
-          message = `Your application for ${application.internship.title} was not selected`;
-          break;
-        default:
-          title = 'Application Status Updated';
-          message = `Your application for ${application.internship.title} is now ${status}`;
-      }
-
-      await createNotification({
-        recipient: application.student._id,
-        recipientModel: 'Student',
-        type: 'application_status_change',
-        title: title,
-        message: message,
-        data: {
-          applicationId: application._id,
-          internshipId: application.internship._id,
-          internshipTitle: application.internship.title,
-          oldStatus,
-          newStatus: status
-        }
-      });
-    }
-
-    console.log(`✅ Application ${applicationId} updated to ${status}`);
-
-    res.status(200).json({
-      success: true,
-      message: `Application ${status} successfully`,
-      data: {
-        application: {
-          id: application._id,
-          status: application.status,
-          updatedAt: application.updatedAt
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Error in updateApplicationStatus:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while updating application status"
-    });
-  }
-};
-
-// ----------------------
-// Get Application By ID (Full Details)
-// ----------------------
-const getApplicationById = async (req, res) => {
-  try {
-    const { applicationId } = req.params;
-    const recruiterId = req.user.id;
-
-    const application = await Application.findById(applicationId)
-      .populate('student', 'fullName email profilePicture phone location education skills resume linkedin github portfolio')
-      .populate('internship', 'title department companyName workMode location')
-      .populate('timeline.updatedBy', 'fullName designation')
-      .populate('recruiterNotes.addedBy', 'fullName designation');
-
-    if (!application) {
-      return res.status(404).json({
-        success: false,
-        message: "Application not found"
-      });
-    }
-
-    // Check permission (HR or Owner)
-    const isHR = req.user.role === 'hr' || req.user.role === 'admin';
-    // For simplicity, we assume if it's a recruiter, they should have permission if they can see the internship
-    // We'll add more strict check if needed.
-
-    // Generate full URLs for files
-    const appObj = application.toObject();
-    
-    // Resume URL
-    if (appObj.submittedResume?.url) {
-      appObj.submittedResume.url = `${req.protocol}://${req.get('host')}${appObj.submittedResume.url}`;
-    }
-    
-    // Certificates URLs
-    if (appObj.submittedCertificates) {
-      appObj.submittedCertificates = appObj.submittedCertificates.map(cert => ({
-        ...cert,
-        url: cert.url ? `${req.protocol}://${req.get('host')}${cert.url}` : null
-      }));
-    }
-
-    // Student profile Picture and Resume URLs
-    if (appObj.student) {
-      if (appObj.student.profilePicture) {
-        // Assume profile picture might be a URL or a path
-        if (!appObj.student.profilePicture.startsWith('http')) {
-          appObj.student.profilePicture = `${req.protocol}://${req.get('host')}${appObj.student.profilePicture}`;
-        }
-      }
-      
-      if (appObj.student.resume?.resumeFile) {
-        appObj.student.resume.resumeUrl = `${req.protocol}://${req.get('host')}${appObj.student.resume.resumeFile}`;
-      }
-      
-      if (appObj.student.resume?.certifications) {
-        appObj.student.resume.certifications = appObj.student.resume.certifications.map(cert => ({
-          ...cert,
-          certificateUrl: cert.certificateUrl ? `${req.protocol}://${req.get('host')}${cert.certificateUrl}` : null
-        }));
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      data: { application: appObj }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
       message: error.message
     });
   }
-};
-
-// ----------------------
-// Get Internship Funnel Stats
-// ----------------------
-const getInternshipFunnelStats = async (req, res) => {
-  try {
-    const { internshipId } = req.params;
-    const recruiterId = req.user.id;
-
-    // Verify ownership or HR role
-    const internship = await Internship.findById(internshipId);
-    if (!internship) {
-      return res.status(404).json({ success: false, message: "Internship not found" });
-    }
-
-    const isHR = req.user.role === 'hr' || req.user.role === 'admin';
-    const isOwner = internship.postedBy.toString() === recruiterId;
-
-    if (!isHR && !isOwner) {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
-
-    const applications = await Application.find({ internship: internshipId });
-
-    const stats = {
-      total: applications.length,
-      pending: applications.filter(a => a.status === 'pending').length,
-      shortlisted: applications.filter(a => a.status === 'shortlisted').length,
-      rejected: applications.filter(a => a.status === 'rejected').length,
-      accepted: applications.filter(a => a.status === 'accepted').length,
-      // Conversion rates
-      shortlistRate: applications.length ? Math.round((applications.filter(a => a.status === 'shortlisted').length / applications.length) * 100) : 0,
-      acceptanceRate: applications.length ? Math.round((applications.filter(a => a.status === 'accepted').length / applications.length) * 100) : 0
-    };
-
-    res.status(200).json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ----------------------
-// Recommend Student for Certification
-// ----------------------
-const recommendCertificate = async (req, res) => {
-  try {
-    const { applicationId } = req.params;
-    const { feedback } = req.body;
-    const recruiterId = req.user.id;
-
-    const application = await Application.findById(applicationId).populate('internship');
-    if (!application) {
-      return res.status(404).json({ success: false, message: "Application not found" });
-    }
-
-    // Check if internship belongs to recruiter
-    if (application.internship.postedBy.toString() !== recruiterId && req.user.role !== 'hr') {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
-
-    application.certificateRecommended = true;
-    application.certificationFeedback = feedback || '';
-    await application.save();
-
-    // Notify HR (Optional, but let's do it if possible)
-    // We could create a notification for all users with role 'hr'
-    const RecruiterModel = require('../models/Recruiter');
-    const hrs = await RecruiterModel.find({ role: 'hr' });
-    
-    const { createNotification } = require('./notificationController');
-    for (const hr of hrs) {
-      await createNotification({
-        recipient: hr._id,
-        recipientModel: 'Recruiter',
-        type: 'certificate_recommendation',
-        title: 'New Certificate Recommendation',
-        message: `${req.user.name || 'A recruiter'} recommended a student for certification.`,
-        data: {
-          applicationId,
-          studentId: application.student,
-          internshipTitle: application.internship.title
-        }
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Student recommended for certification successfully"
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ----------------------
-// Add Note to Application
-// ----------------------
-const addApplicationNote = async (req, res) => {
-  try {
-    const { applicationId } = req.params;
-    const { note } = req.body;
-    const recruiterId = req.user.id;
-
-    if (!note) {
-      return res.status(400).json({ success: false, message: "Note content is required" });
-    }
-
-    const application = await Application.findById(applicationId);
-    if (!application) {
-      return res.status(404).json({ success: false, message: "Application not found" });
-    }
-
-    application.recruiterNotes.push({
-      note,
-      addedBy: recruiterId
-    });
-
-    await application.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Note added successfully",
-      data: { notes: application.recruiterNotes }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-module.exports = {
-  applyToInternship,
-  getStudentApplications,
-  getMyApplications,
-  getRecruiterApplicationStats,
-  getRecruiterRecentApplications,
-  getInternshipApplications,
-  updateApplicationStatus,
-  getApplicationById,
-  addApplicationNote,
-  getInternshipFunnelStats,
-  recommendCertificate
 };

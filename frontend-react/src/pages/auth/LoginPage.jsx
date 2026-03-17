@@ -97,10 +97,12 @@ const LoginPage = () => {
     // Show loading state
     setIsLoading(true);
 
-    // TRY STUDENT, RECRUITER, ADMIN, AND HR LOGIN
     try {
-      // First try student login
-      let response = await fetch('http://localhost:5000/api/students/login', {
+      let response;
+      let data;
+
+      // 1. Try student login
+      response = await fetch('http://localhost:5000/api/students/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,10 +110,9 @@ const LoginPage = () => {
           password: formData.password
         })
       });
+      data = await response.json();
 
-      let data = await response.json();
-
-      // If student login fails, try recruiter login
+      // 2. If student fails, try recruiter/HR login
       if (!data.success) {
         response = await fetch('http://localhost:5000/api/recruiters/login', {
           method: 'POST',
@@ -124,22 +125,9 @@ const LoginPage = () => {
         data = await response.json();
       }
 
-      // If recruiter login fails, try admin login
+      // 3. If recruiter fails, try admin login
       if (!data.success) {
         response = await fetch('http://localhost:5000/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          })
-        });
-        data = await response.json();
-      }
-
-      // ✅ ADD THIS: If admin login fails, try HR login
-      if (!data.success) {
-        response = await fetch('http://localhost:5000/api/recruiters/login', {  // HR uses same endpoint as recruiters
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -164,23 +152,25 @@ const LoginPage = () => {
 
         // Redirect based on user role
         setTimeout(() => {
-          if (data.data.user.role === 'student') {
+          const role = data.data.user.role;
+          if (role === 'student') {
             navigate('/student/dashboard');
-          } else if (data.data.user.role === 'recruiter') {
+          } else if (role === 'recruiter') {
             navigate('/recruiter/dashboard');
-          } else if (data.data.user.role === 'admin') {
+          } else if (role === 'admin') {
             navigate('/admin/dashboard');
-          } else if (data.data.user.role === 'hr') {    // ✅ HR redirect
+          } else if (role === 'hr') {
             navigate('/hr/dashboard');
           } else {
             navigate('/dashboard');
           }
         }, 2000);
       } else {
-        showNotification(data.message, 'error');
+        showNotification('Invalid email or password. Please try again.', 'error');
       }
     } catch (error) {
-      showNotification('Network error. Please try again.', 'error');
+      console.error('Login error:', error);
+      showNotification('Network error. Please check your connection and try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -257,29 +247,30 @@ const LoginPage = () => {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
             </div>
-            <span className="logo-text">Zoyaraa</span>  {/* Changed from InternHub */}
+            <span className="logo-text">Zoyaraa</span>
           </div>
 
           <div>
-            <h1 className="branding-heading">Zoyaraa Internship Platform</h1>  {/* Changed */}
+            <h1 className="branding-heading">Zoyaraa Internship Platform</h1>
             <p className="branding-subtext">
               The complete internship management platform for students, recruiters, and administrators.
             </p>
           </div>
         </div>
 
+        {/* Stats Section - UPDATED FOR ZOYARAA */}
         <div className="stats-container">
           <div className="stat-item">
-            <div className="stat-value">500+</div>
-            <div className="stat-label">Internships Posted</div>
+            <div className="stat-value">50+</div>
+            <div className="stat-label">Interns Completed</div>
           </div>
           <div className="stat-item">
             <div className="stat-value">2,000+</div>
-            <div className="stat-label">Students Placed</div>
+            <div className="stat-label">Applications Received</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">150+</div>
-            <div className="stat-label">Companies</div>
+            <div className="stat-value">92%</div>
+            <div className="stat-label">Placement Rate</div>
           </div>
         </div>
       </div>
@@ -381,7 +372,6 @@ const LoginPage = () => {
                   disabled={isLoading}
                 >
                   <svg
-                    id="eyeIcon"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -394,7 +384,6 @@ const LoginPage = () => {
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                   <svg
-                    id="eyeOffIcon"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -415,7 +404,6 @@ const LoginPage = () => {
             <button
               type="submit"
               className="submit-button"
-              id="submitButton"
               disabled={isLoading}
             >
               {isLoading ? 'Signing In...' : 'Sign In'}
@@ -441,6 +429,51 @@ const LoginPage = () => {
               >
                 Forgot your password?
               </Link>
+            </div>
+
+            {/* Role Help Note - Simple List */}
+            <div style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              backgroundColor: '#f0f4fe',
+              borderRadius: '12px',
+              fontSize: '0.9rem',
+              color: '#1e293b',
+              border: '1px solid #2440F0',
+              boxShadow: '0 2px 8px rgba(36, 64, 240, 0.1)',
+              textAlign: 'left'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1rem',
+                color: '#2440F0',
+                fontWeight: '600'
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <circle cx="12" cy="8" r="1" fill="#2440F0"></circle>
+                </svg>
+                <span>Login Instructions:</span>
+              </div>
+
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                color: '#475569'
+              }}>
+                <li style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ color: '#2440F0', fontWeight: '600', marginRight: '0.5rem' }}>👤 Students:</span>
+                  Use your registered email address
+                </li>
+                <li style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ color: '#2440F0', fontWeight: '600', marginRight: '0.5rem' }}>👔 Recruiters/HR:</span>
+                  Use your work email (you should have received an invite)
+                </li>
+              </ul>
             </div>
           </form>
         </div>

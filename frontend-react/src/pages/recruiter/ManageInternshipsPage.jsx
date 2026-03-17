@@ -1,5 +1,5 @@
 // src/pages/recruiter/ManageInternshipsPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NotificationBell from '../../components/common/NotificationBell';
 import '../../styles/StudentDashboard.css';
@@ -8,7 +8,11 @@ const ManageInternshipsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState({
+    internships: true,
+    counts: true,
+    interviews: true
+  });
   const [internships, setInternships] = useState([]);
   const [filteredInternships, setFilteredInternships] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,27 +21,36 @@ const ManageInternshipsPage = () => {
   const [selectedInternship, setSelectedInternship] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [applicationCounts, setApplicationCounts] = useState({});
-  const [interviewCounts, setInterviewCounts] = useState({}); // ✅ NEW: For interview counts
+  const [interviewCounts, setInterviewCounts] = useState({});
   const [userData, setUserData] = useState({
-    name: 'Loading...',
-    initials: 'RD',
+    name: '',
+    initials: '',
     department: '',
-    company: 'Zoyaraa'
+    company: 'Zoyaraa',
+    email: ''
   });
 
   // Status options
-  const statusOptions = [
+  const statusOptions = useMemo(() => [
     { value: 'all', label: 'All Status' },
     { value: 'active', label: 'Active' },
     { value: 'closed', label: 'Closed' },
     { value: 'draft', label: 'Draft' }
-  ];
+  ], []);
 
+  // Fetch recruiter profile on mount
   useEffect(() => {
     fetchRecruiterProfile();
-    fetchInternships();
   }, []);
 
+  // Fetch internships when profile is loaded
+  useEffect(() => {
+    if (userData.email) {
+      fetchInternships();
+    }
+  }, [userData.email]);
+
+  // Filter internships when dependencies change
   useEffect(() => {
     filterInternships();
   }, [internships, searchQuery, statusFilter]);
@@ -45,7 +58,10 @@ const ManageInternshipsPage = () => {
   const fetchRecruiterProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
       const response = await fetch('http://localhost:5000/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -54,147 +70,235 @@ const ManageInternshipsPage = () => {
 
       if (data.success) {
         const user = data.data.user;
-        const initials = user.fullName
+        const fullName = user.fullName || user.name || '';
+        const initials = fullName
           .split(' ')
           .map(n => n[0])
           .join('')
           .toUpperCase()
-          .slice(0, 2);
+          .slice(0, 2) || 'R';
 
         setUserData({
-          name: user.fullName,
+          name: fullName,
           initials: initials,
           department: user.department || '',
-          company: 'Zoyaraa'
+          company: 'Zoyaraa',
+          email: user.email
         });
+      } else {
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error fetching recruiter:', error);
+      navigate('/login');
     }
   };
 
   const fetchInternships = async () => {
     try {
-      setLoading(true);
+      setLoading(prev => ({ ...prev, internships: true }));
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('http://localhost:5000/api/internships/recruiter', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      // Try multiple possible endpoints
+      const endpoints = [
+        'http://localhost:5000/api/internships/recruiter',
+        'http://localhost:5000/api/internships/recruiter/mine',
+        'http://localhost:5000/api/internships/my-internships',
+        'http://localhost:5000/api/recruiters/my-internships'
+      ];
 
-      if (data.success) {
-        const internshipsList = data.data.internships || [];
-        setInternships(internshipsList);
+      let internshipsList = [];
 
-        // Fetch application counts for each internship
+      for (const endpoint of endpoints) {
+        try {
+          console.log('Trying endpoint:', endpoint);
+          const response = await fetch(endpoint, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Response from ${endpoint}:`, data);
+
+            if (data.success && data.data?.internships) {
+              internshipsList = data.data.internships;
+              console.log(`✅ Found ${internshipsList.length} internships from ${endpoint}`);
+              break;
+            }
+          }
+        } catch (e) {
+          console.log(`Endpoint ${endpoint} failed:`, e.message);
+        }
+      }
+
+      // If no dedicated endpoint worked, fall back to filtering
+      if (internshipsList.length === 0) {
+        console.log('⚠️ No dedicated endpoint worked, falling back to filter');
+
+        // Get profile first
+        const profileRes = await fetch('http://localhost:5000/api/recruiters/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const profileData = await profileRes.json();
+
+        if (profileData.success) {
+          const recruiter = profileData.data.user;
+          const recruiterId = recruiter._id;
+
+          // Fetch all internships
+          const allRes = await fetch('http://localhost:5000/api/internships', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const allData = await allRes.json();
+
+          if (allData.success) {
+            const allInternships = allData.data.internships || [];
+
+            // Filter by postedBy or mentorId
+            internshipsList = allInternships.filter(internship => {
+              const postedById = internship.postedBy?._id?.toString() ||
+                internship.postedBy?.toString();
+              const mentorId = internship.mentorId?._id?.toString() ||
+                internship.mentorId?.toString();
+
+              return postedById === recruiterId || mentorId === recruiterId;
+            });
+          }
+        }
+      }
+
+      console.log('📊 Final internships list:', internshipsList);
+      setInternships(internshipsList);
+
+      if (internshipsList.length > 0) {
         await fetchApplicationCounts(internshipsList);
-        
-        // ✅ NEW: Fetch interview counts for each internship
         await fetchInterviewCounts(internshipsList);
       }
+
     } catch (error) {
-      console.error('Error fetching internships:', error);
+      console.error('❌ Error:', error);
       showNotification('Failed to load internships', 'error');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, internships: false }));
     }
   };
 
   const fetchApplicationCounts = async (internshipsList) => {
     try {
-      const token = localStorage.getItem('authToken');
+      setLoading(prev => ({ ...prev, counts: true }));
       const counts = {};
 
-      for (const internship of internshipsList) {
-        const response = await fetch(`http://localhost:5000/api/applications/internship/${internship._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-
-        if (data.success) {
-          counts[internship._id] = data.data.stats.total || 0;
-        }
-      }
+      // Just use the applicationCount from the internship object!
+      internshipsList.forEach(internship => {
+        counts[internship._id] = internship.applicationCount || 0;
+        console.log(`📊 ${internship.title}: ${internship.applicationCount} applications (from internship object)`);
+      });
 
       setApplicationCounts(counts);
     } catch (error) {
-      console.error('Error fetching application counts:', error);
+      console.error('Error:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, counts: false }));
     }
   };
 
-  // ✅ NEW: Fetch interview counts for each internship
   const fetchInterviewCounts = async (internshipsList) => {
     try {
+      setLoading(prev => ({ ...prev, interviews: true }));
       const token = localStorage.getItem('authToken');
       const counts = {};
 
-      for (const internship of internshipsList) {
-        try {
-          // First get all interviews for this recruiter
-          const response = await fetch(`http://localhost:5000/api/interviews/recruiter`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await response.json();
+      // Fetch all interviews for this recruiter
+      const response = await fetch('http://localhost:5000/api/interviews/recruiter', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
 
-          if (data.success) {
-            // Filter interviews by this internship and count them
-            const internshipInterviews = data.data.interviews?.filter(
-              interview => interview.internshipId?._id === internship._id
-            ) || [];
-            counts[internship._id] = internshipInterviews.length;
-          }
-        } catch (error) {
-          console.log(`No interviews for internship ${internship._id}`);
-          counts[internship._id] = 0;
-        }
+      if (data.success) {
+        const interviews = data.data.interviews || [];
+
+        // Count interviews per internship
+        internshipsList.forEach(internship => {
+          const count = interviews.filter(interview =>
+            interview.internshipId?._id === internship._id ||
+            interview.internshipId === internship._id
+          ).length;
+          counts[internship._id] = count;
+        });
       }
 
       setInterviewCounts(counts);
     } catch (error) {
       console.error('Error fetching interview counts:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, interviews: false }));
     }
   };
 
-  const filterInternships = () => {
+  const filterInternships = useCallback(() => {
     let filtered = [...internships];
 
-    // Apply search filter - search by title, location, skills
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(internship => {
-        // Search in title
         const titleMatch = internship.title?.toLowerCase().includes(query);
-
-        // Search in location
         const locationMatch = internship.location?.toLowerCase().includes(query);
-
-        // Search in skills
+        const companyMatch = internship.companyName?.toLowerCase().includes(query);
         const skillsMatch = internship.skillsRequired?.some(skill => {
           const skillName = typeof skill === 'string' ? skill : skill.name;
           return skillName?.toLowerCase().includes(query);
         });
+        const departmentMatch = internship.department?.toLowerCase().includes(query);
 
-        return titleMatch || locationMatch || skillsMatch;
+        return titleMatch || locationMatch || companyMatch || skillsMatch || departmentMatch;
       });
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(internship => internship.status === statusFilter);
+      filtered = filtered.filter(internship =>
+        internship.status?.toLowerCase() === statusFilter.toLowerCase()
+      );
     }
 
     setFilteredInternships(filtered);
+  }, [internships, searchQuery, statusFilter]);
+
+  // ✅ FIXED: Use the correct path that exists in your routes
+  const editInternship = (internshipId) => {
+    console.log('🔍 Edit clicked for internship ID:', internshipId);
+    // Use the existing route from App.js
+    navigate(`/recruiter/edit-internship/${internshipId}`);
   };
 
+  // ✅ FIXED: Handle status change with debugging
   const handleStatusChange = async (internshipId, newStatus) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const endpoint = newStatus === 'closed'
-        ? `http://localhost:5000/api/internships/${internshipId}/close`
-        : `http://localhost:5000/api/internships/${internshipId}`;
+      console.log(`🔍 Attempting to change internship ${internshipId} to ${newStatus}`);
 
-      const method = newStatus === 'closed' ? 'PATCH' : 'PUT';
+      const token = localStorage.getItem('authToken');
+
+      // Show loading state
+      showNotification(`Updating internship status...`, 'info');
+
+      // Determine endpoint based on action
+      let endpoint;
+      let method;
+      let body;
+
+      if (newStatus === 'closed') {
+        endpoint = `http://localhost:5000/api/internships/${internshipId}/close`;
+        method = 'PATCH';
+        body = undefined;
+      } else {
+        endpoint = `http://localhost:5000/api/internships/${internshipId}`;
+        method = 'PUT';
+        body = JSON.stringify({ status: newStatus });
+      }
+
+      console.log(`📤 Sending ${method} request to ${endpoint}`);
+      if (body) console.log('Request body:', body);
 
       const response = await fetch(endpoint, {
         method: method,
@@ -202,12 +306,15 @@ const ManageInternshipsPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: method === 'PUT' ? JSON.stringify({ status: newStatus }) : undefined
+        body: body
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('📊 Response data:', data);
 
       if (data.success) {
+        // Update local state
         setInternships(prev =>
           prev.map(internship =>
             internship._id === internshipId
@@ -215,13 +322,19 @@ const ManageInternshipsPage = () => {
               : internship
           )
         );
-        showNotification(`Internship ${newStatus} successfully`);
+
+        const message = newStatus === 'closed'
+          ? 'Internship closed successfully'
+          : `Internship ${newStatus} successfully`;
+
+        showNotification(message, 'success');
       } else {
-        showNotification(data.message || 'Failed to update status', 'error');
+        console.error('❌ Server returned error:', data);
+        showNotification(data.message || `Failed to ${newStatus} internship`, 'error');
       }
     } catch (error) {
-      console.error('Error updating status:', error);
-      showNotification('Network error', 'error');
+      console.error('❌ Network/JS error:', error);
+      showNotification('Network error. Please check console and try again.', 'error');
     }
   };
 
@@ -237,6 +350,8 @@ const ManageInternshipsPage = () => {
       setDeleting(true);
       const token = localStorage.getItem('authToken');
 
+      console.log(`🔍 Deleting internship: ${selectedInternship._id}`);
+
       const response = await fetch(`http://localhost:5000/api/internships/${selectedInternship._id}`, {
         method: 'DELETE',
         headers: {
@@ -245,30 +360,32 @@ const ManageInternshipsPage = () => {
       });
 
       const data = await response.json();
+      console.log('Delete response:', data);
 
       if (data.success) {
         setInternships(prev => prev.filter(i => i._id !== selectedInternship._id));
         setShowDeleteModal(false);
         setSelectedInternship(null);
-        showNotification('Internship deleted successfully');
+        showNotification('Internship deleted successfully', 'success');
       } else {
-        showNotification(data.message || 'Failed to delete', 'error');
+        showNotification(data.message || 'Failed to delete internship', 'error');
       }
     } catch (error) {
       console.error('Error deleting internship:', error);
-      showNotification('Network error', 'error');
+      showNotification('Network error. Please try again.', 'error');
     } finally {
       setDeleting(false);
     }
   };
 
   const getStatusBadge = (status) => {
+    const statusStr = status?.toLowerCase() || 'draft';
     const styles = {
       active: { bg: '#E6F7E6', color: '#10b981' },
       closed: { bg: '#fee2e2', color: '#dc2626' },
       draft: { bg: '#f3f4f6', color: '#6b7280' }
     };
-    const style = styles[status] || styles.draft;
+    const style = styles[statusStr] || styles.draft;
 
     return (
       <span style={{
@@ -280,28 +397,58 @@ const ManageInternshipsPage = () => {
         background: style.bg,
         color: style.color
       }}>
-        {status}
+        {status || 'Draft'}
       </span>
     );
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const formatStipend = (stipend) => {
+    if (!stipend) return 'Unpaid';
+    if (typeof stipend === 'number') {
+      return `₹${stipend.toLocaleString()}`;
+    }
+    return stipend;
   };
 
   const showNotification = (message, type = 'success') => {
+    // Remove existing notifications
+    document.querySelectorAll('.custom-notification').forEach(n => n.remove());
+
     const notification = document.createElement('div');
     notification.className = 'custom-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: ${type === 'error'
+        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+        : type === 'info'
+          ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+          : 'linear-gradient(135deg, #2440F0, #0B1DC1)'};
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(36, 64, 240, 0.3);
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      font-size: 0.9375rem;
+      font-weight: 500;
+    `;
     notification.textContent = message;
-    notification.style.background = type === 'error'
-      ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-      : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
   };
@@ -319,10 +466,17 @@ const ManageInternshipsPage = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // ✅ NEW: Navigate to interviews for this internship
   const viewInternshipInterviews = (internshipId) => {
+    console.log('🔍 View interviews for internship:', internshipId);
     navigate(`/recruiter/interviews?internship=${internshipId}`);
   };
+
+  const viewApplicants = (internshipId) => {
+    console.log('🔍 View applicants for internship:', internshipId);
+    navigate(`/recruiter/applicants?internship=${internshipId}`);
+  };
+
+  const isLoading = loading.internships;
 
   return (
     <div className="app-container">
@@ -344,16 +498,18 @@ const ManageInternshipsPage = () => {
             </div>
             <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
-          <div className="department-badge" style={{
-            marginTop: '0.5rem',
-            padding: '0.25rem 0.5rem',
-            background: 'rgba(255,255,255,0.2)',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            textAlign: 'center'
-          }}>
-            {userData.department || 'Department'}
-          </div>
+          {userData.department && (
+            <div className="department-badge" style={{
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              textAlign: 'center'
+            }}>
+              {userData.department}
+            </div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
@@ -375,21 +531,11 @@ const ManageInternshipsPage = () => {
             onClick={() => navigate('/recruiter/internships')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
             <span className="nav-item-text">Manage Internships</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') || location.pathname.includes('/recruiter/review-logs') || location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/mentor-dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
-            </svg>
-            <span className="nav-item-text">Mentor Dashboard</span>
-          </button>
-
 
           <button
             className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
@@ -415,7 +561,6 @@ const ManageInternshipsPage = () => {
             <span className="nav-item-text">View Applicants</span>
           </button>
 
-          {/* ✅ Interviews Menu Item */}
           <button
             className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
             onClick={() => navigate('/recruiter/interviews')}
@@ -428,6 +573,16 @@ const ManageInternshipsPage = () => {
           </button>
 
           <button
+            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
+            onClick={() => navigate('/recruiter/mentor-dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
+            </svg>
+            <span className="nav-item-text">Mentor Dashboard</span>
+          </button>
+
+          <button
             className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
             onClick={() => navigate('/recruiter/mentees')}
           >
@@ -437,16 +592,17 @@ const ManageInternshipsPage = () => {
             <span className="nav-item-text">My Mentees</span>
           </button>
         </nav>
+
         <div className="sidebar-footer">
           <button
             className="user-profile-sidebar"
             onClick={() => navigate('/recruiter/profile')}
           >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
+            <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
             <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
+              <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
               <div className="user-role-sidebar">
-                {userData.department} • Zoyaraa
+                {userData.department || 'Recruiter'} • {userData.company}
               </div>
             </div>
           </button>
@@ -463,16 +619,13 @@ const ManageInternshipsPage = () => {
               onClick={toggleMobileMenu}
               aria-label="Toggle menu"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
-            <h2 className="page-title">
-              Manage Internships
-            </h2>
+            <h2 className="page-title">Manage Internships</h2>
           </div>
           <div className="top-bar-right">
             <NotificationBell />
@@ -498,7 +651,9 @@ const ManageInternshipsPage = () => {
                 Your Internships
               </h1>
               <p style={{ color: '#666666' }}>
-                Manage and track all your posted internships
+                {userData.department
+                  ? `Manage and track all ${userData.department} internships`
+                  : 'Manage and track all your posted internships'}
               </p>
             </div>
             <button
@@ -524,7 +679,7 @@ const ManageInternshipsPage = () => {
             <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search by title, location, or skills..."
+                placeholder="Search by title, location, department, or skills..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -575,18 +730,32 @@ const ManageInternshipsPage = () => {
           </div>
 
           {/* Internships List */}
-          {loading ? (
-            <div className="loading-placeholder">Loading internships...</div>
+          {isLoading ? (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div className="loading-spinner"></div>
+              <p style={{ color: '#666' }}>Loading your internships...</p>
+            </div>
           ) : filteredInternships.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">
+            <div className="empty-state" style={{ padding: '3rem' }}>
+              <div className="empty-state-icon" style={{ width: '80px', height: '80px' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.35-4.35"></path>
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
               </div>
-              <h3>No internships found</h3>
-              <p>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+                {searchQuery || statusFilter !== 'all'
+                  ? 'No internships match your filters'
+                  : 'No internships yet'}
+              </h3>
+              <p style={{ color: '#666', marginBottom: '1.5rem' }}>
                 {searchQuery || statusFilter !== 'all'
                   ? 'Try adjusting your search or filters'
                   : 'Post your first internship to start receiving applications'}
@@ -595,8 +764,9 @@ const ManageInternshipsPage = () => {
                 <button
                   className="primary-btn"
                   onClick={() => navigate('/recruiter/post-internship')}
+                  style={{ padding: '0.75rem 2rem' }}
                 >
-                  Post Internship
+                  Post Your First Internship
                 </button>
               )}
             </div>
@@ -614,6 +784,14 @@ const ManageInternshipsPage = () => {
                     transition: 'all 0.2s ease',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
                 >
                   <div style={{
                     display: 'flex',
@@ -624,21 +802,29 @@ const ManageInternshipsPage = () => {
                   }}>
                     {/* Left side - Main info */}
                     <div style={{ flex: 2, minWidth: '250px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>
-                          {internship.title}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        marginBottom: '0.75rem',
+                        flexWrap: 'wrap'
+                      }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                          {internship.title || 'Untitled Internship'}
                         </h3>
                         {getStatusBadge(internship.status)}
-                        <span style={{
-                          background: '#EEF2FF',
-                          color: '#2440F0',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '20px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600'
-                        }}>
-                          {internship.department}
-                        </span>
+                        {internship.department && (
+                          <span style={{
+                            background: '#EEF2FF',
+                            color: '#2440F0',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600'
+                          }}>
+                            {internship.department}
+                          </span>
+                        )}
                       </div>
 
                       {/* Company and Location */}
@@ -647,12 +833,14 @@ const ManageInternshipsPage = () => {
                         marginBottom: '0.75rem',
                         fontSize: '0.9375rem'
                       }}>
-                        <span style={{ fontWeight: '500', color: '#1f2937' }}>{internship.companyName}</span>
+                        <span style={{ fontWeight: '500', color: '#1f2937' }}>
+                          {internship.companyName || userData.company}
+                        </span>
                         <span style={{ color: '#9ca3af', margin: '0 0.5rem' }}>•</span>
-                        <span>{internship.location}</span>
+                        <span>{internship.location || 'Location TBD'}</span>
                       </p>
 
-                      {/* Job Details with Icons - Enhanced */}
+                      {/* Job Details with Icons */}
                       <div style={{
                         display: 'flex',
                         gap: '1.5rem',
@@ -664,16 +852,16 @@ const ManageInternshipsPage = () => {
                         border: '1px solid #e5e7eb'
                       }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', color: '#4b5563' }}>
-                          <span style={{ fontSize: '1rem' }}>💼</span> {internship.type}
+                          <span style={{ fontSize: '1rem' }}>💼</span> {internship.type || 'Full-time'}
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', color: '#4b5563' }}>
-                          <span style={{ fontSize: '1rem' }}>⏱️</span> {internship.duration} months
+                          <span style={{ fontSize: '1rem' }}>⏱️</span> {internship.duration || '3'} months
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', color: '#4b5563' }}>
-                          <span style={{ fontSize: '1rem' }}>💰</span> ₹{internship.stipend?.toLocaleString() || 'Unpaid'}
+                          <span style={{ fontSize: '1rem' }}>💰</span> {formatStipend(internship.stipend)}
                         </span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', color: '#4b5563' }}>
-                          <span style={{ fontSize: '1rem' }}>👥</span> {internship.positions} positions
+                          <span style={{ fontSize: '1rem' }}>👥</span> {internship.positions || 1} {internship.positions === 1 ? 'position' : 'positions'}
                         </span>
                       </div>
 
@@ -686,9 +874,9 @@ const ManageInternshipsPage = () => {
                         fontSize: '0.8125rem',
                         color: '#6b7280'
                       }}>
-                        <span>🏢 {internship.workMode}</span>
+                        <span>🏢 {internship.workMode || 'Hybrid'}</span>
                         {internship.officeLocation && <span>📍 {internship.officeLocation}</span>}
-                        <span>⏰ {internship.dailyTimings}</span>
+                        {internship.dailyTimings && <span>⏰ {internship.dailyTimings}</span>}
                       </div>
 
                       {/* Dates */}
@@ -703,8 +891,12 @@ const ManageInternshipsPage = () => {
                         <span>📅 Posted: {formatDate(internship.createdAt)}</span>
                         <span style={{ color: '#9ca3af' }}>•</span>
                         <span>📆 Start: {formatDate(internship.startDate)}</span>
-                        <span style={{ color: '#9ca3af' }}>•</span>
-                        <span>⏰ Deadline: {formatDate(internship.deadline)}</span>
+                        {internship.deadline && (
+                          <>
+                            <span style={{ color: '#9ca3af' }}>•</span>
+                            <span>⏰ Deadline: {formatDate(internship.deadline)}</span>
+                          </>
+                        )}
                       </p>
                     </div>
 
@@ -716,18 +908,18 @@ const ManageInternshipsPage = () => {
                       flexDirection: 'column',
                       gap: '1rem',
                       alignItems: 'flex-end'
-                    }}>
+                    }} onClick={(e) => e.stopPropagation()}>
                       {/* Two Stats in a Row */}
                       <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                         {/* Application count */}
                         <div style={{
                           flex: 1,
                           background: '#EEF2FF',
-                          padding: '0.5rem',
+                          padding: '0.75rem 0.5rem',
                           borderRadius: '8px',
                           textAlign: 'center'
                         }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2440F0' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2440F0' }}>
                             {applicationCounts[internship._id] || 0}
                           </div>
                           <div style={{ fontSize: '0.7rem', color: '#4b5563' }}>
@@ -735,15 +927,15 @@ const ManageInternshipsPage = () => {
                           </div>
                         </div>
 
-                        {/* ✅ NEW: Interview count */}
+                        {/* Interview count */}
                         <div style={{
                           flex: 1,
                           background: '#f3e8ff',
-                          padding: '0.5rem',
+                          padding: '0.75rem 0.5rem',
                           borderRadius: '8px',
                           textAlign: 'center'
                         }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#8b5cf6' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#8b5cf6' }}>
                             {interviewCounts[internship._id] || 0}
                           </div>
                           <div style={{ fontSize: '0.7rem', color: '#4b5563' }}>
@@ -753,9 +945,15 @@ const ManageInternshipsPage = () => {
                       </div>
 
                       {/* Action buttons */}
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', width: '100%' }}>
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap',
+                        justifyContent: 'flex-end',
+                        width: '100%'
+                      }}>
                         <button
-                          onClick={() => navigate(`/recruiter/applicants?internship=${internship._id}`)}
+                          onClick={() => viewApplicants(internship._id)}
                           style={{
                             padding: '0.5rem 0.75rem',
                             background: '#EEF2FF',
@@ -780,7 +978,6 @@ const ManageInternshipsPage = () => {
                           Applicants
                         </button>
 
-                        {/* ✅ NEW: View Interviews button */}
                         <button
                           onClick={() => viewInternshipInterviews(internship._id)}
                           style={{
@@ -807,8 +1004,9 @@ const ManageInternshipsPage = () => {
                           Interviews
                         </button>
 
+                        {/* Edit button with debugging */}
                         <button
-                          onClick={() => navigate(`/recruiter/edit-internship/${internship._id}`)}
+                          onClick={() => editInternship(internship._id)}
                           style={{
                             padding: '0.5rem 0.75rem',
                             background: 'white',
@@ -817,7 +1015,8 @@ const ManageInternshipsPage = () => {
                             borderRadius: '6px',
                             fontSize: '0.8rem',
                             fontWeight: '500',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
@@ -825,6 +1024,7 @@ const ManageInternshipsPage = () => {
                           Edit
                         </button>
 
+                        {/* Close/Reopen button */}
                         {internship.status === 'active' ? (
                           <button
                             onClick={() => handleStatusChange(internship._id, 'closed')}
@@ -836,14 +1036,15 @@ const ManageInternshipsPage = () => {
                               borderRadius: '6px',
                               fontSize: '0.8rem',
                               fontWeight: '500',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = '#fecaca'}
                             onMouseLeave={(e) => e.currentTarget.style.background = '#fee2e2'}
                           >
                             Close
                           </button>
-                        ) : (
+                        ) : internship.status === 'closed' ? (
                           <button
                             onClick={() => handleStatusChange(internship._id, 'active')}
                             style={{
@@ -854,14 +1055,15 @@ const ManageInternshipsPage = () => {
                               borderRadius: '6px',
                               fontSize: '0.8rem',
                               fontWeight: '500',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = '#d1fae5'}
                             onMouseLeave={(e) => e.currentTarget.style.background = '#E6F7E6'}
                           >
                             Reopen
                           </button>
-                        )}
+                        ) : null}
 
                         <button
                           onClick={() => handleDeleteClick(internship)}
@@ -873,7 +1075,8 @@ const ManageInternshipsPage = () => {
                             borderRadius: '6px',
                             fontSize: '0.8rem',
                             fontWeight: '500',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
@@ -889,41 +1092,63 @@ const ManageInternshipsPage = () => {
                     <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
                       <p style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>Required Skills:</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {internship.skillsRequired.slice(0, 5).map((skill, idx) => (
-                          <span
-                            key={idx}
-                            style={{
-                              background: '#f3f4f6',
-                              padding: '0.25rem 0.75rem',
-                              borderRadius: '16px',
-                              fontSize: '0.75rem',
-                              color: '#1f2937',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}
-                          >
-                            {typeof skill === 'string' ? skill : skill.name}
-                            {typeof skill !== 'string' && skill.level && (
-                              <span style={{
-                                background: 'rgba(36, 64, 240, 0.1)',
-                                padding: '0.1rem 0.3rem',
-                                borderRadius: '8px',
-                                fontSize: '0.6rem',
-                                color: '#2440F0',
-                                marginLeft: '0.25rem'
-                              }}>
-                                {skill.level}
-                              </span>
-                            )}
-                          </span>
-                        ))}
+                        {internship.skillsRequired.slice(0, 5).map((skill, idx) => {
+                          const skillName = typeof skill === 'string' ? skill : skill.name;
+                          const skillLevel = typeof skill === 'string' ? null : skill.level;
+
+                          return (
+                            <span
+                              key={idx}
+                              style={{
+                                background: '#f3f4f6',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '16px',
+                                fontSize: '0.75rem',
+                                color: '#1f2937',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}
+                            >
+                              {skillName}
+                              {skillLevel && (
+                                <span style={{
+                                  background: 'rgba(36, 64, 240, 0.1)',
+                                  padding: '0.1rem 0.3rem',
+                                  borderRadius: '8px',
+                                  fontSize: '0.6rem',
+                                  color: '#2440F0',
+                                  marginLeft: '0.25rem'
+                                }}>
+                                  {skillLevel}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })}
                         {internship.skillsRequired.length > 5 && (
                           <span style={{ fontSize: '0.75rem', color: '#6b7280', alignSelf: 'center' }}>
                             +{internship.skillsRequired.length - 5} more
                           </span>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Description preview */}
+                  {internship.description && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <p style={{
+                        fontSize: '0.875rem',
+                        color: '#4b5563',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {internship.description}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -971,9 +1196,15 @@ const ManageInternshipsPage = () => {
                 borderRadius: '6px',
                 marginBottom: '1rem'
               }}>
-                "{selectedInternship.title}" at {selectedInternship.companyName}
+                "{selectedInternship.title}" at {selectedInternship.companyName || userData.company}
               </p>
-              <p style={{ color: '#dc2626', fontSize: '0.875rem', background: '#fee2e2', padding: '0.75rem', borderRadius: '6px' }}>
+              <p style={{
+                color: '#dc2626',
+                fontSize: '0.875rem',
+                background: '#fee2e2',
+                padding: '0.75rem',
+                borderRadius: '6px'
+              }}>
                 ⚠️ This action cannot be undone. All applications for this internship will also be deleted.
               </p>
             </div>

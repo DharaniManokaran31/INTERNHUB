@@ -11,6 +11,7 @@ const DashboardPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [applications, setApplications] = useState([]);
   const [recommendedInternships, setRecommendedInternships] = useState([]);
+  const [hasActiveInternship, setHasActiveInternship] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     shortlisted: 0,
@@ -30,7 +31,28 @@ const DashboardPage = () => {
   });
   const [greeting, setGreeting] = useState('Welcome back');
 
+
+  const checkActiveInternship = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/applications/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const hasAccepted = data.data.applications.some(app => app.status === 'accepted');
+        setHasActiveInternship(hasAccepted);
+      }
+    } catch (error) {
+      console.error('Error checking active internship:', error);
+    }
+  };
+
   // Get REAL user profile from backend
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -63,14 +85,11 @@ const DashboardPage = () => {
 
           localStorage.setItem('user', JSON.stringify(user));
 
-          // Fetch profile completion
-          try {
-            const cRes = await fetch('http://localhost:5000/api/students/profile/completion', {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const cData = await cRes.json();
-            if (cData.success) setProfileCompletion(cData.data);
-          } catch (e) {}
+          // Profile completion comes from the same endpoint
+          setProfileCompletion({
+            percentage: data.data.profileCompletion || 0,
+            missingFields: data.data.missingFields || []
+          });
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -118,9 +137,7 @@ const DashboardPage = () => {
           setStats({
             total: applicationsData.length,
             shortlisted: applicationsData.filter(app => app.status === 'shortlisted').length,
-            pending: applicationsData.filter(app => 
-              app.status === 'applied' || app.status === 'pending'
-            ).length,
+            pending: applicationsData.filter(app => app.status === 'pending').length,
             accepted: applicationsData.filter(app => app.status === 'accepted').length,
             rejected: applicationsData.filter(app => app.status === 'rejected').length
           });
@@ -156,6 +173,7 @@ const DashboardPage = () => {
     };
 
     fetchRecommendedInternships();
+    checkActiveInternship();
   }, []);
 
   // Debounced search
@@ -294,7 +312,6 @@ const DashboardPage = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      applied: { bg: '#FFF4E5', color: '#f59e0b', text: 'Applied' },
       pending: { bg: '#FFF4E5', color: '#f59e0b', text: 'Pending' },
       shortlisted: { bg: '#EEF2FF', color: '#2440F0', text: 'Shortlisted' },
       accepted: { bg: '#E6F7E6', color: '#10b981', text: 'Accepted' },
@@ -394,15 +411,18 @@ const DashboardPage = () => {
             </svg>
             <span className="nav-item-text">My Resume</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
+          {/* ✅ NEW CODE - Wrapped with condition */}
+          {hasActiveInternship && (
+            <button
+              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
+              onClick={() => navigate('/student/active-internship')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span className="nav-item-text">My Internship</span>
+            </button>
+          )}
 
         </nav>
 
@@ -672,8 +692,8 @@ const DashboardPage = () => {
               ) : (
                 <div className="recent-applications-list">
                   {recommendedInternships.slice(0, 3).map((internship) => (
-                    <div 
-                      key={internship._id} 
+                    <div
+                      key={internship._id}
                       className="recent-application-card"
                       onClick={() => viewInternshipDetails(internship._id)}
                       style={{ cursor: 'pointer' }}

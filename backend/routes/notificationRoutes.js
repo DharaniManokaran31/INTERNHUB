@@ -6,7 +6,8 @@ const {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  clearAllNotifications
+  clearAllNotifications,
+  getUnreadCount            // ✅ NEW
 } = require('../controllers/notificationController');
 
 // All notification routes are protected
@@ -14,6 +15,9 @@ router.use(authMiddleware);
 
 // Get all notifications for logged in user
 router.get('/', getMyNotifications);
+
+// Get unread count only
+router.get('/unread-count', getUnreadCount);  // ✅ NEW
 
 // Mark a single notification as read
 router.patch('/:notificationId/read', markAsRead);

@@ -63,17 +63,15 @@ const HrManageRecruitersPage = lazy(() => import('./pages/hr/ManageRecruitersPag
 const HrInternshipsPage = lazy(() => import('./pages/hr/InternshipsPage'));
 const HrApplicantsPage = lazy(() => import('./pages/hr/ApplicantsPage'));
 const HrInternshipDetailsPage = lazy(() => import('./pages/hr/InternshipDetailsPage'));
-const HrReportsPage = lazy(() => import('./pages/hr/ReportsPage'));
 const HrCertificatesPage = lazy(() => import('./pages/hr/CertificatesPage'));
 const HrActiveInternsPage = lazy(() => import('./pages/hr/ActiveInternsPage'));
-const HrNotificationCenterPage = lazy(() => import('./pages/hr/NotificationCenterPage'));
 const HrProfilePage = lazy(() => import('./pages/hr/ProfilePage'));
 const HrActiveInternProgressPage = lazy(() => import('./pages/hr/ActiveInternProgressPage'));
 const HrApplicationDetailsPage = lazy(() => import('./pages/hr/ApplicationDetailsPage'));
 const HrCompletedInternsPage = lazy(() => import('./pages/hr/CompletedInternsPage'));
 const HrStudentsPage = lazy(() => import('./pages/hr/StudentsPage'));
+const HrStudentDetailsPage = lazy(() => import('./pages/hr/StudentDetailsPage'));
 const HrAnalyticsPage = lazy(() => import('./pages/hr/AnalyticsPage'));
-const HrSettingsPage = lazy(() => import('./pages/hr/SettingsPage'));
 
 // Authentication helper functions
 const isAuthenticated = () => {
@@ -167,16 +165,14 @@ function App() {
                   <Route path="internships/:id" element={<DashboardLayout role="hr"><HrInternshipDetailsPage /></DashboardLayout>} />
                   <Route path="applicants" element={<DashboardLayout role="hr"><HrApplicantsPage /></DashboardLayout>} />
                   <Route path="applicants/:id" element={<DashboardLayout role="hr"><HrApplicationDetailsPage /></DashboardLayout>} />
-                  <Route path="reports" element={<DashboardLayout role="hr"><HrReportsPage /></DashboardLayout>} />
                   <Route path="certificates" element={<DashboardLayout role="hr"><HrCertificatesPage /></DashboardLayout>} />
                   <Route path="active-interns" element={<DashboardLayout role="hr"><HrActiveInternsPage /></DashboardLayout>} />
                   <Route path="active-interns/:id" element={<DashboardLayout role="hr"><HrActiveInternProgressPage /></DashboardLayout>} />
-                  <Route path="notifications" element={<DashboardLayout role="hr"><HrNotificationCenterPage /></DashboardLayout>} />
                   <Route path="profile" element={<DashboardLayout role="hr"><HrProfilePage /></DashboardLayout>} />
                   <Route path="completed-interns" element={<DashboardLayout role="hr"><HrCompletedInternsPage /></DashboardLayout>} />
                   <Route path="students" element={<DashboardLayout role="hr"><HrStudentsPage /></DashboardLayout>} />
+                  <Route path="students/:id" element={<DashboardLayout role="hr"><HrStudentDetailsPage /></DashboardLayout>} />
                   <Route path="analytics" element={<DashboardLayout role="hr"><HrAnalyticsPage /></DashboardLayout>} />
-                  <Route path="settings" element={<DashboardLayout role="hr"><HrSettingsPage /></DashboardLayout>} />
                 </Routes>
               </Suspense>
             </ProtectedRoute>

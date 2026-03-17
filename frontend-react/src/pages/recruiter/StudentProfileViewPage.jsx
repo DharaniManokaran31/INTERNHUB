@@ -9,29 +9,49 @@ const StudentProfileViewPage = () => {
   const location = useLocation();
   const { studentId } = useParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState({
+    profile: true,
+    applications: true
+  });
   const [student, setStudent] = useState(null);
   const [applications, setApplications] = useState([]);
   const [activeTab, setActiveTab] = useState('profile');
   const [userData, setUserData] = useState({
-    name: 'Loading...',
-    initials: 'RD',
+    name: '',
+    initials: '',
     department: '',
-    company: 'Zoyaraa'
+    company: 'Zoyaraa',
+    email: ''
   });
+
+  // Pagination state for applications
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchRecruiterProfile();
-    if (studentId) {
+  }, []);
+
+  useEffect(() => {
+    if (userData.email && studentId) {
       fetchStudentProfile();
       fetchStudentApplications();
     }
-  }, [studentId]);
+  }, [userData.email, studentId]);
+
+  // Reset pagination when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   const fetchRecruiterProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
       const response = await fetch('http://localhost:5000/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -40,18 +60,20 @@ const StudentProfileViewPage = () => {
 
       if (data.success) {
         const user = data.data.user;
-        const initials = user.fullName
+        const fullName = user.fullName || user.name || '';
+        const initials = fullName
           .split(' ')
           .map(n => n[0])
           .join('')
           .toUpperCase()
-          .slice(0, 2);
+          .slice(0, 2) || 'R';
 
         setUserData({
-          name: user.fullName,
+          name: fullName,
           initials: initials,
           department: user.department || '',
-          company: 'Zoyaraa'
+          company: 'Zoyaraa',
+          email: user.email
         });
       }
     } catch (error) {
@@ -61,9 +83,10 @@ const StudentProfileViewPage = () => {
 
   const fetchStudentProfile = async () => {
     try {
-      setLoading(true);
+      setLoading(prev => ({ ...prev, profile: true }));
       const token = localStorage.getItem('authToken');
 
+      console.log(`🔍 Fetching student profile for ID: ${studentId}`);
       const response = await fetch(`http://localhost:5000/api/students/${studentId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -74,23 +97,18 @@ const StudentProfileViewPage = () => {
         const studentData = data.data.student;
         
         // If student has currentInternship ID, fetch the internship details
-        if (studentData.currentInternship) {
+        if (studentData.currentInternship && typeof studentData.currentInternship === 'string') {
           try {
-            // Handle if currentInternship is an ID (string) or already populated
-            const internshipId = typeof studentData.currentInternship === 'string' 
-              ? studentData.currentInternship 
-              : studentData.currentInternship._id;
+            const internshipId = studentData.currentInternship;
             
-            if (internshipId) {
-              const internshipResponse = await fetch(
-                `http://localhost:5000/api/internships/${internshipId}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
-              );
-              const internshipData = await internshipResponse.json();
-              
-              if (internshipData.success) {
-                studentData.currentInternship = internshipData.data.internship;
-              }
+            const internshipResponse = await fetch(
+              `http://localhost:5000/api/internships/${internshipId}`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            const internshipData = await internshipResponse.json();
+            
+            if (internshipData.success) {
+              studentData.currentInternship = internshipData.data.internship;
             }
           } catch (err) {
             console.error('Error fetching internship details:', err);
@@ -98,23 +116,25 @@ const StudentProfileViewPage = () => {
         }
         
         setStudent(studentData);
+      } else {
+        showNotification('Student not found', 'error');
       }
     } catch (error) {
       console.error('Error fetching student profile:', error);
       showNotification('Failed to load student profile', 'error');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, profile: false }));
     }
   };
 
   const fetchStudentApplications = async () => {
     try {
+      setLoading(prev => ({ ...prev, applications: true }));
       const token = localStorage.getItem('authToken');
       
-      // Try both possible endpoints
       let applicationsData = [];
       
-      // First try the student-specific endpoint
+      // Try the student-specific endpoint
       const response = await fetch(`http://localhost:5000/api/applications/student/${studentId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -147,19 +167,31 @@ const StudentProfileViewPage = () => {
       }
       
       setApplications(applicationsData);
+      setTotalPages(Math.ceil(applicationsData.length / itemsPerPage));
     } catch (error) {
       console.error('Error fetching student applications:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, applications: false }));
     }
+  };
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    document.querySelector('.applications-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const getInitials = (name) => {
@@ -236,12 +268,27 @@ const StudentProfileViewPage = () => {
   };
 
   const showNotification = (message, type = 'success') => {
+    document.querySelectorAll('.custom-notification').forEach(n => n.remove());
+
     const notification = document.createElement('div');
     notification.className = 'custom-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: ${type === 'error'
+        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+        : 'linear-gradient(135deg, #2440F0, #0B1DC1)'};
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(36, 64, 240, 0.3);
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      font-size: 0.9375rem;
+      font-weight: 500;
+    `;
     notification.textContent = message;
-    notification.style.background = type === 'error'
-      ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-      : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
   };
@@ -258,6 +305,13 @@ const StudentProfileViewPage = () => {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  // Pagination logic for applications
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = indexOfFirstItem + itemsPerPage;
+  const currentApplications = applications.slice(indexOfFirstItem, indexOfLastItem);
+
+  const isLoading = loading.profile;
 
   return (
     <div className="app-container">
@@ -279,17 +333,18 @@ const StudentProfileViewPage = () => {
             </div>
             <span className="sidebar-logo-text">Zoyaraa</span>
           </div>
-          <div className="department-badge" style={{
-            marginTop: '0.5rem',
-            padding: '0.25rem 0.5rem',
-            background: 'rgba(255,255,255,0.2)',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            textAlign: 'center',
-            color: 'white'
-          }}>
-            {userData.department || 'Recruiter'}
-          </div>
+          {userData.department && (
+            <div className="department-badge" style={{
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              textAlign: 'center'
+            }}>
+              {userData.department}
+            </div>
+          )}
         </div>
 
         <nav className="sidebar-nav">
@@ -311,8 +366,8 @@ const StudentProfileViewPage = () => {
             onClick={() => navigate('/recruiter/internships')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
             <span className="nav-item-text">Manage Internships</span>
           </button>
@@ -368,8 +423,6 @@ const StudentProfileViewPage = () => {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span className="nav-item-text">View Applicants</span>
           </button>
@@ -391,11 +444,11 @@ const StudentProfileViewPage = () => {
             className="user-profile-sidebar"
             onClick={() => navigate('/recruiter/profile')}
           >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
+            <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
             <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
+              <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
               <div className="user-role-sidebar">
-                {userData.department} • {userData.company}
+                {userData.department || 'Recruiter'} • {userData.company}
               </div>
             </div>
           </button>
@@ -412,8 +465,7 @@ const StudentProfileViewPage = () => {
               onClick={toggleMobileMenu}
               aria-label="Toggle menu"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -422,8 +474,15 @@ const StudentProfileViewPage = () => {
             <h2 className="page-title">
               Student Profile
               {userData.department && (
-                <span style={{ fontSize: '0.9rem', marginLeft: '1rem', color: '#666' }}>
-                  • {userData.department} Department
+                <span style={{ 
+                  fontSize: '0.9rem', 
+                  marginLeft: '1rem', 
+                  color: '#666',
+                  background: '#EEF2FF',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px'
+                }}>
+                  {userData.department} Department
                 </span>
               )}
             </h2>
@@ -439,33 +498,55 @@ const StudentProfileViewPage = () => {
         {/* Content Area */}
         <div className="content-area">
           {/* Back Button */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
             <button
               className="secondary-btn"
               onClick={() => navigate(-1)}
-              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+              style={{ 
+                padding: '0.6rem 1.2rem', 
+                fontSize: '0.875rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
               onClickCapture={(e) => createRippleEffect(e)}
             >
-              ← Back
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              Back
             </button>
           </div>
 
-          {loading ? (
-            <div className="loading-placeholder">Loading student profile...</div>
+          {isLoading ? (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '400px',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div className="loading-spinner"></div>
+              <p style={{ color: '#666' }}>Loading student profile...</p>
+            </div>
           ) : !student ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">
+            <div className="empty-state" style={{ padding: '3rem' }}>
+              <div className="empty-state-icon" style={{ width: '80px', height: '80px' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="12"></line>
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
               </div>
-              <h3>Student not found</h3>
-              <p>The student profile you're looking for doesn't exist.</p>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Student not found</h3>
+              <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                The student profile you're looking for doesn't exist.
+              </p>
               <button
                 className="primary-btn"
                 onClick={() => navigate(-1)}
+                style={{ padding: '0.75rem 2rem' }}
                 onClickCapture={(e) => createRippleEffect(e)}
               >
                 Go Back
@@ -483,7 +564,8 @@ const StudentProfileViewPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '2rem',
-                flexWrap: 'wrap'
+                flexWrap: 'wrap',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
               }}>
                 <div className="profile-avatar" style={{
                   width: '100px',
@@ -501,26 +583,38 @@ const StudentProfileViewPage = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-                    {student.fullName}
+                    {student.fullName || 'Unknown Student'}
                   </h1>
-                  <p style={{ color: '#4b5563', marginBottom: '0.25rem' }}>
-                    📧 {student.email}
+                  <p style={{ color: '#4b5563', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    {student.email || 'No email provided'}
                   </p>
                   {student.phone && (
-                    <p style={{ color: '#4b5563', marginBottom: '0.25rem' }}>
-                      📞 {student.phone}
+                    <p style={{ color: '#4b5563', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                      </svg>
+                      {student.phone}
                     </p>
                   )}
                   {student.location && (
-                    <p style={{ color: '#4b5563', marginBottom: '0.25rem' }}>
-                      📍 {student.location}
+                    <p style={{ color: '#4b5563', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      {student.location}
                     </p>
                   )}
                   
-                  {/* Current Internship Display - FIXED */}
+                  {/* Current Internship Display */}
                   {student.currentInternship && (
                     <div style={{ 
-                      marginTop: '0.75rem', 
+                      marginTop: '1rem', 
                       padding: '1rem',
                       background: '#E6F7E6',
                       borderRadius: '8px',
@@ -583,7 +677,13 @@ const StudentProfileViewPage = () => {
               </div>
 
               {/* Tabs */}
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #e5e7eb' }}>
+              <div style={{ 
+                display: 'flex', 
+                gap: '1rem', 
+                marginBottom: '2rem', 
+                borderBottom: '1px solid #e5e7eb',
+                flexWrap: 'wrap'
+              }}>
                 <button
                   onClick={() => setActiveTab('profile')}
                   style={{
@@ -593,7 +693,9 @@ const StudentProfileViewPage = () => {
                     borderBottom: activeTab === 'profile' ? '2px solid #2440F0' : 'none',
                     color: activeTab === 'profile' ? '#2440F0' : '#666',
                     fontWeight: activeTab === 'profile' ? '600' : '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    transition: 'all 0.2s'
                   }}
                   onClickCapture={(e) => createRippleEffect(e)}
                 >
@@ -608,7 +710,9 @@ const StudentProfileViewPage = () => {
                     borderBottom: activeTab === 'resume' ? '2px solid #2440F0' : 'none',
                     color: activeTab === 'resume' ? '#2440F0' : '#666',
                     fontWeight: activeTab === 'resume' ? '600' : '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    transition: 'all 0.2s'
                   }}
                   onClickCapture={(e) => createRippleEffect(e)}
                 >
@@ -623,7 +727,9 @@ const StudentProfileViewPage = () => {
                     borderBottom: activeTab === 'applications' ? '2px solid #2440F0' : 'none',
                     color: activeTab === 'applications' ? '#2440F0' : '#666',
                     fontWeight: activeTab === 'applications' ? '600' : '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    transition: 'all 0.2s'
                   }}
                   onClickCapture={(e) => createRippleEffect(e)}
                 >
@@ -641,10 +747,11 @@ const StudentProfileViewPage = () => {
                       borderRadius: '12px',
                       padding: '1.5rem',
                       marginBottom: '1.5rem',
-                      border: '1px solid #e5e7eb'
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                        🎓 Education
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>🎓</span> Education
                       </h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
@@ -694,10 +801,11 @@ const StudentProfileViewPage = () => {
                       borderRadius: '12px',
                       padding: '1.5rem',
                       marginBottom: '1.5rem',
-                      border: '1px solid #e5e7eb'
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                        🛠️ Skills
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>🛠️</span> Skills
                       </h3>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         {(() => {
@@ -741,10 +849,11 @@ const StudentProfileViewPage = () => {
                         borderRadius: '12px',
                         padding: '1.5rem',
                         marginBottom: '1.5rem',
-                        border: '1px solid #e5e7eb'
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                       }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                          💼 Experience
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>💼</span> Experience
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                           {student.resume.experience.map((exp, index) => (
@@ -798,10 +907,11 @@ const StudentProfileViewPage = () => {
                         borderRadius: '12px',
                         padding: '1.5rem',
                         marginBottom: '1.5rem',
-                        border: '1px solid #e5e7eb'
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                       }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                          🚀 Projects
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>🚀</span> Projects
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                           {student.resume.projects.map((project, index) => (
@@ -811,7 +921,7 @@ const StudentProfileViewPage = () => {
                               borderRadius: '8px',
                               border: '1px solid #e5e7eb'
                             }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                                 <div>
                                   <p style={{ fontWeight: '600', fontSize: '1rem', marginBottom: '0.25rem' }}>
                                     {project.title}
@@ -876,27 +986,41 @@ const StudentProfileViewPage = () => {
                         background: 'white',
                         borderRadius: '12px',
                         padding: '1.5rem',
-                        border: '1px solid #e5e7eb'
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                       }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                          🔗 Social Links
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>🔗</span> Social Links
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                           {student.linkedin && (
                             <a href={student.linkedin} target="_blank" rel="noopener noreferrer"
-                              style={{ color: '#2440F0', textDecoration: 'none' }}>
+                              style={{ color: '#2440F0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                                <rect x="2" y="9" width="4" height="12"></rect>
+                                <circle cx="4" cy="4" r="2"></circle>
+                              </svg>
                               LinkedIn Profile →
                             </a>
                           )}
                           {student.github && (
                             <a href={student.github} target="_blank" rel="noopener noreferrer"
-                              style={{ color: '#2440F0', textDecoration: 'none' }}>
+                              style={{ color: '#2440F0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                              </svg>
                               GitHub Profile →
                             </a>
                           )}
                           {student.portfolio && (
                             <a href={student.portfolio} target="_blank" rel="noopener noreferrer"
-                              style={{ color: '#2440F0', textDecoration: 'none' }}>
+                              style={{ color: '#2440F0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                              </svg>
                               Portfolio →
                             </a>
                           )}
@@ -914,13 +1038,14 @@ const StudentProfileViewPage = () => {
                       borderRadius: '12px',
                       padding: '1.5rem',
                       marginBottom: '1.5rem',
-                      border: '1px solid #e5e7eb'
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                        📄 Resume
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>📄</span> Resume
                       </h3>
                       {student.resume?.resumeFile ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                           <span style={{ color: '#1f2937' }}>{student.resume.resumeFileName || 'Resume'}</span>
                           <button
                             onClick={() => handleViewResume(student.resume.resumeFile)}
@@ -930,8 +1055,13 @@ const StudentProfileViewPage = () => {
                               color: '#2440F0',
                               border: 'none',
                               borderRadius: '6px',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: '500',
+                              transition: 'all 0.2s'
                             }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#E0E7FF'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#EEF2FF'}
                             onClickCapture={(e) => createRippleEffect(e)}
                           >
                             View Resume
@@ -947,10 +1077,11 @@ const StudentProfileViewPage = () => {
                       background: 'white',
                       borderRadius: '12px',
                       padding: '1.5rem',
-                      border: '1px solid #e5e7eb'
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                        🏅 Certificates
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>🏅</span> Certificates
                       </h3>
                       {student.resume?.certifications && student.resume.certifications.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -961,7 +1092,9 @@ const StudentProfileViewPage = () => {
                               alignItems: 'center',
                               padding: '0.75rem',
                               background: '#f9fafb',
-                              borderRadius: '8px'
+                              borderRadius: '8px',
+                              flexWrap: 'wrap',
+                              gap: '1rem'
                             }}>
                               <div>
                                 <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{cert.name}</p>
@@ -979,8 +1112,13 @@ const StudentProfileViewPage = () => {
                                     color: '#2440F0',
                                     border: 'none',
                                     borderRadius: '6px',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s'
                                   }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = '#E0E7FF'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = '#EEF2FF'}
                                   onClickCapture={(e) => createRippleEffect(e)}
                                 >
                                   View
@@ -1002,51 +1140,163 @@ const StudentProfileViewPage = () => {
                       background: 'white',
                       borderRadius: '12px',
                       padding: '1.5rem',
-                      border: '1px solid #e5e7eb'
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                     }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                        📋 Application History
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>📋</span> Application History
                       </h3>
-                      {applications.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          {applications.map((app) => {
-                            const statusStyle = getStatusStyle(app.status);
-                            return (
-                              <div key={app._id} style={{
-                                padding: '1rem',
-                                background: '#f9fafb',
-                                borderRadius: '8px',
-                                border: '1px solid #e5e7eb'
-                              }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <div>
-                                    <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                                      {app.internship?.title || 'Internship'}
-                                    </p>
-                                    <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
-                                      {app.internship?.companyName || 'Company'}
-                                    </p>
-                                    <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                      Applied: {formatDate(app.appliedAt)}
-                                    </p>
-                                  </div>
-                                  <span style={{
-                                    padding: '0.25rem 0.75rem',
-                                    borderRadius: '20px',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    background: statusStyle.bg,
-                                    color: statusStyle.color
-                                  }}>
-                                    {app.status?.toUpperCase()}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
+                      {loading.applications ? (
+                        <div style={{ textAlign: 'center', padding: '2rem' }}>
+                          <div className="loading-spinner-small"></div>
+                          <p style={{ color: '#666', marginTop: '1rem' }}>Loading applications...</p>
                         </div>
+                      ) : applications.length > 0 ? (
+                        <>
+                          <div className="applications-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {currentApplications.map((app) => {
+                              const statusStyle = getStatusStyle(app.status);
+                              return (
+                                <div key={app._id} style={{
+                                  padding: '1rem',
+                                  background: '#f9fafb',
+                                  borderRadius: '8px',
+                                  border: '1px solid #e5e7eb'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div>
+                                      <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                                        {app.internship?.title || 'Internship'}
+                                      </p>
+                                      <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                                        {app.internship?.companyName || 'Company'}
+                                      </p>
+                                      <p style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                        Applied: {formatDate(app.appliedAt || app.createdAt)}
+                                      </p>
+                                    </div>
+                                    <span style={{
+                                      padding: '0.25rem 0.75rem',
+                                      borderRadius: '20px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: '600',
+                                      background: statusStyle.bg,
+                                      color: statusStyle.color
+                                    }}>
+                                      {app.status?.toUpperCase() || 'PENDING'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Pagination for Applications */}
+                          {totalPages > 1 && (
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              marginTop: '2rem'
+                            }}>
+                              <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  background: currentPage === 1 ? '#f3f4f6' : 'white',
+                                  color: currentPage === 1 ? '#9ca3af' : '#1f2937',
+                                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.875rem',
+                                  fontWeight: '500',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                Previous
+                              </button>
+
+                              {[...Array(totalPages)].map((_, index) => {
+                                const pageNumber = index + 1;
+                                if (
+                                  pageNumber === 1 ||
+                                  pageNumber === totalPages ||
+                                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                                ) {
+                                  return (
+                                    <button
+                                      key={pageNumber}
+                                      onClick={() => handlePageChange(pageNumber)}
+                                      style={{
+                                        padding: '0.5rem 1rem',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        background: currentPage === pageNumber ? '#2440F0' : 'white',
+                                        color: currentPage === pageNumber ? 'white' : '#1f2937',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        minWidth: '40px'
+                                      }}
+                                    >
+                                      {pageNumber}
+                                    </button>
+                                  );
+                                } else if (
+                                  pageNumber === currentPage - 2 ||
+                                  pageNumber === currentPage + 2
+                                ) {
+                                  return <span key={pageNumber} style={{ color: '#9ca3af' }}>...</span>;
+                                }
+                                return null;
+                              })}
+
+                              <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                                  color: currentPage === totalPages ? '#9ca3af' : '#1f2937',
+                                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.875rem',
+                                  fontWeight: '500',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}
+                              >
+                                Next
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Items per page info */}
+                          {applications.length > 0 && (
+                            <div style={{
+                              textAlign: 'center',
+                              fontSize: '0.875rem',
+                              color: '#6b7280',
+                              marginTop: '1rem'
+                            }}>
+                              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, applications.length)} of {applications.length} applications
+                            </div>
+                          )}
+                        </>
                       ) : (
-                        <p style={{ color: '#9ca3af' }}>No applications yet</p>
+                        <p style={{ color: '#9ca3af', textAlign: 'center', padding: '2rem' }}>No applications yet</p>
                       )}
                     </div>
                   </div>

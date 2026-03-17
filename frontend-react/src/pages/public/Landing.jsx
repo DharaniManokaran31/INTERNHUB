@@ -41,7 +41,7 @@ const Landing = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Testimonials data - UPDATED for Zoyaraa
+  // Testimonials data
   const testimonials = [
     {
       text: "Zoyaraa's internship program gave me real-world experience. I worked on production code and got mentored by senior developers. Now I have a full-time offer!",
@@ -63,7 +63,7 @@ const Landing = () => {
     }
   ];
 
-  // FAQ data - UPDATED for Zoyaraa
+  // FAQ data
   const faqItems = [
     {
       question: "Is Zoyaraa internship paid?",
@@ -100,7 +100,7 @@ const Landing = () => {
       {/* Header */}
       <Header isScrolled={isHeaderScrolled} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
-      {/* Hero Section - UPDATED WITH CORRECT BUTTONS */}
+      {/* Hero Section */}
       <section className="hero" id="home">
         <div className="container">
           <div className="hero-content fade-in">
@@ -112,28 +112,28 @@ const Landing = () => {
               learn from industry experts, and get certified. Exclusive opportunities across all departments.
             </p>
             <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              {/* For Students */}
+              {/* For Students - New Registration */}
               <button 
                 className="btn btn-primary" 
                 onClick={() => navigate('/register')}
               >
-                Start Your Journey →
+                Student Registration →
               </button>
               
-              {/* For Employees (Recruiters & HR) */}
+              {/* For Everyone - Login */}
               <button 
                 className="btn btn-outline" 
                 onClick={() => navigate('/login')}
               >
-                Employee Login
+                Login
               </button>
             </div>
-    
+            
           </div>
         </div>
       </section>
 
-      {/* Stats Section - UPDATED */}
+      {/* Stats Section */}
       <section className="stats">
         <div className="container">
           <div className="stats-grid">
@@ -157,7 +157,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* How It Works Section - UPDATED */}
+      {/* How It Works Section */}
       <section className="how-it-works" id="how-it-works">
         <div className="container">
           <div className="section-header fade-in">
@@ -189,7 +189,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features Section - UPDATED */}
+      {/* Features Section */}
       <section className="features" id="features">
         <div className="container">
           <div className="section-header fade-in">
@@ -197,7 +197,7 @@ const Landing = () => {
             <p>Whether you're a student, recruiter, or HR, we've got you covered.</p>
           </div>
           <div className="features-grid">
-            {/* For Students - UPDATED */}
+            {/* For Students */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -226,7 +226,7 @@ const Landing = () => {
               </ul>
             </div>
 
-            {/* For Recruiters (Zoyaraa Employees) - UPDATED */}
+            {/* For Recruiters */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -255,7 +255,7 @@ const Landing = () => {
               </ul>
             </div>
 
-            {/* For HR Team - NEW */}
+            {/* For HR Team */}
             <div className="feature-card fade-in">
               <div className="feature-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -289,7 +289,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Testimonials Section - UPDATED */}
+      {/* Testimonials Section */}
       <section className="testimonials">
         <div className="container">
           <div className="section-header fade-in">
@@ -313,7 +313,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* FAQ Section - UPDATED */}
+      {/* FAQ Section */}
       <section className="faq" id="faq">
         <div className="container">
           <div className="section-header fade-in">
@@ -349,48 +349,48 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* CTA Section - UPDATED WITH ALL BUTTONS */}
+      {/* CTA Section - FIXED WITH CLEAR LOGIN OPTIONS */}
       <section className="cta" id="get-started">
         <div className="container">
           <div className="cta-card fade-in">
             <h2>Ready to Start Your Journey?</h2>
             <p>Join Zoyaraa's internship program and launch your career with India's fastest growing tech company.</p>
             
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-              {/* For Students */}
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {/* For New Students */}
               <button 
                 className="btn btn-primary" 
                 onClick={() => navigate('/register')}
               >
-                Create Free Account →
+                Student Registration →
               </button>
               
-              {/* For Returning Users */}
+              {/* For All Users to Login */}
               <button 
                 className="btn btn-outline" 
                 onClick={() => navigate('/login')}
               >
-                Existing User? Login
+                Login (Students / Recruiters / HR)
               </button>
             </div>
             
-            {/* For HR/Company Registration - Small link */}
-            <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
-              <span>Are you from Zoyaraa HR? </span>
-              <button 
-                onClick={() => navigate('/register-company')}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#2440F0', 
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem'
-                }}
-              >
-                Register your company here
-              </button>
-            </p>
+            {/* Help text - Clear instructions for all user types */}
+            <div style={{ 
+              marginTop: '1.5rem', 
+              fontSize: '0.9rem', 
+              color: '#666',
+              background: '#f8fafc',
+              padding: '1rem',
+              borderRadius: '8px',
+              textAlign: 'left'
+            }}>
+              <p style={{ marginBottom: '0.5rem', fontWeight: '600', color: '#333' }}>📌 Not sure where to go?</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <li style={{ marginBottom: '0.25rem' }}>• 👨‍🎓 <strong>New student?</strong> Click "Student Registration" above</li>
+                <li style={{ marginBottom: '0.25rem' }}>• 👔 <strong>Existing student?</strong> Click "Login" and use your credentials</li>
+                <li style={{ marginBottom: '0.25rem' }}>• 👑 <strong>Zoyaraa Recruiter or HR?</strong> Click "Login" and use your work email</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>

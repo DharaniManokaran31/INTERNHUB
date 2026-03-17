@@ -1,564 +1,601 @@
+// src/pages/student/ActiveInternshipPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-
-import StudentSidebar from '../../components/student/StudentSidebar';
-import MobileHeader from '../../components/student/MobileHeader';
-import { FaPlay, FaCalendarCheck, FaClock, FaTasks, FaTrophy, FaArrowRight } from 'react-icons/fa';
-import api from '../../services/api';
-import progressService from '../../services/progressService';
-import dailyLogService from '../../services/dailyLogService';
-
-const PageContainer = styled.div`
-  display: flex;
-  min-height: 100vh;
-  background-color: #f4f7fc;
-`;
-
-const ContentWrapper = styled.div`
-  flex: 1;
-  margin-left: 260px;
-  padding: 40px;
-
-  @media (max-width: 1024px) {
-    margin-left: 0;
-    padding: 20px;
-    padding-top: 80px;
-  }
-`;
-
-const HeaderContainer = styled.div`
-  background: linear-gradient(135deg, #2440F0 0%, #0B1DC1 100%);
-  border-radius: 20px;
-  padding: 40px;
-  color: white;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(36, 64, 240, 0.2);
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: url('/pattern-bg.png') repeat;
-    opacity: 0.1;
-    pointer-events: none;
-  }
-`;
-
-const HeaderContent = styled.div`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-  }
-`;
-
-const TitleSection = styled.div`
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin: 0 0 10px 0;
-    letter-spacing: -1px;
-  }
-  
-  p {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-`;
-
-const SubmitButton = styled.button`
-  background: white;
-  color: #2440F0;
-  border: none;
-  padding: 16px 32px;
-  border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 25px rgba(0,0,0,0.15);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  svg {
-    font-size: 1.2rem;
-  }
-`;
-
-const ProgressCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-`;
-
-const ProgressHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-
-  h3 {
-    margin: 0;
-    color: #1a1f36;
-    font-size: 1.3rem;
-  }
-
-  span {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2440F0;
-    background: #eef1fe;
-    padding: 8px 16px;
-    border-radius: 50px;
-  }
-`;
-
-const ProgressBarContainer = styled.div`
-  width: 100%;
-  height: 12px;
-  background: #f1f5f9;
-  border-radius: 50px;
-  overflow: hidden;
-  margin-bottom: 30px;
-`;
-
-const ProgressBar = styled.div`
-  height: 100%;
-  background: linear-gradient(90deg, #2440F0, #60a5fa);
-  width: ${props => props.percentage}%;
-  border-radius: 50px;
-  position: relative;
-  transition: width 1s ease-out;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background: linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.2) 25%,
-      transparent 25%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.2) 75%,
-      transparent 75%,
-      transparent
-    );
-    background-size: 20px 20px;
-    animation: moveStripes 1s linear infinite;
-  }
-
-  @keyframes moveStripes {
-    0% { background-position: 0 0; }
-    100% { background-position: 20px 0; }
-  }
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 12px;
-
-  .icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    background: ${props => props.color}20;
-    color: ${props => props.color};
-  }
-
-  .details {
-    span {
-      display: block;
-      color: #64748b;
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-    }
-    strong {
-      display: block;
-      color: #1e293b;
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-  }
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 30px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const Card = styled.div`
-  background: white;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-
-    h3 {
-      margin: 0;
-      color: #1a1f36;
-      font-size: 1.2rem;
-    }
-
-    a {
-      color: #2440F0;
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-`;
-
-const MentorInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-
-  img {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
-  .details {
-    h4 {
-      margin: 0 0 5px 0;
-      color: #1e293b;
-    }
-    p {
-      margin: 0;
-      color: #64748b;
-      font-size: 0.9rem;
-    }
-  }
-`;
-
-const LogStatusItem = styled.div`
-  padding: 15px;
-  border-radius: 12px;
-  background: ${props =>
-    props.status === 'approved' ? '#f0fdf4' :
-      props.status === 'pending' ? '#fffbeb' : '#f8fafc'};
-  border: 1px solid ${props =>
-    props.status === 'approved' ? '#bbf7d0' :
-      props.status === 'pending' ? '#fef08a' : '#e2e8f0'};
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .date {
-    font-weight: 500;
-    color: #1e293b;
-  }
-  
-  .status {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: ${props =>
-    props.status === 'approved' ? '#166534' :
-      props.status === 'pending' ? '#854d0e' : '#64748b'};
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    
-    &::before {
-      content: '';
-      display: block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-  }
-`;
+import '../../styles/StudentDashboard.css'; // Reuse existing styles
+import NotificationBell from '../../components/common/NotificationBell';
 
 const ActiveInternshipPage = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(null);
   const [stats, setStats] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [internship, setInternship] = useState(null);
+  const [mentor, setMentor] = useState(null);
+  const [userData, setUserData] = useState({
+    name: 'Loading...',
+    initials: 'ST',
+    role: 'student'
+  });
 
+  // Fetch user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5000/api/students/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          const user = data.data.student;
+          const initials = user.fullName
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+
+          setUserData({
+            name: user.fullName,
+            initials: initials,
+            role: user.role
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Fetch active internship data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem('authToken');
 
-        // Ensure student has active internship
-        const appsRes = await api.get('/applications/me');
-        const acceptedApp = appsRes.data.data.applications?.find(app => app.status === 'accepted');
+        // First, check if student has an accepted application
+        const appsResponse = await fetch('http://localhost:5000/api/applications/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const appsData = await appsResponse.json();
 
-        if (!acceptedApp) {
-          // If no active internship, redirect to dashboard
+        if (!appsData.success) {
           navigate('/student/dashboard');
           return;
         }
 
-        const activeInternshipId = acceptedApp.internship._id || acceptedApp.internship;
+        const acceptedApp = appsData.data.applications?.find(app => app.status === 'accepted');
 
-        const dataPromises = [
-          progressService.getInternProgress(user.id || user._id),
-          dailyLogService.getStats(),
-          dailyLogService.getMyLogs()
-        ];
-
-        const [progressRes, statsRes, logsRes] = await Promise.all(dataPromises.map(p => p.catch(e => e)));
-        
-
-        if (progressRes && progressRes.progress) {
-          setProgress(progressRes.progress);
+        if (!acceptedApp) {
+          // No active internship, redirect to dashboard
+          navigate('/student/dashboard');
+          return;
         }
 
-        if (statsRes && statsRes.stats) {
-          setStats(statsRes.stats);
+        const internshipId = acceptedApp.internshipId || acceptedApp.internship?._id;
+
+        // Fetch internship details
+        const internshipResponse = await fetch(`http://localhost:5000/api/internships/${internshipId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const internshipData = await internshipResponse.json();
+
+        if (internshipData.success) {
+          setInternship(internshipData.data.internship);
+          
+          // Fetch mentor details if available
+          if (internshipData.data.internship.mentorId) {
+            const mentorResponse = await fetch(`http://localhost:5000/api/recruiters/${internshipData.data.internship.mentorId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const mentorData = await mentorResponse.json();
+            if (mentorData.success) {
+              setMentor(mentorData.data.recruiter);
+            }
+          }
         }
 
-        if (logsRes && logsRes.logs && logsRes.logs.length > 0) {
-          setRecentLogs(logsRes.logs.slice(0, 3));
-          setInternship(logsRes.logs[0].internshipId);
-        } else {
-          // Fallback if no logs yet, fetch basic internship info
-          const internshipRes = await api.get(`/internships/${activeInternshipId}`);
-          setInternship(internshipRes.data.data.internship);
+        // Fetch progress data
+        const progressResponse = await fetch(`http://localhost:5000/api/progress/student`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const progressData = await progressResponse.json();
+
+        if (progressData.success) {
+          setProgress(progressData.data);
         }
+
+        // Fetch recent logs
+        const logsResponse = await fetch('http://localhost:5000/api/daily-logs/my-logs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const logsData = await logsResponse.json();
+
+        if (logsData.success) {
+          const logs = logsData.data.logs || [];
+          setRecentLogs(logs.slice(0, 3));
+          
+          // Calculate stats
+          const approved = logs.filter(l => l.status === 'approved').length;
+          const pending = logs.filter(l => l.status === 'pending').length;
+          const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+          
+          setStats({
+            approvedLogs: approved,
+            pendingLogs: pending,
+            totalHours: totalHours
+          });
+        }
+
       } catch (error) {
-        console.error("Error fetching active internship data", error);
+        console.error('Error fetching active internship data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user && (user.id || user._id)) {
-      fetchData();
+    fetchData();
+  }, [navigate]);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      showNotification('Logged out successfully!');
+      setTimeout(() => navigate('/login'), 1000);
     }
-  }, [user?.id, user?._id, navigate]);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    const notification = document.createElement('div');
+    notification.className = 'custom-notification';
+    notification.textContent = message;
+    notification.style.background = type === 'error'
+      ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+      : 'linear-gradient(135deg, #2440F0, #0B1DC1)';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      pending: { bg: '#FFF4E5', color: '#f59e0b', text: 'Pending' },
+      approved: { bg: '#E6F7E6', color: '#10b981', text: 'Approved' },
+      rejected: { bg: '#fee2e2', color: '#dc2626', text: 'Rejected' }
+    };
+    const style = styles[status] || styles.pending;
+
+    return (
+      <span style={{
+        padding: '0.25rem 0.75rem',
+        borderRadius: '20px',
+        fontSize: '0.75rem',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        background: style.bg,
+        color: style.color
+      }}>
+        {style.text}
+      </span>
+    );
+  };
+
+  // Check if today's log is already submitted
+  const todayStr = new Date().toDateString();
+  const hasLoggedToday = recentLogs.some(log => 
+    new Date(log.date).toDateString() === todayStr
+  );
 
   if (loading) {
     return (
-      <PageContainer>
-        <StudentSidebar />
-        <ContentWrapper>
-          <div style={{ textAlign: 'center', padding: '100px 0' }}>
-            <div className="spinner">Loading...</div>
+      <div className="app-container">
+        {/* Sidebar Skeleton */}
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <div className="sidebar-logo">
+              <div className="sidebar-logo-icon">Z</div>
+              <span className="sidebar-logo-text">Zoyaraa</span>
+            </div>
           </div>
-        </ContentWrapper>
-      </PageContainer>
+          <nav className="sidebar-nav">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="skeleton-nav-item"></div>
+            ))}
+          </nav>
+        </aside>
+        <main className="main-content">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading your internship...</p>
+          </div>
+        </main>
+      </div>
     );
   }
 
-  // Check if today's log is already submitted
-  const todayStr = new Date().toLocaleDateString();
-  const hasLoggedToday = recentLogs.length > 0 &&
-    new Date(recentLogs[0].date).toLocaleDateString() === todayStr;
-
   return (
-    <PageContainer>
-      <StudentSidebar />
-      <MobileHeader />
+    <div className="app-container">
+      {/* Sidebar Overlay */}
+      <div
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      ></div>
 
-      <ContentWrapper>
-        <HeaderContainer>
-          <HeaderContent>
-            <TitleSection>
-              <h1>Active Internship</h1>
-              <p>
-                <span>{internship?.title || 'Loading Role...'} at {internship?.company?.companyName || internship?.companyName || 'Company'}</span>
-                •
-                <span>{internship?.department || 'Department'}</span>
-              </p>
-            </TitleSection>
+      {/* Sidebar */}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <div className="sidebar-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+              </svg>
+            </div>
+            <span className="sidebar-logo-text">Zoyaraa</span>
+          </div>
+        </div>
 
-            <SubmitButton onClick={() => navigate('/student/daily-log')} disabled={hasLoggedToday}>
-              <FaPlay />
-              {hasLoggedToday ? "Today's Log Submitted" : "Submit Today's Log"}
-            </SubmitButton>
-          </HeaderContent>
-        </HeaderContainer>
+        <nav className="sidebar-nav">
+          <button
+            className="nav-item"
+            onClick={() => navigate('/student/dashboard')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span className="nav-item-text">Dashboard</span>
+          </button>
 
-        <ProgressCard>
-          <ProgressHeader>
-            <h3>Program Progress</h3>
-            <span>{progress?.percentage || 0}% Completed</span>
-          </ProgressHeader>
+          <button
+            className="nav-item"
+            onClick={() => navigate('/student/internships')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <span className="nav-item-text">Browse Internships</span>
+          </button>
 
-          <ProgressBarContainer>
-            <ProgressBar percentage={progress?.percentage || 0} />
-          </ProgressBarContainer>
+          <button
+            className="nav-item"
+            onClick={() => navigate('/student/applications')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span className="nav-item-text">My Applications</span>
+          </button>
 
-          <StatsGrid>
-            <StatItem color="#2440F0">
-              <div className="icon"><FaCalendarCheck /></div>
-              <div className="details">
-                <span>Days Completed</span>
-                <strong>{progress?.completedDays || 0} / {progress?.totalDays || 60}</strong>
+          <button
+            className="nav-item"
+            onClick={() => navigate('/student/resume')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span className="nav-item-text">My Resume</span>
+          </button>
+
+          <button
+            className="nav-item active"
+            onClick={() => navigate('/student/active-internship')}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span className="nav-item-text">My Internship</span>
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button
+            className="user-profile-sidebar"
+            onClick={() => navigate('/student/profile')}
+          >
+            <div className="user-avatar-sidebar">{userData.initials}</div>
+            <div className="user-info-sidebar">
+              <div className="user-name-sidebar">{userData.name}</div>
+              <div className="user-role-sidebar">Student • Zoyaraa</div>
+            </div>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content">
+        {/* Top Bar */}
+        <div className="top-bar">
+          <div className="top-bar-left">
+            <button
+              className="menu-toggle"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <h2 className="page-title">My Internship</h2>
+          </div>
+          <div className="top-bar-right">
+            <NotificationBell />
+            <button className="logout-btn" onClick={handleLogout}>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="content-area">
+          {/* Hero Section - Matching Dashboard style */}
+          <div className="welcome-section" style={{ 
+            background: 'linear-gradient(135deg, #2440F0, #0a1a7a)',
+            padding: '2rem',
+            borderRadius: '12px',
+            marginBottom: '2rem',
+            color: 'white'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {internship?.title || 'Active Internship'}
+                </h1>
+                <p style={{ fontSize: '1rem', opacity: '0.9' }}>
+                  {internship?.department || 'Department'} • {internship?.companyName || 'Zoyaraa'}
+                </p>
               </div>
-            </StatItem>
-            <StatItem color="#10b981">
-              <div className="icon"><FaClock /></div>
-              <div className="details">
-                <span>Total Hours Logs</span>
-                <strong>{progress?.totalHours || 0} hrs</strong>
-              </div>
-            </StatItem>
-            <StatItem color="#f59e0b">
-              <div className="icon"><FaTasks /></div>
-              <div className="details">
-                <span>Pending Reviews</span>
-                <strong>{stats?.pendingLogs || 0} logs</strong>
-              </div>
-            </StatItem>
-            <StatItem color="#8b5cf6">
-              <div className="icon"><FaTrophy /></div>
-              <div className="details">
-                <span>Current Streak</span>
-                <strong>{hasLoggedToday ? 1 : 0} Days</strong>
-              </div>
-            </StatItem>
-          </StatsGrid>
-        </ProgressCard>
+              <button
+                className="primary-btn"
+                onClick={() => navigate('/student/daily-log')}
+                disabled={hasLoggedToday}
+                style={{
+                  background: hasLoggedToday ? '#9ca3af' : 'white',
+                  color: hasLoggedToday ? '#4b5563' : '#2440F0',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontWeight: '600',
+                  cursor: hasLoggedToday ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {hasLoggedToday ? '✓ Today\'s Log Submitted' : 'Submit Daily Log'}
+              </button>
+            </div>
+          </div>
 
-        <Grid>
-          <Card>
-            <div className="header">
-              <h3>Recent Logs Activity</h3>
-              <a href="/student/my-logs">View All History <FaArrowRight /></a>
+          {/* Stats Grid - Matching Dashboard style */}
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '2rem' }}>
+            <div className="stat-card">
+              <div className="stat-info">
+                <div className="stat-label">Progress</div>
+                <div className="stat-value">{progress?.percentage || 0}%</div>
+              </div>
+              <div className="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+              </div>
             </div>
 
-            {recentLogs.length > 0 ? (
-              <div>
-                {recentLogs.map((log) => (
-                  <LogStatusItem key={log._id} status={log.status}>
-                    <div>
-                      <div className="date">
-                        {new Date(log.date).toLocaleDateString('en-US', {
-                          weekday: 'long', month: 'short', day: 'numeric'
-                        })}
-                      </div>
-                      <div style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>
-                        {log.totalHours} hours • {log.tasksCompleted?.length || 0} tasks
+            <div className="stat-card">
+              <div className="stat-info">
+                <div className="stat-label">Days Completed</div>
+                <div className="stat-value">{progress?.completedDays || 0}/{progress?.totalDays || 60}</div>
+              </div>
+              <div className="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-info">
+                <div className="stat-label">Total Hours</div>
+                <div className="stat-value">{stats?.totalHours || 0}h</div>
+              </div>
+              <div className="stat-icon orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-info">
+                <div className="stat-label">Pending Review</div>
+                <div className="stat-value">{stats?.pendingLogs || 0}</div>
+              </div>
+              <div className="stat-icon red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Two Column Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+            {/* Recent Logs Section */}
+            <section className="section">
+              <div className="section-header">
+                <h2 className="section-title">Recent Logs</h2>
+                {recentLogs.length > 0 && (
+                  <button
+                    className="view-all-link"
+                    onClick={() => navigate('/student/my-logs')}
+                  >
+                    View All ({recentLogs.length})
+                  </button>
+                )}
+              </div>
+
+              {recentLogs.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <h3>No logs submitted yet</h3>
+                  <p>Start logging your daily work to track your progress</p>
+                  <button
+                    className="primary-btn"
+                    onClick={() => navigate('/student/daily-log')}
+                  >
+                    Submit First Log
+                  </button>
+                </div>
+              ) : (
+                <div className="recent-applications-list">
+                  {recentLogs.map((log) => (
+                    <div key={log._id} className="recent-application-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div>
+                          <h4 style={{ marginBottom: '0.25rem' }}>{formatDate(log.date)}</h4>
+                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
+                            <span>{log.totalHours || 0} hours</span>
+                            <span>•</span>
+                            <span>{log.tasksCompleted?.length || 0} tasks</span>
+                          </div>
+                        </div>
+                        {getStatusBadge(log.status)}
                       </div>
                     </div>
-                    <div className="status">{log.status}</div>
-                  </LogStatusItem>
-                ))}
-              </div>
-            ) : (
-              <div style={{ padding: '30px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
-                <FaCalendarCheck style={{ fontSize: '2rem', color: '#cbd5e1', marginBottom: '10px' }} />
-                <p style={{ margin: 0 }}>No logs submitted yet.</p>
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.9rem' }}>Submit your first log today to start tracking your progress!</p>
-              </div>
-            )}
-          </Card>
+                  ))}
+                </div>
+              )}
+            </section>
 
-          <Card>
-            <div className="header">
-              <h3>Your Mentor</h3>
-            </div>
-
-            {internship?.mentorId ? (
-              <MentorInfo>
-                <div style={{
-                  width: '50px', height: '50px', borderRadius: '50%',
-                  background: '#2440F0', color: 'white', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold'
+            {/* Mentor & Info Section */}
+            <section className="section">
+              <h2 className="section-title" style={{ marginBottom: '1rem' }}>Your Mentor</h2>
+              
+              {mentor ? (
+                <div className="mentor-card" style={{
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem'
                 }}>
-                  {internship.mentorId.fullName ? internship.mentorId.fullName.charAt(0) : 'M'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '50%',
+                      background: '#2440F0',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      fontWeight: '600'
+                    }}>
+                      {mentor.fullName?.charAt(0) || 'M'}
+                    </div>
+                    <div>
+                      <h3 style={{ marginBottom: '0.25rem' }}>{mentor.fullName}</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                        {mentor.designation || 'Mentor'} • {mentor.department}
+                      </p>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{mentor.email}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="details">
-                  <h4>{internship.mentorId.fullName || 'Recruiter'}</h4>
-                  <p>{internship.mentorId.email || 'Mentor'}</p>
+              ) : (
+                <div className="mentor-card" style={{
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  textAlign: 'center',
+                  color: '#64748b'
+                }}>
+                  <p>Mentor information will appear here</p>
                 </div>
-              </MentorInfo>
-            ) : (
-              <div style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>
-                Mentor information loading or unavailable.
-              </div>
-            )}
+              )}
 
-            <div style={{ marginTop: '30px' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '15px' }}>Important Rules</h3>
-              <ul style={{ paddingLeft: '20px', margin: 0, color: '#4b5563', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <li>Submit your log before <strong>8 PM</strong> daily.</li>
-                <li>Minimum of <strong>4 hours</strong> of work is required.</li>
-                <li>Logs must be approved to count towards progress.</li>
-                <li>Missing 3 consecutive days may affect your internship status.</li>
-              </ul>
-            </div>
-          </Card>
-        </Grid>
-      </ContentWrapper>
-    </PageContainer>
+              <h2 className="section-title" style={{ marginBottom: '1rem' }}>Internship Rules</h2>
+              <div style={{
+                background: '#f8fafc',
+                borderRadius: '12px',
+                padding: '1.5rem'
+              }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#2440F0', fontWeight: '600' }}>⏰</span>
+                    <span>Submit logs before <strong>8 PM</strong> daily</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#10b981', fontWeight: '600' }}>⏱️</span>
+                    <span>Minimum <strong>4 hours</strong> of work required</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#f59e0b', fontWeight: '600' }}>✅</span>
+                    <span>Logs must be <strong>approved</strong> to count</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0' }}>
+                    <span style={{ color: '#dc2626', fontWeight: '600' }}>⚠️</span>
+                    <span>Missing <strong>3 consecutive days</strong> may affect status</span>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 };
 

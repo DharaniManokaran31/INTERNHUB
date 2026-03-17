@@ -1,44 +1,40 @@
 const express = require('express');
 const router = express.Router();
-
+const authMiddleware = require('../middleware/authMiddleware');
+const { studentOnly, recruiterOnly, hrOnly } = require('../middleware/roleMiddleware');  // ✅ ADD role middleware
 const {
     submitDailyLog,
     getMyLogs,
+    getLogById,              // ✅ NEW
+    updateLog,                // ✅ NEW
     getPendingLogs,
     getInternLogs,
     approveLog,
     rejectLog,
     addFeedback,
-    getStats
+    getStudentStats,          // ✅ NEW
+    getMentorStats            // ✅ NEW
 } = require('../controllers/dailyLogController');
 
-// Using your authentication middleware
-const protect = require('../middleware/authMiddleware');
+// All routes require auth
+router.use(authMiddleware);
 
-const authorizeRole = (...roles) => {
-    return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: `User role ${req.user ? req.user.role : 'unknown'} is not authorized to access this route`
-            });
-        }
-        next();
-    };
-};
+// ===== STUDENT ROUTES =====
+router.post('/', studentOnly, submitDailyLog);
+router.get('/my-logs', studentOnly, getMyLogs);
+router.get('/my-stats', studentOnly, getStudentStats);  // ✅ NEW
+router.get('/:logId', getLogById);  // Role check inside controller
+router.put('/:logId', studentOnly, updateLog);  // ✅ NEW
 
-// Student Routes
-router.post('/', protect, authorizeRole('student'), submitDailyLog);
-router.get('/my-logs', protect, authorizeRole('student'), getMyLogs);
+// ===== MENTOR/RECRUITER ROUTES =====
+router.get('/pending', recruiterOnly, getPendingLogs);
+router.get('/intern/:studentId', recruiterOnly, getInternLogs);
+router.put('/:logId/approve', recruiterOnly, approveLog);
+router.put('/:logId/reject', recruiterOnly, rejectLog);
+router.put('/:logId/feedback', recruiterOnly, addFeedback);
+router.get('/mentor/stats', recruiterOnly, getMentorStats);  // ✅ NEW
 
-// Mentor/Recruiter Routes
-router.get('/pending', protect, authorizeRole('recruiter', 'hr'), getPendingLogs);
-router.get('/intern/:id', protect, authorizeRole('recruiter', 'hr'), getInternLogs);
-router.put('/:id/approve', protect, authorizeRole('recruiter', 'hr'), approveLog);
-router.put('/:id/reject', protect, authorizeRole('recruiter', 'hr'), rejectLog);
-router.put('/:id/feedback', protect, authorizeRole('recruiter', 'hr'), addFeedback);
-
-// Shared Route (internally checks role)
-router.get('/stats', protect, getStats);
+// ===== HR ROUTES =====
+router.get('/hr/all', hrOnly, getInternLogs);  // ✅ NEW - HR view all logs
 
 module.exports = router;

@@ -13,12 +13,14 @@ const MyResumePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCert, setUploadingCert] = useState(false);
   const [activeSection, setActiveSection] = useState('education');
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'ST',
     role: 'student'
   });
+  const [hasActiveInternship, setHasActiveInternship] = useState(false);
 
   // ===== RESUME DATA STATE =====
   const [resumeData, setResumeData] = useState({
@@ -43,20 +45,47 @@ const MyResumePage = () => {
   // ===== HELPER FUNCTION TO CLEAN URLS =====
   const cleanUrl = (url) => {
     if (!url) return '';
-    // Fix duplicate http://localhost:5000 issue
-    if (url.includes('http://localhost:5000http://')) {
-      return url.replace('http://localhost:5000http://', 'http://');
+
+    // Remove any duplicate base URLs
+    let cleaned = url
+      .replace('http://localhost:5000http://', 'http://')
+      .replace('http://localhost:5000http//', 'http://')
+      .replace('https://localhost:5000https://', 'https://')
+      .replace('https://localhost:5000https//', 'https://');
+
+    // If it's a relative path, make it absolute
+    if (cleaned.startsWith('/uploads')) {
+      cleaned = `http://localhost:5000${cleaned}`;
     }
-    if (url.includes('http://localhost:5000http//')) {
-      return url.replace('http://localhost:5000http//', 'http://');
+
+    return cleaned;
+  };
+
+  // ===== CHECK ACTIVE INTERNSHIP =====
+  const checkActiveInternship = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/applications/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const hasAccepted = data.data.applications.some(app => app.status === 'accepted');
+        setHasActiveInternship(hasAccepted);
+      }
+    } catch (error) {
+      console.error('Error checking active internship:', error);
     }
-    return url;
   };
 
   // ===== FETCH USER PROFILE =====
   useEffect(() => {
     fetchUserProfile();
     fetchResumeData();
+    checkActiveInternship();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -127,7 +156,7 @@ const MyResumePage = () => {
 
         console.log('✅ Constructed resume URL:', resumeUrl);
 
-        // Clean certificate URLs
+        // Clean certificate URLs using the cleanUrl function
         const certifications = (resume.certifications || []).map(cert => ({
           ...cert,
           certificateUrl: cleanUrl(cert.certificateUrl)
@@ -245,7 +274,7 @@ const MyResumePage = () => {
     }
 
     try {
-      setUploading(true);
+      setUploadingCert(true);
       const token = localStorage.getItem('authToken');
 
       const formData = new FormData();
@@ -285,7 +314,7 @@ const MyResumePage = () => {
       console.error('Error uploading certificate:', error);
       showNotification('Failed to upload certificate', 'error');
     } finally {
-      setUploading(false);
+      setUploadingCert(false);
     }
   };
 
@@ -353,23 +382,21 @@ const MyResumePage = () => {
       return;
     }
 
-    const cleanUrl = url.replace('http://localhost:5000http://', 'http://')
-      .replace('http://localhost:5000http//', 'http://');
-
-    console.log('🔗 Opening resume URL:', cleanUrl);
+    const cleanedUrl = cleanUrl(url);
+    console.log('🔗 Opening resume URL:', cleanedUrl);
 
     // Try direct download first
-    const directWindow = window.open(cleanUrl, '_blank');
+    const directWindow = window.open(cleanedUrl, '_blank');
 
     if (!directWindow || directWindow.closed || typeof directWindow.closed === 'undefined') {
       console.log('Direct window blocked, trying Google Viewer...');
 
-      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(cleanUrl)}&embedded=false`;
+      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(cleanedUrl)}&embedded=false`;
       const googleWindow = window.open(googleViewerUrl, '_blank');
 
       if (!googleWindow || googleWindow.closed || typeof googleWindow.closed === 'undefined') {
         const link = document.createElement('a');
-        link.href = cleanUrl;
+        link.href = cleanedUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.click();
@@ -386,21 +413,18 @@ const MyResumePage = () => {
       return;
     }
 
-    // Clean the URL to remove duplicates
-    const cleanUrl = url.replace('http://localhost:5000http://', 'http://')
-      .replace('http://localhost:5000http//', 'http://');
-
-    console.log('🔗 Opening certificate URL:', cleanUrl);
+    const cleanedUrl = cleanUrl(url);
+    console.log('🔗 Opening certificate URL:', cleanedUrl);
 
     // Try direct open first
-    const newWindow = window.open(cleanUrl, '_blank');
+    const newWindow = window.open(cleanedUrl, '_blank');
 
     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
       console.log('Popup blocked, trying fallback method...');
 
       // Fallback: Create a temporary link and click it
       const link = document.createElement('a');
-      link.href = cleanUrl;
+      link.href = cleanedUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.click();
@@ -807,15 +831,18 @@ const MyResumePage = () => {
             </svg>
             <span className="nav-item-text">My Resume</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
+          {/* ✅ My Internship - Only shows when student has accepted application */}
+          {hasActiveInternship && (
+            <button
+              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
+              onClick={() => navigate('/student/active-internship')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span className="nav-item-text">My Internship</span>
+            </button>
+          )}
 
         </nav>
 
@@ -1288,10 +1315,8 @@ const MyResumePage = () => {
                     ) : (
                       <div className="certificates-grid">
                         {resumeData.certifications.map((item, index) => {
-                          // Clean the certificate URL before displaying
-                          const cleanCertificateUrl = item.certificateUrl ?
-                            item.certificateUrl.replace('http://localhost:5000http://', 'http://')
-                              .replace('http://localhost:5000http//', 'http://') : '';
+                          // Clean the certificate URL using cleanUrl function
+                          const cleanCertificateUrl = item.certificateUrl ? cleanUrl(item.certificateUrl) : '';
 
                           return (
                             <div key={index} className="certificate-item-card">
@@ -1942,7 +1967,7 @@ const MyResumePage = () => {
                             id="certUpload"
                             accept=".pdf,.jpg,.jpeg,.png"
                             onChange={handleCertUpload}
-                            disabled={uploading}
+                            disabled={uploadingCert}
                           />
                           <label htmlFor="certUpload" className="upload-label-small">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1950,7 +1975,7 @@ const MyResumePage = () => {
                               <polyline points="17 8 12 3 7 8"></polyline>
                               <line x1="12" y1="3" x2="12" y2="15"></line>
                             </svg>
-                            {uploading ? 'Uploading...' : 'Choose File'}
+                            {uploadingCert ? 'Uploading...' : 'Choose File'}
                           </label>
                         </div>
                         <p className="upload-hint-small">PDF, JPG, PNG (Max 3MB)</p>

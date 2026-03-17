@@ -46,11 +46,11 @@ const ProfilePage = () => {
             fullName: user.fullName || '',
             email: user.email || '',
             education: {
-              college: user.education?.college || '',
-              department: user.education?.department || '',
-              yearOfStudy: user.education?.yearOfStudy || '',
-              course: user.education?.course || '',
-              specialization: user.education?.specialization || ''
+              college: user.currentEducation?.college || '',
+              department: user.currentEducation?.department || '',
+              yearOfStudy: user.currentEducation?.yearOfStudy || '',
+              course: user.currentEducation?.course || '',
+              specialization: user.currentEducation?.specialization || ''
             },
             phone: user.phone || '',
             location: user.location || '',
@@ -102,7 +102,7 @@ const ProfilePage = () => {
         },
         body: JSON.stringify({
           fullName: profileData.fullName,
-          education: profileData.education,
+          currentEducation: profileData.education, // Send as currentEducation to match backend
           phone: profileData.phone,
           location: profileData.location,
           linkedin: profileData.linkedin,
@@ -118,7 +118,7 @@ const ProfilePage = () => {
         
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         user.fullName = profileData.fullName;
-        user.education = profileData.education;
+        user.currentEducation = profileData.education;
         localStorage.setItem('user', JSON.stringify(user));
         
         showNotification('Profile updated successfully!', 'success');

@@ -25,6 +25,7 @@ const BrowseInternshipsPage = () => {
     role: 'student',
     greeting: 'Good morning'
   });
+  const [hasActiveInternship, setHasActiveInternship] = useState(false);
 
   // ===== PAGINATION =====
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,8 +34,8 @@ const BrowseInternshipsPage = () => {
   // ===== FILTER STATES =====
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
-    department: '', // NEW: department filter
-    workMode: [],   // NEW: work mode filter
+    department: '',
+    workMode: [],
     location: '',
     types: [],
     duration: '',
@@ -42,6 +43,22 @@ const BrowseInternshipsPage = () => {
     stipend: '',
     levels: []
   });
+
+  // ===== SORT STATE =====
+  const [sortBy, setSortBy] = useState('recent');
+
+  // ===== MODAL STATES =====
+  const [selectedInternship, setSelectedInternship] = useState(null);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+
+  // ===== APPLICATION FORM STATES =====
+  const [experience, setExperience] = useState('');
+  const [available, setAvailable] = useState('');
+  const [source, setSource] = useState('');
+  const [confirmTerms, setConfirmTerms] = useState(false);  // ✅ ADDED
 
   // ===== DEPARTMENT OPTIONS =====
   const departments = [
@@ -63,24 +80,6 @@ const BrowseInternshipsPage = () => {
     { value: 'Onsite', label: 'Onsite' }
   ];
 
-  // ===== SORT STATE =====
-  const [sortBy, setSortBy] = useState('recent');
-
-  // ===== MODAL STATES =====
-  const [selectedInternship, setSelectedInternship] = useState(null);
-  const [showApplyModal, setShowApplyModal] = useState(false);
-  const [coverLetter, setCoverLetter] = useState('');
-  const [applying, setApplying] = useState(false);
-  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
-
-  // ===== APPLICATION FORM STATES =====
-  const [experience, setExperience] = useState('');
-  const [available, setAvailable] = useState('');
-  const [locationPref, setLocationPref] = useState('');
-  const [source, setSource] = useState('');
-  const [portfolio, setPortfolio] = useState('');
-  const [confirmTerms, setConfirmTerms] = useState(false);
-
   // ===== GREETING =====
   useEffect(() => {
     const hour = new Date().getHours();
@@ -92,6 +91,7 @@ const BrowseInternshipsPage = () => {
 
   // ===== DERIVED FILTER OPTIONS FROM REAL DATA =====
   const locations = ['', ...new Set(internships.map(i => i.location).filter(Boolean))];
+
   const categories = [
     { value: '', label: 'All Categories' },
     { value: 'technology', label: 'Technology' },
@@ -127,6 +127,7 @@ const BrowseInternshipsPage = () => {
     fetchUserProfile();
     fetchInternships();
     fetchMyApplications();
+    checkActiveInternship();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -160,7 +161,6 @@ const BrowseInternshipsPage = () => {
           role: user.role
         }));
 
-        // ✅ STORE FULL PROFILE DATA
         setProfileData(user);
       }
     } catch (error) {
@@ -168,14 +168,17 @@ const BrowseInternshipsPage = () => {
     }
   };
 
-  // ===== FETCH INTERNSHIPS FROM BACKEND =====
+  // ===== FETCH INTERNSHIPS FROM BACKEND - FIXED =====
   const fetchInternships = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
+      // Send token only if available (to get applied status)
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
       const response = await fetch('http://localhost:5000/api/internships', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: headers
       });
       const data = await response.json();
 
@@ -197,6 +200,7 @@ const BrowseInternshipsPage = () => {
   const fetchMyApplications = async () => {
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) return;
 
       const response = await fetch('http://localhost:5000/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -216,12 +220,32 @@ const BrowseInternshipsPage = () => {
     }
   };
 
-  // ===== CHECK IF ALREADY APPLIED =====
+  // 👇 ADD THIS FUNCTION (around line 200)
+  const checkActiveInternship = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/applications/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const hasAccepted = data.data.applications.some(app => app.status === 'accepted');
+        setHasActiveInternship(hasAccepted);
+      }
+    } catch (error) {
+      console.error('Error checking active internship:', error);
+    }
+  };
+
+  // ===== CHECK IF ALREADY APPLIED - FIXED =====
   const hasApplied = (internshipId) => {
     if (!internshipId) return false;
     return myApplications.some(app => {
       const appInternshipId = app.internshipId || app.internship?._id || app.internship;
-      return appInternshipId === internshipId;
+      return String(appInternshipId) === String(internshipId);
     });
   };
 
@@ -453,7 +477,7 @@ const BrowseInternshipsPage = () => {
     setDisplayedInternships(filtered.slice(0, itemsPerPage));
   }, [internships, searchQuery, activeFilters, sortBy]);
 
-  // ===== HANDLE APPLY =====
+  // ===== HANDLE APPLY - FIXED =====
   const handleApply = async () => {
     if (!selectedInternship) return;
 
@@ -461,17 +485,8 @@ const BrowseInternshipsPage = () => {
       setApplying(true);
       const token = localStorage.getItem('authToken');
 
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        showNotification('Please login again', 'error');
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      const studentId = user.id || user._id;
-
-      if (!studentId) {
-        showNotification('User ID not found. Please login again.', 'error');
+      if (!token) {
+        showNotification('Please login to apply', 'error');
         return;
       }
 
@@ -482,7 +497,6 @@ const BrowseInternshipsPage = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          studentId: studentId,
           internshipId: selectedInternship._id,
           coverLetter: coverLetter
         })
@@ -490,7 +504,7 @@ const BrowseInternshipsPage = () => {
 
       const data = await response.json();
 
-      if (data.success || data.message === 'Application submitted successfully') {
+      if (data.success) {
         showNotification('Application submitted successfully!', 'success');
         setShowApplyModal(false);
         setCoverLetter('');
@@ -719,7 +733,7 @@ const BrowseInternshipsPage = () => {
         onClick={() => setIsMobileMenuOpen(false)}
       ></div>
 
-      {/* Sidebar - ZOYARAA BRANDING */}
+      {/* Sidebar */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
@@ -783,16 +797,18 @@ const BrowseInternshipsPage = () => {
             </svg>
             <span className="nav-item-text">My Resume</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
-
+          {/* ✅ My Internship - Only shows when student has accepted application */}
+          {hasActiveInternship && (
+            <button
+              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
+              onClick={() => navigate('/student/active-internship')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span className="nav-item-text">My Internship</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -1013,7 +1029,7 @@ const BrowseInternshipsPage = () => {
                 )}
               </div>
 
-              {/* Department Filter - NEW */}
+              {/* Department Filter */}
               <div className="filter-group">
                 <label className="filter-label">🏢 Department</label>
                 <select
@@ -1027,7 +1043,7 @@ const BrowseInternshipsPage = () => {
                 </select>
               </div>
 
-              {/* Work Mode Filter - NEW */}
+              {/* Work Mode Filter */}
               <div className="filter-group">
                 <label className="filter-label">🏢 Work Mode</label>
                 <div className="checkbox-group">
@@ -1061,43 +1077,6 @@ const BrowseInternshipsPage = () => {
                 </select>
               </div>
 
-              {/* Internship Type Filter */}
-              <div className="filter-group">
-                <label className="filter-label">💼 Internship Type</label>
-                <div className="checkbox-group">
-                  <div className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      id="fullTime"
-                      value="full-time"
-                      checked={activeFilters.types.includes('full-time')}
-                      onChange={(e) => toggleTypeFilter(e.target.value)}
-                    />
-                    <label htmlFor="fullTime">Full-time</label>
-                  </div>
-                  <div className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      id="partTime"
-                      value="part-time"
-                      checked={activeFilters.types.includes('part-time')}
-                      onChange={(e) => toggleTypeFilter(e.target.value)}
-                    />
-                    <label htmlFor="partTime">Part-time</label>
-                  </div>
-                  <div className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      id="remoteType"
-                      value="remote"
-                      checked={activeFilters.types.includes('remote')}
-                      onChange={(e) => toggleTypeFilter(e.target.value)}
-                    />
-                    <label htmlFor="remoteType">Remote</label>
-                  </div>
-                </div>
-              </div>
-
               {/* Duration Filter */}
               <div className="filter-group">
                 <label className="filter-label">⏱️ Duration</label>
@@ -1108,20 +1087,6 @@ const BrowseInternshipsPage = () => {
                 >
                   {durations.map(d => (
                     <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Category Filter */}
-              <div className="filter-group">
-                <label className="filter-label">🏷️ Category</label>
-                <select
-                  className="filter-select"
-                  value={activeFilters.category}
-                  onChange={(e) => setActiveFilters(prev => ({ ...prev, category: e.target.value }))}
-                >
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>{category.label}</option>
                   ))}
                 </select>
               </div>
@@ -1345,7 +1310,7 @@ const BrowseInternshipsPage = () => {
         </div>
       </main>
 
-      {/* Internship Details Modal - COMPLETE with ALL Zoyaraa fields */}
+      {/* Internship Details Modal */}
       {selectedInternship && !showApplyModal && (
         <div className="modal-overlay" onClick={() => setSelectedInternship(null)}>
           <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
@@ -1379,7 +1344,7 @@ const BrowseInternshipsPage = () => {
                 </div>
               </div>
 
-              {/* Key Details Grid - 2x2 */}
+              {/* Key Details Grid */}
               <div className="internship-details-grid-2col">
                 <div className="detail-card">
                   <div className="detail-label">📍 Location</div>
@@ -1399,7 +1364,7 @@ const BrowseInternshipsPage = () => {
                 </div>
               </div>
 
-              {/* Work Details Section - NEW */}
+              {/* Work Details Section */}
               <div className="modal-section">
                 <h3>🏢 Work Details</h3>
                 <div className="work-details-grid" style={{
@@ -1554,7 +1519,7 @@ const BrowseInternshipsPage = () => {
                 </div>
               )}
 
-              {/* Selection Process - NEW */}
+              {/* Selection Process */}
               {selectedInternship.selectionProcess && selectedInternship.selectionProcess.length > 0 && (
                 <div className="modal-section">
                   <h3>🎯 Selection Process</h3>
@@ -1640,7 +1605,7 @@ const BrowseInternshipsPage = () => {
         </div>
       )}
 
-      {/* Apply Modal - CORRECT Version */}
+      {/* Apply Modal */}
       {showApplyModal && selectedInternship && (
         <div className="modal-overlay" onClick={() => setShowApplyModal(false)}>
           <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
@@ -1661,7 +1626,7 @@ const BrowseInternshipsPage = () => {
                 <p className="company-name-large">Zoyaraa • {selectedInternship.department} Department</p>
               </div>
 
-              {/* ===== SECTION 1: Profile Review (Auto-filled from DB) ===== */}
+              {/* ===== SECTION 1: Profile Review ===== */}
               <div className="modal-section">
                 <h3>📋 Your Profile</h3>
                 <div style={{
@@ -1688,22 +1653,22 @@ const BrowseInternshipsPage = () => {
                     </span>
                   </div>
 
-                  {/* Education (from DB) - Handle different structures */}
+                  {/* Education */}
                   <div style={{ marginBottom: '1rem' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Education</span>
                     <p style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-                      {profileData?.college || profileData?.education?.college || 'Not specified'} •
-                      {profileData?.department || profileData?.education?.department || 'Department'} •
-                      {profileData?.yearOfStudy || profileData?.education?.yearOfStudy || 'Year'}
+                      {profileData?.currentEducation?.college || 'Not specified'} •
+                      {profileData?.currentEducation?.department || 'Department'} •
+                      {profileData?.currentEducation?.yearOfStudy || 'Year'}
                     </p>
                   </div>
 
-                  {/* Skills (from DB) - Handle different structures */}
-                  {profileData?.skills && profileData.skills.length > 0 ? (
+                  {/* Skills */}
+                  {profileData?.skills && profileData.skills.length > 0 && (
                     <div style={{ marginBottom: '1rem' }}>
                       <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Skills</span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        {profileData.skills.map((skill, i) => (
+                        {profileData.skills.slice(0, 5).map((skill, i) => (
                           <span key={i} style={{
                             background: '#EEF2FF',
                             padding: '0.25rem 0.75rem',
@@ -1714,28 +1679,22 @@ const BrowseInternshipsPage = () => {
                             {skill}
                           </span>
                         ))}
-                      </div>
-                    </div>
-                  ) : profileData?.resume?.skills && profileData.resume.skills.length > 0 ? (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>Skills</span>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        {profileData.resume.skills.map((skill, i) => (
-                          <span key={i} style={{
-                            background: '#EEF2FF',
+                        {profileData.skills.length > 5 && (
+                          <span style={{
+                            background: '#f1f5f9',
                             padding: '0.25rem 0.75rem',
                             borderRadius: '20px',
                             fontSize: '0.75rem',
-                            color: '#2440F0'
+                            color: '#64748b'
                           }}>
-                            {skill}
+                            +{profileData.skills.length - 5} more
                           </span>
-                        ))}
+                        )}
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
-                  {/* Resume - Check for resumeFile field */}
+                  {/* Resume */}
                   {profileData?.resume?.resumeFile ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '8px' }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
@@ -1789,19 +1748,14 @@ const BrowseInternshipsPage = () => {
                 </div>
               </div>
 
-              {/* ===== SECTION 2: Application Questions (Based on Internship) ===== */}
+              {/* ===== SECTION 2: Cover Letter ===== */}
               <div className="modal-section">
-                <h3>📝 Application Questions</h3>
-
-                {/* COVER LETTER - Always relevant */}
+                <h3>📝 Cover Letter</h3>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                    Why are you interested in this internship? <span style={{ color: '#6b7280', fontWeight: 'normal' }}>(Optional but recommended)</span>
-                  </label>
                   <textarea
                     value={coverLetter}
                     onChange={(e) => setCoverLetter(e.target.value)}
-                    placeholder="Tell us why you're a good fit for this role and what you hope to learn..."
+                    placeholder="Tell us why you're interested in this internship and what makes you a good fit..."
                     rows="4"
                     style={{
                       width: '100%',
@@ -1813,134 +1767,22 @@ const BrowseInternshipsPage = () => {
                     }}
                   />
                   <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                    A thoughtful response increases your chances of getting shortlisted.
+                    A thoughtful cover letter increases your chances of getting shortlisted.
                   </p>
-                </div>
-
-                {/* RELEVANT QUESTIONS based on internship requirements */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                    Do you have experience with {selectedInternship.skillsRequired?.slice(0, 3).map(s => typeof s === 'string' ? s : s.name).join(', ')}?
-                  </label>
-                  <div style={{ display: 'flex', gap: '2rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="radio" name="experience" value="yes" /> Yes
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="radio" name="experience" value="no" /> No
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="radio" name="experience" value="some" /> Some experience
-                    </label>
-                  </div>
-                </div>
-
-                {/* PORTFOLIO/GITHUB - Only ask if relevant to role */}
-                {selectedInternship.category === 'technology' && (
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                      Portfolio/GitHub Link
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://github.com/username"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* PROJECT LINKS - For design/development roles */}
-                {selectedInternship.category === 'design' && (
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                      Portfolio/Behance Link
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://behance.net/username"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* AVAILABILITY - Ask if they can commit to duration */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                    Are you available for {selectedInternship.duration} months starting from {new Date(selectedInternship.startDate).toLocaleDateString()}?
-                  </label>
-                  <div style={{ display: 'flex', gap: '2rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="radio" name="available" value="yes" /> Yes, I'm available
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="radio" name="available" value="no" /> No, I have constraints
-                    </label>
-                  </div>
-                </div>
-
-                {/* WORK MODE - Ask preference based on internship work mode */}
-                {selectedInternship.workMode === 'Hybrid' || selectedInternship.workMode === 'Onsite' ? (
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                      Are you able to work from {selectedInternship.officeLocation || 'our office'}?
-                    </label>
-                    <div style={{ display: 'flex', gap: '2rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input type="radio" name="location" value="yes" /> Yes
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input type="radio" name="location" value="no" /> No
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input type="radio" name="location" value="hybrid" /> Can do hybrid
-                      </label>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* SOURCE - Always good to track */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                    How did you hear about this internship?
-                  </label>
-                  <select
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      background: 'white'
-                    }}
-                  >
-                    <option value="">Select an option</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="college">College/University</option>
-                    <option value="friend">Friend/Referral</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="other">Other</option>
-                  </select>
                 </div>
               </div>
 
               {/* ===== SECTION 3: Confirmation ===== */}
               <div className="modal-section" style={{ borderTop: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                  <input type="checkbox" id="confirm" style={{ marginTop: '0.25rem' }} />
+                  <input
+                    type="checkbox"
+                    id="confirm"
+                    style={{ marginTop: '0.25rem' }}
+                    onChange={(e) => setConfirmTerms(e.target.checked)}
+                  />
                   <label htmlFor="confirm" style={{ fontSize: '0.875rem', color: '#4b5563' }}>
-                    I confirm that all information provided is accurate and I understand that
-                    <a href="#" style={{ color: '#2440F0', margin: '0 0.25rem' }}>false information</a>
-                    may lead to disqualification.
+                    I confirm that all information provided is accurate and I understand that submitting false information may lead to disqualification.
                   </label>
                 </div>
               </div>

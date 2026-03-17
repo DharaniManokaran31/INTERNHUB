@@ -21,6 +21,7 @@ const MyApplicationsPage = () => {
     initials: 'ST',
     role: 'student'
   });
+  const [hasActiveInternship, setHasActiveInternship] = useState(false);
 
   // Stats state
   const [stats, setStats] = useState({
@@ -36,6 +37,7 @@ const MyApplicationsPage = () => {
   useEffect(() => {
     fetchUserProfile();
     fetchApplications();
+    checkActiveInternship();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -94,6 +96,26 @@ const MyApplicationsPage = () => {
       showNotification('Failed to load applications', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 👇 ADD THIS FUNCTION (around line 110)
+  const checkActiveInternship = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/applications/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        const hasAccepted = data.data.applications.some(app => app.status === 'accepted');
+        setHasActiveInternship(hasAccepted);
+      }
+    } catch (error) {
+      console.error('Error checking active internship:', error);
     }
   };
 
@@ -250,15 +272,20 @@ const MyApplicationsPage = () => {
     }
   };
 
-  // ✅ View Resume with Google Docs Viewer
+  // ✅ FIXED: View Resume with proper URL handling
   const handleViewResume = (url) => {
     if (!url) {
       showNotification('No resume available', 'error');
       return;
     }
 
+    // Ensure URL is absolute
+    const fullUrl = url.startsWith('http')
+      ? url
+      : `http://localhost:5000${url}`;
+
     // Use Google Docs Viewer
-    const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}&embedded=true`;
     window.open(googleViewerUrl, '_blank');
   };
 
@@ -397,16 +424,18 @@ const MyApplicationsPage = () => {
             </svg>
             <span className="nav-item-text">My Resume</span>
           </button>
-          <button
-            className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
-
+          {/* ✅ My Internship - Only shows when student has accepted application */}
+          {hasActiveInternship && (
+            <button
+              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
+              onClick={() => navigate('/student/active-internship')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span className="nav-item-text">My Internship</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -787,7 +816,7 @@ const MyApplicationsPage = () => {
         </div>
       </main>
 
-      {/* Application Details Modal - ENHANCED with all fields */}
+      {/* Application Details Modal - FIXED with correct resume field */}
       {selectedApplication && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
@@ -890,7 +919,7 @@ const MyApplicationsPage = () => {
                 </div>
               </div>
 
-              {/* Internship Details - ENHANCED with all fields */}
+              {/* Internship Details */}
               <div className="modal-section">
                 <h3>💼 Internship Details</h3>
 
@@ -1081,13 +1110,13 @@ const MyApplicationsPage = () => {
                   </div>
                 )}
 
-                {/* Resume */}
-                {selectedApplication.resume && (
+                {/* ✅ FIXED: Resume - using correct field name submittedResume */}
+                {selectedApplication.submittedResume && (
                   <div style={{ marginBottom: '1rem' }}>
                     <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '0.75rem' }}>📎 Resume</h4>
                     <button
                       className="resume-view-btn"
-                      onClick={() => handleViewResume(selectedApplication.resume)}
+                      onClick={() => handleViewResume(selectedApplication.submittedResume.url)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1105,7 +1134,7 @@ const MyApplicationsPage = () => {
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M22 12c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2s10 4.48 10 10z"></path>
                       </svg>
-                      View Resume
+                      {selectedApplication.submittedResume.fileName || 'View Resume'}
                     </button>
                   </div>
                 )}
