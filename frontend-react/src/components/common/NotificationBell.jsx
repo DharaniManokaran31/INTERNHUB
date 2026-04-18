@@ -1,6 +1,7 @@
 // src/components/common/NotificationBell.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import '../../styles/StudentDashboard.css';
 
 const NotificationBell = () => {
@@ -43,12 +44,47 @@ const NotificationBell = () => {
       const data = await response.json();
 
       if (data.success) {
-        setNotifications(data.data.notifications);
+        const newNotifications = data.data.notifications;
+        
+        // 🚀 REAL-TIME POPUP LOGIC:
+        // If we have a new UNREAD notification that is newer than what we had, show a toast
+        if (notifications.length > 0 && newNotifications.length > 0) {
+          const latestOld = notifications[0];
+          const latestNew = newNotifications[0];
+          
+          if (latestNew._id !== latestOld._id && !latestNew.isRead) {
+            showToastPopup(latestNew);
+          }
+        } else if (notifications.length === 0 && newNotifications.length > 0) {
+           // First load - maybe don't toast all, but could toast the very latest if it's very recent
+           const latest = newNotifications[0];
+           const createdAt = new Date(latest.createdAt);
+           const now = new Date();
+           if (!latest.isRead && (now - createdAt) < 60000) { // If less than 1 min old
+             showToastPopup(latest);
+           }
+        }
+
+        setNotifications(newNotifications);
         setUnreadCount(data.data.unreadCount);
       }
     } catch (error) {
       console.error('❌ Error fetching notifications:', error);
     }
+  };
+
+  const showToastPopup = (notif) => {
+    toast(
+      <div onClick={() => handleNotificationClick(notif)}>
+        <strong>{notif.title}</strong>
+        <p style={{ margin: '5px 0 0', fontSize: '13px' }}>{notif.message}</p>
+      </div>,
+      {
+        toastId: notif._id,
+        autoClose: 8000,
+        pauseOnHover: true,
+      }
+    );
   };
 
   const markAsRead = async (notificationId) => {
@@ -129,12 +165,37 @@ const NotificationBell = () => {
       await markAsRead(notification._id);
     }
 
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const isStudent = userData.role === 'student';
+
     // Navigate based on notification type
     switch (notification.type) {
       case 'application_received':
-      case 'application_status_change':
         if (notification.data?.applicationId) {
           navigate(`/recruiter/applicants?application=${notification.data.applicationId}`);
+        }
+        break;
+      case 'application_status_change':
+        if (notification.data?.applicationId) {
+          if (isStudent) {
+            navigate(`/student/applications?id=${notification.data.applicationId}`);
+          } else {
+            navigate(`/recruiter/applicants?application=${notification.data.applicationId}`);
+          }
+        }
+        break;
+      case 'interview_scheduled':
+        if (isStudent) {
+          navigate('/student/dashboard'); // Or a specific interview page if exists
+        } else {
+          navigate('/recruiter/interviews');
+        }
+        break;
+      case 'interview_result':
+        if (isStudent) {
+          navigate('/student/applications');
+        } else {
+          navigate('/recruiter/interviews');
         }
         break;
       case 'internship_expiring':

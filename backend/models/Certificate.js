@@ -8,23 +8,20 @@ const CertificateSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true,
-      index: true
+      trim: true
     },
     
     // References
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Student',
-      required: [true, "Student ID is required"],
-      index: true
+      required: [true, "Student ID is required"]
     },
     
     internshipId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Internship',
-      required: [true, "Internship ID is required"],
-      index: true
+      required: [true, "Internship ID is required"]
     },
     
     applicationId: {
@@ -123,19 +120,18 @@ const CertificateSchema = new mongoose.Schema(
     qrCodeUrl: {
       type: String,
       trim: true,
-      required: true
+      default: '#'
     },
     
     pdfUrl: {
       type: String,
       trim: true,
-      required: true
+      default: '#'
     },
 
     // Verification
     verificationCode: {
       type: String,
-      required: true,
       unique: true,
       trim: true
     },
@@ -163,7 +159,6 @@ const CertificateSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-CertificateSchema.index({ verificationCode: 1 });
 CertificateSchema.index({ studentId: 1, status: 1 });
 CertificateSchema.index({ issuedBy: 1 });
 CertificateSchema.index({ createdAt: -1 });
@@ -201,22 +196,24 @@ CertificateSchema.virtual('internshipTitle').get(function() {
 
 // ===== PRE-SAVE HOOKS =====
 
-// Generate certificate ID and verification code before saving
-CertificateSchema.pre('save', async function(next) {
+// Generate certificate ID and verification code before validation
+CertificateSchema.pre('validate', async function() {
   if (this.isNew) {
-    // Generate unique certificate ID
-    const timestamp = Date.now().toString(36);
-    const random = crypto.randomBytes(4).toString('hex').toUpperCase();
-    this.certificateId = `CERT-${timestamp}-${random}`;
+    // Generate unique certificate ID if not already provided
+    if (!this.certificateId) {
+      const timestamp = Date.now().toString(36);
+      const random = crypto.randomBytes(4).toString('hex').toUpperCase();
+      this.certificateId = `CERT-${timestamp}-${random}`;
+    }
     
-    // Generate verification code
-    const studentPart = this.studentId.toString().slice(-4).toUpperCase();
-    const internshipPart = this.internshipId.toString().slice(-4).toUpperCase();
-    const randomCode = crypto.randomBytes(3).toString('hex').toUpperCase();
-    this.verificationCode = `${studentPart}-${internshipPart}-${randomCode}`;
+    // Generate verification code if not already provided
+    if (!this.verificationCode) {
+      const studentPart = this.studentId ? this.studentId.toString().slice(-4).toUpperCase() : 'STUD';
+      const internshipPart = this.internshipId ? this.internshipId.toString().slice(-4).toUpperCase() : 'INTN';
+      const randomCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+      this.verificationCode = `${studentPart}-${internshipPart}-${randomCode}`;
+    }
   }
-  
-  next();
 });
 
 // ===== INSTANCE METHODS =====

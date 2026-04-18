@@ -1,8 +1,9 @@
 // src/pages/recruiter/ManageInternshipsPage.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import NotificationBell from '../../components/common/NotificationBell';
 import '../../styles/StudentDashboard.css';
+import NotificationBell from '../../components/common/NotificationBell';
+import RecruiterSidebar from '../../components/layout/RecruiterSidebar';
 
 const ManageInternshipsPage = () => {
   const navigate = useNavigate();
@@ -188,10 +189,9 @@ const ManageInternshipsPage = () => {
       setLoading(prev => ({ ...prev, counts: true }));
       const counts = {};
 
-      // Just use the applicationCount from the internship object!
       internshipsList.forEach(internship => {
-        counts[internship._id] = internship.applicationCount || 0;
-        console.log(`📊 ${internship.title}: ${internship.applicationCount} applications (from internship object)`);
+        counts[internship._id] = (internship.stats?.totalApplications ?? internship.applicationCount) || 0;
+        console.log(`📊 ${internship.title}: ${counts[internship._id]} applications`);
       });
 
       setApplicationCounts(counts);
@@ -480,134 +480,12 @@ const ManageInternshipsPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-          {userData.department && (
-            <div className="department-badge" style={{
-              marginTop: '0.5rem',
-              padding: '0.25rem 0.5rem',
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '4px',
-              fontSize: '0.75rem',
-              textAlign: 'center'
-            }}>
-              {userData.department}
-            </div>
-          )}
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${location.pathname === '/recruiter/dashboard' ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/internships') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <span className="nav-item-text">Manage Internships</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/post-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span className="nav-item-text">Post Internship</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/applicants') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/applicants')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">View Applicants</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/interviews')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span className="nav-item-text">Interviews</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/mentor-dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M13.2 19L18 24M18 24L22.8 19M18 24V14M12 12A5 5 0 1 0 12 2A5 5 0 1 0 12 12Z" />
-            </svg>
-            <span className="nav-item-text">Mentor Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/mentees')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            <span className="nav-item-text">My Mentees</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/recruiter/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
-              <div className="user-role-sidebar">
-                {userData.department || 'Recruiter'} • {userData.company}
-              </div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      {/* Unified Sidebar */}
+      <RecruiterSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">

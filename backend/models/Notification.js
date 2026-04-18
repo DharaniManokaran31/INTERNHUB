@@ -6,8 +6,7 @@ const NotificationSchema = new mongoose.Schema(
     recipientId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Recipient ID is required"],
-      refPath: 'recipientModel',
-      index: true
+      refPath: 'recipientModel'
     },
     
     recipientModel: {
@@ -106,8 +105,7 @@ const NotificationSchema = new mongoose.Schema(
     // Status
     isRead: {
       type: Boolean,
-      default: false,
-      index: true
+      default: false
     },
     
     readAt: Date,
@@ -132,8 +130,7 @@ const NotificationSchema = new mongoose.Schema(
     // Expiry
     expiresAt: {
       type: Date,
-      default: () => new Date(+new Date() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      index: true
+      default: () => new Date(+new Date() + 30 * 24 * 60 * 60 * 1000) // 30 days
     },
 
     // Email tracking

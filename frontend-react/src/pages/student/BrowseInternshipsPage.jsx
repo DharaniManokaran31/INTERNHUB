@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentBrowseInternships.css';
 import NotificationBell from '../../components/common/NotificationBell';
+import StudentSidebar from '../../components/layout/StudentSidebar';
 
 const BrowseInternshipsPage = () => {
   const navigate = useNavigate();
@@ -244,7 +245,10 @@ const BrowseInternshipsPage = () => {
   const hasApplied = (internshipId) => {
     if (!internshipId) return false;
     return myApplications.some(app => {
-      const appInternshipId = app.internshipId || app.internship?._id || app.internship;
+      // Check if internshipId is an object and extract _id, otherwise use as is
+      const id1 = app.internshipId?._id || app.internshipId;
+      const id2 = app.internship?._id || app.internship;
+      const appInternshipId = id1 || id2;
       return String(appInternshipId) === String(internshipId);
     });
   };
@@ -727,103 +731,12 @@ const BrowseInternshipsPage = () => {
   // ===== RENDER =====
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${location.pathname === '/student/dashboard' ? 'active' : ''}`}
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item active`}
-            onClick={() => navigate('/student/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <span className="nav-item-text">Browse Internships</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname === '/student/applications' ? 'active' : ''}`}
-            onClick={() => navigate('/student/applications')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">My Applications</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/student/resume') ? 'active' : ''}`}
-            onClick={() => navigate('/student/resume')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">My Resume</span>
-          </button>
-          {/* ✅ My Internship - Only shows when student has accepted application */}
-          {hasActiveInternship && (
-            <button
-              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-              onClick={() => navigate('/student/active-internship')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span className="nav-item-text">My Internship</span>
-            </button>
-          )}
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/student/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name || 'Student User'}</div>
-              <div className="user-role-sidebar">Student • Zoyaraa</div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      {/* Unified Sidebar */}
+      <StudentSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -1179,7 +1092,7 @@ const BrowseInternshipsPage = () => {
                   </div>
                 ) : (
                   displayedInternships.map((internship) => {
-                    const applied = hasApplied(internship._id);
+                    const applied = internship.hasApplied || hasApplied(internship._id);
                     const bookmarked = isBookmarked(internship._id);
                     const deadlinePassed = isDeadlinePassed(internship.deadline);
                     const relativeTime = getRelativeTime(internship.createdAt);

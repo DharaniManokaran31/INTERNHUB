@@ -1,6 +1,6 @@
 // src/App.js
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
 import './styles/main.css';
 
@@ -18,6 +18,8 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import AcceptInvitePage from './pages/auth/AcceptInvitePage';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Student Dashboard Pages
 import StudentDashboard from './pages/student/DashboardPage';
@@ -50,6 +52,7 @@ import AdminManageUsers from './pages/admin/ManageUsersPage';
 import AdminManageInternships from './pages/admin/ManageInternshipsPage';
 import AdminReports from './pages/admin/ReportsPage';
 import AdminProfilePage from './pages/admin/ProfilePage';
+import AdminCompanyPage from './pages/admin/CompanyPage';
 
 // Common Components
 import LoadingSpinner from './components/common/LoadingSpinner';
@@ -72,6 +75,7 @@ const HrCompletedInternsPage = lazy(() => import('./pages/hr/CompletedInternsPag
 const HrStudentsPage = lazy(() => import('./pages/hr/StudentsPage'));
 const HrStudentDetailsPage = lazy(() => import('./pages/hr/StudentDetailsPage'));
 const HrAnalyticsPage = lazy(() => import('./pages/hr/AnalyticsPage'));
+const HrViewCertificatePage = lazy(() => import('./pages/hr/ViewCertificatePage'));
 
 // Authentication helper functions
 const isAuthenticated = () => {
@@ -86,8 +90,10 @@ const getUserRole = () => {
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const location = useLocation();
+
   if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   const userRole = getUserRole();
@@ -115,8 +121,8 @@ const DashboardRedirect = () => {
 
 function App() {
   return (
-    <Router>
-      <div className="App">
+    <div className="App">
+        <ToastContainer position="top-right" autoClose={5000} />
         <Routes>
           {/* Public Routes with MainLayout */}
           <Route path="/" element={<MainLayout><LandingPage /></MainLayout>} />
@@ -173,6 +179,7 @@ function App() {
                   <Route path="students" element={<DashboardLayout role="hr"><HrStudentsPage /></DashboardLayout>} />
                   <Route path="students/:id" element={<DashboardLayout role="hr"><HrStudentDetailsPage /></DashboardLayout>} />
                   <Route path="analytics" element={<DashboardLayout role="hr"><HrAnalyticsPage /></DashboardLayout>} />
+                  <Route path="certificates/:id" element={<HrViewCertificatePage />} />
                 </Routes>
               </Suspense>
             </ProtectedRoute>
@@ -184,6 +191,7 @@ function App() {
           <Route path="/admin/internships" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout role="admin"><AdminManageInternships /></DashboardLayout></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout role="admin"><AdminReports /></DashboardLayout></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout role="admin"><AdminProfilePage /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/admin/company" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout role="admin"><AdminCompanyPage /></DashboardLayout></ProtectedRoute>} />
 
           {/* Placeholder Routes */}
           <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student']}><DashboardLayout role="student"><PlaceholderPage title="Student Settings" /></DashboardLayout></ProtectedRoute>} />
@@ -199,8 +207,7 @@ function App() {
           {/* 404 Redirect */}
           <Route path="*" element={isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
         </Routes>
-      </div>
-    </Router>
+    </div>
   );
 }
 

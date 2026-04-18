@@ -92,7 +92,7 @@ const ProgressChart = ({ data }) => {
                     const height = (data.hours[index] / maxHours) * 100;
                     return (
                         <BarWrapper key={category}>
-                            <BarAmount>{data.hours[index]}h</BarAmount>
+                            <BarAmount>{Number(data.hours[index] || 0).toFixed(2)}h</BarAmount>
                             <Bar height={height} />
                             <BarLabel>{category.replace('Week ', 'W')}</BarLabel>
                         </BarWrapper>

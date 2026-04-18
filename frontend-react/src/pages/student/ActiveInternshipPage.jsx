@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/StudentDashboard.css'; // Reuse existing styles
 import NotificationBell from '../../components/common/NotificationBell';
+import StudentSidebar from '../../components/layout/StudentSidebar';
 
 const ActiveInternshipPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const ActiveInternshipPage = () => {
   const [recentLogs, setRecentLogs] = useState([]);
   const [internship, setInternship] = useState(null);
   const [mentor, setMentor] = useState(null);
+  const [appStatus, setAppStatus] = useState(null);
+  const [hasCertificate, setHasCertificate] = useState(false);
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'ST',
@@ -72,15 +75,19 @@ const ActiveInternshipPage = () => {
           return;
         }
 
-        const acceptedApp = appsData.data.applications?.find(app => app.status === 'accepted');
+        // Find the active or completed application
+        const activeApp = appsData.data.applications?.find(app => 
+          app.status === 'accepted' || app.status === 'completed'
+        );
 
-        if (!acceptedApp) {
-          // No active internship, redirect to dashboard
+        if (!activeApp) {
+          // No active or completed internship, redirect to dashboard
           navigate('/student/dashboard');
           return;
         }
 
-        const internshipId = acceptedApp.internshipId || acceptedApp.internship?._id;
+        setAppStatus(activeApp.status);
+        const internshipId = activeApp.internshipId || activeApp.internship?._id;
 
         // Fetch internship details
         const internshipResponse = await fetch(`http://localhost:5000/api/internships/${internshipId}`, {
@@ -89,17 +96,12 @@ const ActiveInternshipPage = () => {
         const internshipData = await internshipResponse.json();
 
         if (internshipData.success) {
-          setInternship(internshipData.data.internship);
-          
-          // Fetch mentor details if available
-          if (internshipData.data.internship.mentorId) {
-            const mentorResponse = await fetch(`http://localhost:5000/api/recruiters/${internshipData.data.internship.mentorId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const mentorData = await mentorResponse.json();
-            if (mentorData.success) {
-              setMentor(mentorData.data.recruiter);
-            }
+          const internshipObj = internshipData.data.internship;
+          setInternship(internshipObj);
+
+          // Priority 1: Direct mentor object from populated internshipData
+          if (internshipObj.mentorId && typeof internshipObj.mentorId === 'object' && internshipObj.mentorId.fullName) {
+            setMentor(internshipObj.mentorId);
           }
         }
 
@@ -110,7 +112,21 @@ const ActiveInternshipPage = () => {
         const progressData = await progressResponse.json();
 
         if (progressData.success) {
-          setProgress(progressData.data);
+          setProgress(progressData.data.progress);
+          
+          // Priority 2: Mentor object from progressData (populated via deep joins)
+          if (progressData.data.internship?.mentor && !mentor) {
+            setMentor(progressData.data.internship.mentor);
+          }
+        }
+
+        // Check for issued certificate
+        const certResponse = await fetch('http://localhost:5000/api/students/issued-certificates', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const certData = await certResponse.json();
+        if (certData.success && certData.data.certificates?.length > 0) {
+          setHasCertificate(true);
         }
 
         // Fetch recent logs
@@ -122,16 +138,16 @@ const ActiveInternshipPage = () => {
         if (logsData.success) {
           const logs = logsData.data.logs || [];
           setRecentLogs(logs.slice(0, 3));
-          
-          // Calculate stats
+
+          // Calculate stats (Verified logs only for hours)
           const approved = logs.filter(l => l.status === 'approved').length;
           const pending = logs.filter(l => l.status === 'pending').length;
-          const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
-          
+          const totalHours = logs.filter(l => l.status === 'approved').reduce((sum, l) => sum + (l.totalHours || 0), 0);
+
           setStats({
             approvedLogs: approved,
             pendingLogs: pending,
-            totalHours: totalHours
+            totalHours: totalHours.toFixed(2)
           });
         }
 
@@ -213,7 +229,7 @@ const ActiveInternshipPage = () => {
 
   // Check if today's log is already submitted
   const todayStr = new Date().toDateString();
-  const hasLoggedToday = recentLogs.some(log => 
+  const hasLoggedToday = recentLogs.some(log =>
     new Date(log.date).toDateString() === todayStr
   );
 
@@ -246,101 +262,12 @@ const ActiveInternshipPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <span className="nav-item-text">Browse Internships</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/applications')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">My Applications</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/resume')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">My Resume</span>
-          </button>
-
-          <button
-            className="nav-item active"
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/student/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">Student • Zoyaraa</div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      {/* Unified Sidebar */}
+      <StudentSidebar
+        isOpen={isMobileMenuOpen}
+        setIsOpen={setIsMobileMenuOpen}
+        userData={userData}
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -371,7 +298,7 @@ const ActiveInternshipPage = () => {
         {/* Content Area */}
         <div className="content-area">
           {/* Hero Section - Matching Dashboard style */}
-          <div className="welcome-section" style={{ 
+          <div className="welcome-section" style={{
             background: 'linear-gradient(135deg, #2440F0, #0a1a7a)',
             padding: '2rem',
             borderRadius: '12px',
@@ -382,27 +309,58 @@ const ActiveInternshipPage = () => {
               <div>
                 <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
                   {internship?.title || 'Active Internship'}
+                  {appStatus === 'completed' && (
+                    <span style={{ 
+                      marginLeft: '1rem', 
+                      fontSize: '0.9rem', 
+                      padding: '0.25rem 0.75rem', 
+                      background: 'rgba(255, 255, 255, 0.2)', 
+                      borderRadius: '20px',
+                      border: '1px solid white',
+                      verticalAlign: 'middle' 
+                    }}>
+                      ✓ COMPLETED
+                    </span>
+                  )}
                 </h1>
                 <p style={{ fontSize: '1rem', opacity: '0.9' }}>
                   {internship?.department || 'Department'} • {internship?.companyName || 'Zoyaraa'}
                 </p>
               </div>
-              <button
-                className="primary-btn"
-                onClick={() => navigate('/student/daily-log')}
-                disabled={hasLoggedToday}
-                style={{
-                  background: hasLoggedToday ? '#9ca3af' : 'white',
-                  color: hasLoggedToday ? '#4b5563' : '#2440F0',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontWeight: '600',
-                  cursor: hasLoggedToday ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {hasLoggedToday ? '✓ Today\'s Log Submitted' : 'Submit Daily Log'}
-              </button>
+              {appStatus === 'completed' ? (
+                <button
+                  className="primary-btn"
+                  onClick={() => navigate('/student/certificates')}
+                  style={{
+                    background: '#10b981',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  View Certificate
+                </button>
+              ) : (
+                <button
+                  className="primary-btn"
+                  onClick={() => navigate('/student/daily-log')}
+                  disabled={hasLoggedToday}
+                  style={{
+                    background: hasLoggedToday ? '#9ca3af' : 'white',
+                    color: hasLoggedToday ? '#4b5563' : '#2440F0',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: '600',
+                    cursor: hasLoggedToday ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {hasLoggedToday ? '✓ Today\'s Log Submitted' : 'Submit Daily Log'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -424,7 +382,7 @@ const ActiveInternshipPage = () => {
             <div className="stat-card">
               <div className="stat-info">
                 <div className="stat-label">Days Completed</div>
-                <div className="stat-value">{progress?.completedDays || 0}/{progress?.totalDays || 60}</div>
+                <div className="stat-value">{progress?.daysPassed || 0}/{progress?.totalDays || 60}</div>
               </div>
               <div className="stat-icon green">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -521,7 +479,7 @@ const ActiveInternshipPage = () => {
             {/* Mentor & Info Section */}
             <section className="section">
               <h2 className="section-title" style={{ marginBottom: '1rem' }}>Your Mentor</h2>
-              
+
               {mentor ? (
                 <div className="mentor-card" style={{
                   background: '#f8fafc',
@@ -573,21 +531,21 @@ const ActiveInternshipPage = () => {
                 padding: '1.5rem'
               }}>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ color: '#2440F0', fontWeight: '600' }}>⏰</span>
-                    <span>Submit logs before <strong>8 PM</strong> daily</span>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '1.1rem', marginTop: '0.1rem', minWidth: '20px', textAlign: 'center' }}>⏰</span>
+                    <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'left', lineHeight: '1.4' }}>Submit your daily progress logs before <strong style={{ color: '#1e293b' }}>8:00 PM</strong> daily</span>
                   </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ color: '#10b981', fontWeight: '600' }}>⏱️</span>
-                    <span>Minimum <strong>4 hours</strong> of work required</span>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '1.1rem', marginTop: '0.1rem', minWidth: '20px', textAlign: 'center' }}>⏱️</span>
+                    <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'left', lineHeight: '1.4' }}>Consistently log a minimum of <strong style={{ color: '#1e293b' }}>4 working hours</strong> to track attendance</span>
                   </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ color: '#f59e0b', fontWeight: '600' }}>✅</span>
-                    <span>Logs must be <strong>approved</strong> to count</span>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '1.1rem', marginTop: '0.1rem', minWidth: '20px', textAlign: 'center' }}>✅</span>
+                    <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'left', lineHeight: '1.4' }}>Your contributions must be <strong style={{ color: '#10b981' }}>approved</strong> by your mentor to qualify for progress</span>
                   </li>
-                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0' }}>
-                    <span style={{ color: '#dc2626', fontWeight: '600' }}>⚠️</span>
-                    <span>Missing <strong>3 consecutive days</strong> may affect status</span>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 0' }}>
+                    <span style={{ fontSize: '1.1rem', marginTop: '0.1rem', minWidth: '20px', textAlign: 'center' }}>⚠️</span>
+                    <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'left', lineHeight: '1.4' }}>Unreported absence for <strong style={{ color: '#ef4444' }}>3 consecutive days</strong> will trigger a status review</span>
                   </li>
                 </ul>
               </div>

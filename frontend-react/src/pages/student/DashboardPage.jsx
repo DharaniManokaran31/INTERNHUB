@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentDashboard.css';
 import NotificationBell from '../../components/common/NotificationBell';
+import StudentSidebar from '../../components/layout/StudentSidebar';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -43,7 +44,9 @@ const DashboardPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        const hasAccepted = data.data.applications.some(app => app.status === 'accepted');
+        const hasAccepted = data.data.applications.some(app => 
+          ['accepted', 'completed'].includes(app.status)
+        );
         setHasActiveInternship(hasAccepted);
       }
     } catch (error) {
@@ -133,13 +136,17 @@ const DashboardPage = () => {
 
         if (data.success) {
           const applicationsData = data.data.applications || [];
-          setApplications(applicationsData);
+          const mappedApps = applicationsData.map(app => ({
+            ...app,
+            internship: app.internshipId || app.internship
+          }));
+          setApplications(mappedApps);
           setStats({
-            total: applicationsData.length,
-            shortlisted: applicationsData.filter(app => app.status === 'shortlisted').length,
-            pending: applicationsData.filter(app => app.status === 'pending').length,
-            accepted: applicationsData.filter(app => app.status === 'accepted').length,
-            rejected: applicationsData.filter(app => app.status === 'rejected').length
+            total: mappedApps.length,
+            shortlisted: mappedApps.filter(app => app.status === 'shortlisted').length,
+            pending: mappedApps.filter(app => app.status === 'pending').length,
+            accepted: mappedApps.filter(app => ['accepted', 'completed'].includes(app.status)).length,
+            rejected: mappedApps.filter(app => app.status === 'rejected').length
           });
         }
       } catch (error) {
@@ -346,109 +353,12 @@ const DashboardPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`} id="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${location.pathname === '/student/dashboard' ? 'active' : ''}`}
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/student/internships') ? 'active' : ''}`}
-            onClick={() => navigate('/student/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <span className="nav-item-text">Browse Internships</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/student/applications') ? 'active' : ''}`}
-            onClick={() => navigate('/student/applications')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">My Applications</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/student/resume') ? 'active' : ''}`}
-            onClick={() => navigate('/student/resume')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">My Resume</span>
-          </button>
-          {/* ✅ NEW CODE - Wrapped with condition */}
-          {hasActiveInternship && (
-            <button
-              className={`nav-item ${location.pathname.includes('/student/active-internship') || location.pathname.includes('/student/daily-log') || location.pathname.includes('/student/my-logs') || location.pathname.includes('/student/milestones') ? 'active' : ''}`}
-              onClick={() => navigate('/student/active-internship')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span className="nav-item-text">My Internship</span>
-            </button>
-          )}
-
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/student/profile')}
-            style={{ width: '100%', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))' }}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">
-                Student • Zoyaraa
-              </div>
-            </div>
-          </button>
-        </div>
-      </aside>
-
-      {/* Sidebar Overlay for Mobile */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        id="sidebarOverlay"
-        onClick={toggleMobileMenu}
-      ></div>
+      {/* Unified Sidebar */}
+      <StudentSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -596,6 +506,67 @@ const DashboardPage = () => {
               View All Applications
             </button>
           </div>
+
+          {/* Upcoming Interviews Section */}
+          {applications.some(app => app.currentInterviewId?.rounds?.some(r => r.status === 'scheduled')) && (
+            <section className="section" style={{ marginBottom: '1.5rem' }}>
+              <div className="section-header">
+                <h2 className="section-title">Upcoming Interviews</h2>
+              </div>
+              <div className="recent-applications-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                {applications
+                  .filter(app => app.currentInterviewId?.rounds?.some(r => r.status === 'scheduled'))
+                  .map(app => {
+                    const nextRound = app.currentInterviewId.rounds
+                      .filter(r => r.status === 'scheduled')
+                      .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))[0];
+                    
+                    if (!nextRound) return null;
+
+                    return (
+                      <div key={app._id} className="recent-application-card" style={{ borderLeft: '4px solid #2440F0' }}>
+                        <div className="recent-app-header">
+                          <h4>{app.internship?.title}</h4>
+                          <span style={{ 
+                            padding: '0.25rem 0.75rem', 
+                            background: '#EEF2FF', 
+                            color: '#2440F0', 
+                            borderRadius: '20px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: '600' 
+                          }}>
+                            Round {nextRound.roundNumber}
+                          </span>
+                        </div>
+                        <div className="interview-datetime" style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b', fontWeight: '500' }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                          </svg>
+                          {formatDate(nextRound.scheduledDate)} at {nextRound.scheduledTime}
+                        </div>
+                        <div className="recent-app-meta" style={{ marginTop: '0.75rem' }}>
+                          <span>{nextRound.roundType} • {nextRound.mode}</span>
+                          {nextRound.mode === 'online' && nextRound.onlineDetails?.meetingLink && (
+                            <a 
+                              href={nextRound.onlineDetails.meetingLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#2440F0', fontWeight: '600', textDecoration: 'none' }}
+                            >
+                              Join Link
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            </section>
+          )}
 
           {/* Two Column Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>

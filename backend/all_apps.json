@@ -1,0 +1,58 @@
+[
+  {
+    "submittedResume": {
+      "url": "/uploads/resumes/resume-69ba1d9af0d352e966a5894d-1773892749038-705037964.pdf",
+      "fileName": "Dharani_resume.pdf",
+      "fileSize": 0,
+      "uploadedAt": "2026-03-19T03:59:09.049Z"
+    },
+    "_id": "69cde75243c525cde9284a6f",
+    "studentId": "69ba1d9af0d352e966a5894d",
+    "internshipId": "69b91546ad4d7bca3eabadb8",
+    "recruiterId": "69b105ca8f62a8d2301ef5c0",
+    "status": "pending",
+    "coverLetter": "Subject: Application for Frontend Developer Intern - Siva Lavanya S\n\nDear Hiring Team at Zoyaraa,\n\nI am writing to express my strong interest in the Frontend Developer Intern position at Zoyaraa. As a 3rd-year Electronics and Communication Engineering student at Bannari Amman Institute of Technology, I have developed a passion for creating intuitive, user-friendly web interfaces that solve real-world problems.\n\nWhy I'm a great fit:\n\n🎨 Frontend Skills\n\nProficient in React.js, HTML5, CSS3, and JavaScript (ES6+)\n\nExperience building responsive, mobile-first web applications\n\nFamiliar with modern CSS frameworks and styled-components\n\nUnderstanding of REST API integration using Axios/Fetch\n\n💡 What Excites Me About Zoyaraa\n\nInternHub is exactly the kind of meaningful project I want to contribute to - a platform that streamlines internship management\n\nThe opportunity to work on real-world features like dashboards, application tracking, and certificate generation\n\nYour focus on clean UI/UX that makes complex processes simple\n\n🚀 What I Bring\n\nStrong problem-solving mindset from my engineering background\n\nAttention to detail in implementing designs pixel-perfectly\n\nEagerness to learn modern frontend best practices and tools\n\nCollaborative spirit - I thrive in team environments\n\nTechnical Highlights:\n✅ Built multiple React projects with responsive designs\n✅ Experience with Git/GitHub for version control\n✅ Understanding of component-based architecture\n✅ Familiar with browser DevTools and debugging\n\nI am excited about the possibility of contributing to Zoyaraa's mission while growing my skills as a frontend developer. I'm available to start immediately and commit fully to this internship.\n\nThank you for considering my application. I would love to discuss how I can add value to your frontend team.\n\nSiva Lavanya S\nBannari Amman Institute of Technology",
+    "submittedCertificates": [
+      {
+        "name": "Programming in Java",
+        "url": "/uploads/certificates/certificate-69ba1d9af0d352e966a5894d-1773892738733-551281808.pdf",
+        "fileName": "certificate-69ba1d9af0d352e966a5894d-1773892738733-551281808.pdf",
+        "uploadedAt": "2026-03-19T03:59:00.629Z",
+        "_id": "69cde75243c525cde9284a70",
+        "id": "69cde75243c525cde9284a70"
+      }
+    ],
+    "timeline": [
+      {
+        "status": "pending",
+        "comment": "Application submitted",
+        "updatedAt": "2026-04-02T03:49:38.770Z",
+        "updatedBy": "69ba1d9af0d352e966a5894d",
+        "_id": "69cde75243c525cde9284a71",
+        "id": "69cde75243c525cde9284a71"
+      }
+    ],
+    "nextSteps": "",
+    "certificateRecommended": false,
+    "certificationFeedback": "",
+    "matchingScore": 0,
+    "isWithdrawn": false,
+    "isReadByRecruiter": false,
+    "appliedAt": "2026-04-02T03:49:38.773Z",
+    "recruiterNotes": [],
+    "createdAt": "2026-04-02T03:49:38.777Z",
+    "updatedAt": "2026-04-02T03:49:38.777Z",
+    "__v": 0,
+    "daysSinceApplied": 1,
+    "currentStatusDetails": {
+      "status": "pending",
+      "comment": "Application submitted",
+      "updatedAt": "2026-04-02T03:49:38.770Z",
+      "updatedBy": "69ba1d9af0d352e966a5894d",
+      "_id": "69cde75243c525cde9284a71",
+      "id": "69cde75243c525cde9284a71"
+    },
+    "hasCertificateRecommendation": false,
+    "id": "69cde75243c525cde9284a6f"
+  }
+]

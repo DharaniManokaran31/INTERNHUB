@@ -187,7 +187,7 @@ exports.getAllInternships = async (req, res) => {
     let filter = { 
       status: 'active',
       deadline: { $gt: new Date() },
-      filledPositions: { $lt: "$positions" } // Not fully filled
+      $expr: { $lt: ["$filledPositions", "$positions"] }
     };
 
     // Apply filters
@@ -214,7 +214,7 @@ exports.getAllInternships = async (req, res) => {
     }
 
     const internships = await Internship.find(filter)
-      .populate('mentorId', 'fullName email department')
+      .populate('mentorId', 'fullName email department designation')
       .populate('postedBy', 'fullName')
       .sort({ createdAt: -1 });
 
@@ -294,7 +294,7 @@ exports.getRecruiterInternships = async (req, res) => {
 exports.getInternshipById = async (req, res) => {
   try {
     const internship = await Internship.findById(req.params.id)
-      .populate('mentorId', 'fullName email department')
+      .populate('mentorId', 'fullName email department designation')
       .populate('postedBy', 'fullName email');
 
     if (!internship) {

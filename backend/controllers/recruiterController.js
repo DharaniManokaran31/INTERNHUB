@@ -332,6 +332,7 @@ exports.acceptInvitation = async (req, res) => {
             recruiter.invitationExpires = undefined;
             recruiter.isActive = true;
             recruiter.lastLoginAt = new Date();
+            recruiter.acceptedAt = new Date();
 
             await recruiter.save();
 
@@ -422,12 +423,27 @@ exports.getMyMentees = async (req, res) => {
             }).populate('internshipId', 'title startDate endDate duration');
 
             let progress = 'Not started';
+            let calculatedEndDate = application?.internshipId?.endDate;
+
             if (application?.internshipId?.startDate) {
                 const start = new Date(application.internshipId.startDate);
                 const now = new Date();
-                const daysPassed = Math.floor((now - start) / (24 * 60 * 60 * 1000));
-                const totalDays = application.internshipId.duration * 30 || 60;
-                progress = `Day ${Math.min(daysPassed + 1, totalDays)}/${totalDays}`;
+                const totalDays = (application.internshipId.duration || 2) * 30; // approx
+                
+                // Calculate end date if not present
+                if (!calculatedEndDate) {
+                    calculatedEndDate = new Date(start);
+                    calculatedEndDate.setDate(calculatedEndDate.getDate() + totalDays);
+                }
+
+                if (now < start) {
+                    // Future start date
+                    const daysUntil = Math.ceil((start - now) / (24 * 60 * 60 * 1000));
+                    progress = `Starts in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+                } else {
+                    const daysPassed = Math.floor((now - start) / (24 * 60 * 60 * 1000));
+                    progress = `Day ${Math.min(daysPassed + 1, totalDays)}/${totalDays}`;
+                }
             }
 
             return {
@@ -440,6 +456,7 @@ exports.getMyMentees = async (req, res) => {
                 internship: application ? {
                     title: application.internshipId?.title,
                     startDate: application.internshipId?.startDate,
+                    endDate: calculatedEndDate,
                     progress
                 } : null
             };
@@ -479,6 +496,28 @@ exports.getMyDepartmentStats = async (req, res) => {
             internshipId: { $in: internshipIds }
         });
 
+        // Mentoring Stats
+        const mentees = await Student.find({ _id: { $in: recruiter.mentorFor || [] } });
+        let activeInterns = 0;
+        let completedInterns = 0;
+        let totalProgressSum = 0;
+        let progressCount = 0;
+
+        for (const mentee of mentees) {
+            const apps = await Application.findOne({ studentId: mentee._id, status: { $in: ['accepted', 'completed'] } });
+            if (apps) {
+                if (apps.status === 'completed') completedInterns++;
+                else activeInterns++;
+
+                // Try to get actual logs count for progress
+                const logsCount = await DailyLog.countDocuments({ studentId: mentee._id, internshipId: apps.internshipId });
+                const totalDays = 60; // default
+                const progress = Math.min(Math.round((logsCount / totalDays) * 100), 100);
+                totalProgressSum += progress;
+                progressCount++;
+            }
+        }
+
         res.status(200).json({
             success: true,
             data: {
@@ -488,7 +527,12 @@ exports.getMyDepartmentStats = async (req, res) => {
                 pendingApplications: applications.filter(a => a.status === 'pending').length,
                 acceptedApplications: applications.filter(a => a.status === 'accepted').length,
                 shortlistedApplications: applications.filter(a => a.status === 'shortlisted').length,
-                rejectedApplications: applications.filter(a => a.status === 'rejected').length
+                rejectedApplications: applications.filter(a => a.status === 'rejected').length,
+                // New mentoring stats
+                totalMentees: mentees.length,
+                activeInterns,
+                completedInterns,
+                avgProgress: progressCount > 0 ? Math.round(totalProgressSum / progressCount) : 0
             }
         });
     } catch (error) {

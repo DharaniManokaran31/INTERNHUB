@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import CertificateTemplate from '../common/CertificateTemplate';
 import '../../styles/StudentDashboard.css';
 
 const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
@@ -31,38 +32,7 @@ const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
         setTimeout(() => ripple.remove(), 600);
     };
 
-    const generatePDF = async () => {
-        const element = certRef.current;
-        if (!element) return;
-        
-        try {
-            const canvas = await html2canvas(element, { 
-                scale: 2,
-                backgroundColor: '#ffffff',
-                logging: false,
-                allowTaint: true,
-                useCORS: true
-            });
-            
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4'
-            });
-            
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.save(`${studentData?.student?.fullName || 'Certificate'}_Certificate.pdf`);
-            
-            return true;
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            return false;
-        }
-    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -73,8 +43,8 @@ const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
             
             const certificateData = {
                 applicationId: studentData._id,
-                studentId: studentData.student?._id || studentData.studentId,
-                internshipId: studentData.internship?._id || studentData.internshipId,
+                studentId: studentData.studentId?._id || studentData.student?._id || studentData.studentId,
+                internshipId: studentData.internshipId?._id || studentData.internship?._id || studentData.internshipId,
                 projectTitle: formData.projectTitle,
                 mentorName: formData.mentorName,
                 skillsAcquired: formData.skillsAcquired.split(',').map(s => s.trim()).filter(s => s),
@@ -96,8 +66,8 @@ const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
             const data = await response.json();
 
             if (data.success) {
-                // Generate and download PDF
-                await generatePDF();
+                // Removed auto-download on HR side per user request
+                // Student will download it from their dashboard
                 
                 // Show success notification
                 const notification = document.createElement('div');
@@ -329,117 +299,20 @@ const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
                 </div>
             </div>
 
-            {/* HIDDEN CERTIFICATE TEMPLATE FOR PDF GENERATION */}
+            {/* HIDDEN CERTIFICATE TEMPLATE (Only for preview/consistency, no auto-download here) */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-                <div ref={certRef} style={{ 
-                    width: '842px', 
-                    height: '595px', 
-                    padding: '40px', 
-                    background: formData.template === 'professional' ? 'white' :
-                                formData.template === 'modern' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
-                                'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                    border: formData.template === 'professional' ? '5px double #2440F0' :
-                            formData.template === 'modern' ? 'none' : '2px solid #2d3748',
-                    borderRadius: '15px', 
-                    position: 'relative', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    color: formData.template === 'professional' ? '#1a1f36' :
-                           formData.template === 'modern' ? 'white' : '#2d3748',
-                    fontFamily: 'Georgia, serif',
-                    boxShadow: formData.template === 'modern' ? '0 10px 40px rgba(0,0,0,0.2)' : 'none'
-                }}>
-                    {/* Decorative elements based on template */}
-                    {formData.template === 'classic' && (
-                        <>
-                            <div style={{ position: 'absolute', top: '20px', left: '30px', fontSize: '40px', opacity: '0.1' }}>⚜️</div>
-                            <div style={{ position: 'absolute', bottom: '20px', right: '30px', fontSize: '40px', opacity: '0.1' }}>⚜️</div>
-                        </>
-                    )}
-                    
-                    <div style={{ 
-                        fontSize: formData.template === 'modern' ? '56px' : '48px', 
-                        fontWeight: 'bold', 
-                        marginBottom: '20px', 
-                        color: formData.template === 'modern' ? 'white' : 
-                               formData.template === 'classic' ? '#b8860b' : '#2440F0',
-                        textShadow: formData.template === 'modern' ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none'
-                    }}>
-                        CERTIFICATE OF COMPLETION
-                    </div>
-                    
-                    <div style={{ fontSize: '20px', marginBottom: '40px' }}>This is to certify that</div>
-                    
-                    <div style={{ 
-                        fontSize: '36px', 
-                        fontWeight: 'bold', 
-                        borderBottom: formData.template === 'classic' ? '2px solid #b8860b' : '2px solid #ccc', 
-                        paddingBottom: '10px', 
-                        marginBottom: '30px' 
-                    }}>
-                        {student.fullName || 'Student Name'}
-                    </div>
-                    
-                    <div style={{ fontSize: '18px', textAlign: 'center', maxWidth: '80%', lineHeight: '1.8' }}>
-                        has successfully completed their internship program at <strong style={{
-                            color: formData.template === 'modern' ? '#ffd700' : 
-                                   formData.template === 'classic' ? '#b8860b' : '#2440F0'
-                        }}>Zoyaraa</strong>
-                        <br />
-                        as a <strong>{formData.projectTitle || internship.title || 'Intern'}</strong> in the <strong>{internship.department || 'Department'}</strong> department.
-                        <br />
-                        The intern demonstrated exceptional skills in <strong>{formData.skillsAcquired || 'various technologies'}</strong>.
-                    </div>
-                    
-                    {formData.comments && (
-                        <div style={{ 
-                            marginTop: '30px', 
-                            fontStyle: 'italic', 
-                            fontSize: '16px',
-                            maxWidth: '70%',
-                            textAlign: 'center',
-                            padding: '10px',
-                            borderTop: formData.template === 'classic' ? '1px dashed #b8860b' : '1px dashed #ccc'
-                        }}>
-                            "{formData.comments}"
-                        </div>
-                    )}
-                    
-                    <div style={{ marginTop: '50px', display: 'flex', width: '100%', justifyContent: 'space-around' }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ 
-                                borderBottom: formData.template === 'classic' ? '2px solid #b8860b' : '1px solid black', 
-                                width: '200px', 
-                                marginBottom: '10px' 
-                            }}></div>
-                            <div style={{ fontWeight: '600' }}>{formData.mentorName || 'Mentor Name'}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>Project Mentor</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ 
-                                fontWeight: 'bold', 
-                                fontSize: '24px', 
-                                color: formData.template === 'classic' ? '#b8860b' : '#2440F0' 
-                            }}>
-                                Grade: {formData.grade}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>Performance Grade</div>
-                        </div>
-                    </div>
-                    
-                    <div style={{ 
-                        position: 'absolute', 
-                        bottom: '20px', 
-                        right: '40px', 
-                        fontSize: '12px', 
-                        color: '#94a3b8',
-                        fontFamily: 'monospace'
-                    }}>
-                        ID: CERT-{Date.now().toString().slice(-8)}
-                    </div>
-                </div>
+                <CertificateTemplate 
+                    certRef={certRef}
+                    studentName={student.fullName}
+                    internshipTitle={formData.projectTitle || internship.title}
+                    department={internship.department}
+                    skillsAcquired={formData.skillsAcquired.split(',').map(s => s.trim())}
+                    mentorName={formData.mentorName}
+                    grade={formData.grade}
+                    issueDate={new Date()}
+                    certificateId="PREVIEW-ONLY"
+                    template={formData.template}
+                />
             </div>
         </div>
     );

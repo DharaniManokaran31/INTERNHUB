@@ -1,12 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
-const { hrOnly } = require('../middleware/roleMiddleware');  // ✅ ADD role middleware
+const { hrOnly, recruiterOrHrOnly } = require('../middleware/roleMiddleware');  // ✅ ADD role middleware
 const hrController = require('../controllers/hrController');
 const { inviteLimiter } = require('../middleware/rateLimiter');
 
-// All HR routes require auth and HR role
+// All HR routes require auth at first
 router.use(authMiddleware);
+
+// --- STUDENT MANAGEMENT (Accessed by both HR and Recruiter) ---
+router.get('/students/:studentId', recruiterOrHrOnly, hrController.getStudentById);
+router.get('/students/:studentId/applications', recruiterOrHrOnly, hrController.getStudentApplications);
+
+// All other HR routes require HR role
 router.use(hrOnly);
 
 // --- RECRUITER INVITATION MANAGEMENT (NEW FLOW) ---
@@ -39,10 +45,8 @@ router.get('/applications', hrController.getAllApplications);
 router.get('/applications/:applicationId', hrController.getApplicationById);
 router.patch('/applications/:applicationId/status', hrController.updateApplicationStatus);
 
-// --- STUDENT MANAGEMENT ---
+// --- STUDENT LIST ---
 router.get('/students', hrController.getAllStudents);
-router.get('/students/:studentId', hrController.getStudentById);
-router.get('/students/:studentId/applications', hrController.getStudentApplications)
 
 // --- INTERN TRACKING ---
 router.get('/active-interns', hrController.getActiveInterns);

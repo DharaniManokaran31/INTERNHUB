@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import '../../styles/StudentProfile.css';
 
 const AdminProfilePage = () => {
@@ -11,8 +12,10 @@ const AdminProfilePage = () => {
     fullName: '',
     email: '',
     phone: '',
-    role: 'admin'
+    role: 'admin',
+    initials: 'AD'
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [originalData, setOriginalData] = useState({});
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -43,7 +46,8 @@ const AdminProfilePage = () => {
             fullName: user.fullName || '',
             email: user.email || '',
             phone: user.phone || '',
-            role: user.role || 'admin'
+            role: user.role || 'admin',
+            initials: getInitials(user.fullName)
           };
           setProfileData(profile);
           setOriginalData(profile);
@@ -273,7 +277,36 @@ const AdminProfilePage = () => {
   }
 
   return (
-    <div className="profile-page">
+    <div className="app-container">
+      <AdminSidebar 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+        userData={{ name: profileData.fullName, initials: profileData.initials }} 
+      />
+
+      <main className="main-content" style={{ padding: 0 }}>
+        {/* Mobile Toggle */}
+        <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 100 }}>
+          <button
+            className="menu-toggle"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            style={{ 
+              background: 'white', 
+              border: '1px solid #e5e7eb', 
+              padding: '8px', 
+              borderRadius: '8px',
+              display: window.innerWidth < 1024 ? 'flex' : 'none'
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div className="profile-page">
       {/* Header Section with Gradient */}
       <div className="profile-header-gradient admin-gradient">
         <div className="profile-header-content">
@@ -570,6 +603,8 @@ const AdminProfilePage = () => {
           </div>
         </div>
       )}
+        </div>
+      </main>
     </div>
   );
 };

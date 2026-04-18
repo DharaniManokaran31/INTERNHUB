@@ -5,7 +5,7 @@ const Recruiter = require('../models/Recruiter');
 const Student = require('../models/Student');
 const { createNotification } = require('./notificationController');
 const { 
-  sendInterviewScheduledEmail, 
+  sendInterviewEmail, 
   sendInterviewRescheduleEmail,
   sendInterviewResponseEmail,
   sendResultEmail 
@@ -434,7 +434,7 @@ exports.scheduleRound = async (req, res) => {
     // Send email notification (non-blocking)
     (async () => {
       try {
-        await sendInterviewScheduledEmail(
+        await sendInterviewEmail(
           interview.studentId.email,
           interview.studentId.fullName,
           interview.internshipId.title,
@@ -602,7 +602,7 @@ exports.submitRoundResult = async (req, res) => {
         interview.overallStatus = 'selected';
         
         // Update application status
-        await Application.findByIdAndUpdate(
+        const app = await Application.findByIdAndUpdate(
           interview.applicationId,
           { 
             status: 'accepted',
@@ -614,8 +614,25 @@ exports.submitRoundResult = async (req, res) => {
                 updatedBy: req.user.id
               }
             }
-          }
+          },
+          { new: true } // Need app doc to access recruiterId later
         );
+        
+        // Add student to recruiter's mentees and update student's internship
+        if (app) {
+          try {
+            const Recruiter = require('../models/Recruiter');
+            await Recruiter.findByIdAndUpdate(app.recruiterId, {
+              $addToSet: { mentorFor: app.studentId }
+            });
+            const Student = require('../models/Student');
+            await Student.findByIdAndUpdate(app.studentId, {
+              currentInternship: app.internshipId
+            });
+          } catch (err) {
+            console.error('Failed to update mentee/internship relationships:', err);
+          }
+        }
         
         // Send selection email (non-blocking)
         (async () => {

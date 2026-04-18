@@ -989,7 +989,7 @@ const sendInterviewEmail = async (email, studentName, internshipTitle, round) =>
 // ============================================
 
 // 1. Application Status Change Email
-const sendApplicationStatusEmail = async (studentEmail, studentName, internshipTitle, newStatus, comment) => {
+const sendApplicationStatusEmail = async (studentEmail, studentName, internshipTitle, newStatus, comment, applicationId) => {
   try {
     const isAccepted = newStatus === 'accepted';
     const isRejected = newStatus === 'rejected';
@@ -1006,7 +1006,7 @@ const sendApplicationStatusEmail = async (studentEmail, studentName, internshipT
           ${comment ? `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>Recruiter Feedback:</strong><br>${comment}</div>` : ''}
           <p>You can view more details on your dashboard.</p>
           <div style="text-align: center; margin-top: 30px;">
-            <a href="http://localhost:3000/student/applications" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW APPLICATIONS</a>
+            <a href="http://localhost:3000/student/applications${applicationId ? `?id=${applicationId}` : ''}" style="background: #2440F0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW APPLICATIONS</a>
           </div>
         </div>
       `

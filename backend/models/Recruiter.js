@@ -95,6 +95,7 @@ const recruiterSchema = new mongoose.Schema(
     },
     
     isActive: { type: Boolean, default: true },
+    acceptedAt: Date,
     deactivatedAt: Date,
     deactivatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Recruiter' },
     
@@ -139,7 +140,6 @@ const recruiterSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-recruiterSchema.index({ email: 1 }, { unique: true });
 recruiterSchema.index({ role: 1 });
 recruiterSchema.index({ invitationStatus: 1 });
 recruiterSchema.index({ invitationToken: 1 });

@@ -3,12 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/StudentDashboard.css'; // Reuse existing styles
 import NotificationBell from '../../components/common/NotificationBell';
+import StudentSidebar from '../../components/layout/StudentSidebar';
+import CertificateTemplate from '../../components/common/CertificateTemplate';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useRef } from 'react';
 
 const CertificatesPage = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const certRef = useRef(null);
+  const [selectedCert, setSelectedCert] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'ST',
@@ -99,13 +107,47 @@ const CertificatesPage = () => {
     setTimeout(() => notification.remove(), 3000);
   };
 
-  const handleDownload = (cert) => {
-    if (cert.pdfUrl || cert.certificateUrl) {
-      window.open(cert.pdfUrl || cert.certificateUrl, '_blank');
-      showNotification('Opening certificate...', 'success');
-    } else {
-      showNotification('Certificate file not available', 'error');
-    }
+  const handleDownload = async (cert) => {
+    setSelectedCert(cert);
+    setIsDownloading(true);
+    showNotification('Preparing your certificate...', 'info');
+
+    // Wait for the template to render with new data
+    setTimeout(async () => {
+      try {
+        const element = certRef.current;
+        if (!element) {
+          throw new Error('Certificate template not found');
+        }
+
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        pdf.save(`${userData.name.replace(/\s+/g, '_')}_Internship_Certificate.pdf`);
+        
+        showNotification('Certificate downloaded successfully!', 'success');
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        showNotification('Failed to generate PDF. Please try again.', 'error');
+      } finally {
+        setIsDownloading(false);
+      }
+    }, 500);
   };
 
   const handleVerify = (certId) => {
@@ -129,111 +171,12 @@ const CertificatesPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <span className="nav-item-text">Browse Internships</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/applications')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">My Applications</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/resume')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">My Resume</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
-
-          <button
-            className="nav-item active"
-            onClick={() => navigate('/student/certificates')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-            </svg>
-            <span className="nav-item-text">Certificates</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/student/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">Student • Zoyaraa</div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      {/* Unified Sidebar */}
+      <StudentSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -320,10 +263,10 @@ const CertificatesPage = () => {
 
                   {/* Certificate Details */}
                   <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.2rem', fontWeight: '600' }}>
-                    {cert.internship?.title || 'Internship Certificate'}
+                    {cert.internshipId?.title || cert.internship?.title || 'Internship Certificate'}
                   </h3>
                   <p style={{ margin: '0 0 1rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                    {cert.internship?.department || 'Department'} • Zoyaraa
+                    {cert.internshipId?.department || cert.internship?.department || 'Department'} • Zoyaraa
                   </p>
 
                   {/* Grade & Skills */}
@@ -375,14 +318,26 @@ const CertificatesPage = () => {
                       <button
                         className="primary-btn"
                         onClick={() => handleDownload(cert)}
-                        style={{ flex: 1, padding: '0.75rem' }}
+                        disabled={isDownloading}
+                        style={{ 
+                          flex: 1, 
+                          padding: '0.75rem',
+                          background: isDownloading && selectedCert?._id === cert._id ? '#9ca3af' : 'linear-gradient(135deg, #2440F0, #0B1DC1)',
+                          cursor: isDownloading ? 'not-allowed' : 'pointer'
+                        }}
                       >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="7 10 12 15 17 10"></polyline>
-                          <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Download
+                        {isDownloading && selectedCert?._id === cert._id ? (
+                          'Downloading...'
+                        ) : (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem' }}>
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="7 10 12 15 17 10"></polyline>
+                              <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download
+                          </>
+                        )}
                       </button>
                       <button
                         className="secondary-btn"
@@ -402,6 +357,24 @@ const CertificatesPage = () => {
           )}
         </div>
       </main>
+
+      {/* Hidden Certificate Template for PDF Generation */}
+      {selectedCert && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+          <CertificateTemplate 
+            certRef={certRef}
+            studentName={userData.name}
+            internshipTitle={selectedCert.internshipId?.title || selectedCert.internship?.title}
+            department={selectedCert.internshipId?.department || selectedCert.internship?.department}
+            skillsAcquired={selectedCert.skillsAcquired}
+            mentorName={selectedCert.issuedBy?.fullName || selectedCert.mentorName}
+            grade={selectedCert.grade}
+            issueDate={selectedCert.issueDate}
+            certificateId={selectedCert.certificateId}
+            template={selectedCert.template || 'professional'}
+          />
+        </div>
+      )}
     </div>
   );
 };

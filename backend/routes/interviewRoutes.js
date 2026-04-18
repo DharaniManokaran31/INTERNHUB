@@ -61,6 +61,12 @@ router.put('/:interviewId/reschedule', rescheduleRound);
 
 // ===== HR ROUTES =====
 // HR can view all interviews
-router.get('/hr/all', hrOnly, getRecruiterInterviews);  // ✅ NEW
+router.get('/hr/all', hrOnly, getRecruiterInterviews);
+
+// HR can schedule an interview round (specifically HR rounds)
+router.put('/hr/:interviewId/schedule', hrOnly, scheduleRound);
+
+// HR can submit interview results
+router.put('/hr/:interviewId/result', hrOnly, submitRoundResult);
 
 module.exports = router;

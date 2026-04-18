@@ -419,8 +419,8 @@ exports.getDashboardStats = async (req, res) => {
       Internship.countDocuments({ status: 'active' }),
       Application.countDocuments(),
       Application.countDocuments({ status: 'pending' }),
-      Application.countDocuments({ status: 'accepted' }),
-      Application.countDocuments({ status: 'accepted' }),
+      Application.countDocuments({ status: { $in: ['accepted', 'completed'] } }),
+      Application.countDocuments({ status: { $in: ['accepted', 'completed'] } }),
       Certificate.countDocuments({ status: 'issued' })
     ]);
 
@@ -497,31 +497,37 @@ exports.getRecentActivity = async (req, res) => {
     const activities = [];
 
     // 1. Get recent recruiter invitations (last 7 days)
+    const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
     const recentRecruiters = await Recruiter.find({
       role: 'recruiter',
       $or: [
-        { createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
-        { updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }
+        { createdAt: { $gte: last7Days } },
+        { acceptedAt: { $gte: last7Days } }
       ]
     })
-      .select('fullName email department createdAt updatedAt invitationStatus isInvited')
-      .sort({ updatedAt: -1 })
+      .select('fullName email department createdAt updatedAt acceptedAt invitationStatus isInvited')
+      .sort({ createdAt: -1 })
       .limit(10);
 
     recentRecruiters.forEach(recruiter => {
-      // If they accepted recently (status changed to accepted)
+      // If they accepted recently (at acceptedAt or createdAt)
       if (recruiter.invitationStatus === 'accepted') {
-        activities.push({
-          _id: recruiter._id,
-          type: 'recruiter_accepted',
-          title: 'Recruiter Joined',
-          message: `${recruiter.fullName} accepted invitation and joined the team`,
-          description: `${recruiter.fullName} accepted invitation and joined the team`,
-          timestamp: recruiter.updatedAt, // Use updatedAt for acceptance time
-          link: `/hr/recruiters/${recruiter._id}`,
-          user: recruiter.fullName,
-          isRead: false
-        });
+        const joinDate = recruiter.acceptedAt || recruiter.createdAt;
+        // Only show if the JOIN event was within the last 7 days
+        if (joinDate >= last7Days) {
+          activities.push({
+            _id: recruiter._id,
+            type: 'recruiter_accepted',
+            title: 'Recruiter Joined',
+            message: `${recruiter.fullName} accepted invitation and joined the team`,
+            description: `${recruiter.fullName} accepted invitation and joined the team`,
+            timestamp: joinDate,
+            link: `/hr/recruiters/${recruiter._id}`,
+            user: recruiter.fullName,
+            isRead: false
+          });
+        }
       }
       // If they were invited recently
       else if (recruiter.invitationStatus === 'pending' && recruiter.isInvited) {
@@ -816,8 +822,62 @@ exports.updateApplicationStatus = async (req, res) => {
       });
     }
 
-    application.status = status;
+    // Only update and push to timeline if status is different
+    if (application.status !== status) {
+      application.status = status;
+      application.timeline.push({
+        status,
+        comment: `Application ${status} by HR team`,
+        updatedBy: req.user.id
+      });
+    }
+    
     await application.save();
+
+    // If accepted, add student to recruiter's mentees and update student's internship
+    if (status === 'accepted') {
+      try {
+        await Recruiter.findByIdAndUpdate(application.recruiterId, {
+          $addToSet: { mentorFor: application.studentId._id }
+        });
+        await Student.findByIdAndUpdate(application.studentId._id, {
+          currentInternship: application.internshipId._id
+        });
+        // Close open interviews
+        const Interview = require('../models/Interview');
+        await Interview.findOneAndUpdate(
+          { applicationId: application._id },
+          { overallStatus: 'selected' }
+        );
+      } catch (err) {
+        console.error('Failed to update mentee/internship relationships:', err);
+      }
+    } else if (status === 'rejected') {
+      try {
+        // Close open interviews
+        const Interview = require('../models/Interview');
+        await Interview.findOneAndUpdate(
+          { applicationId: application._id },
+          { overallStatus: 'rejected' }
+        );
+      } catch (err) {}
+    }
+
+    // Send email notification (non-blocking)
+    const { sendApplicationStatusEmail } = require('../services/emailService');
+    (async () => {
+      try {
+        await sendApplicationStatusEmail(
+          application.studentId.email,
+          application.studentId.fullName,
+          application.internshipId.title,
+          status,
+          `Your application has been ${status} following HR review.`
+        );
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+      }
+    })();
 
     res.status(200).json({
       success: true,
@@ -869,9 +929,7 @@ exports.getAllStudents = async (req, res) => {
 exports.getStudentById = async (req, res) => {
   const { studentId } = req.params;
   try {
-    const student = await Student.findById(studentId)
-      .select('-password')
-      .populate('resume');  // ✅ ADD THIS - populates education, experience, projects, skills, certifications
+    const student = await Student.findById(studentId).select('-password');
 
     if (!student) {
       return res.status(404).json({
@@ -880,9 +938,25 @@ exports.getStudentById = async (req, res) => {
       });
     }
 
+    // Convert student to object and add full URLs for files
+    const studentObj = student.toObject();
+    
+    // Add resume URL
+    if (studentObj.resume?.resumeFile) {
+      studentObj.resume.resumeUrl = `${req.protocol}://${req.get('host')}${studentObj.resume.resumeFile}`;
+    }
+
+    // Add certification URLs
+    if (studentObj.resume?.certifications) {
+      studentObj.resume.certifications = studentObj.resume.certifications.map(cert => ({
+        ...cert,
+        certificateUrl: cert.certificateUrl ? `${req.protocol}://${req.get('host')}${cert.certificateUrl}` : null
+      }));
+    }
+
     res.status(200).json({
       success: true,
-      data: { student }
+      data: { student: studentObj }
     });
   } catch (error) {
     console.error('Error in getStudentById:', error);
@@ -1044,15 +1118,44 @@ exports.getActiveInternsStats = async (req, res) => {
 // Get Completed Interns
 exports.getCompletedInterns = async (req, res) => {
   try {
-    const completed = await Certificate.find({ status: 'issued' })
-      .populate('studentId', 'fullName email profilePicture')
-      .populate('internshipId', 'title department')
-      .populate('issuedBy', 'fullName')
-      .sort({ issueDate: -1 });
+    // 1. Get all applications with 'completed' status
+    const completedApps = await Application.find({ status: 'completed' })
+      .populate('studentId', 'fullName email profilePicture skills')
+      .populate({
+        path: 'internshipId',
+        select: 'title department startDate endDate',
+        populate: {
+          path: 'postedBy',
+          select: 'fullName'
+        }
+      })
+      .sort({ updatedAt: -1 });
+
+    // 2. Fetch certificates for these applications
+    const internsWithCertificates = await Promise.all(completedApps.map(async (app) => {
+      const certificate = await Certificate.findOne({ 
+        applicationId: app._id,
+        status: 'issued' 
+      }).populate('issuedBy', 'fullName');
+
+      return {
+        ...app.toObject(),
+        certificate: certificate ? {
+          certificateId: certificate.certificateId,
+          issueDate: certificate.issueDate,
+          issuedBy: certificate.issuedBy?.fullName,
+          grade: certificate.grade,
+          _id: certificate._id
+        } : null,
+        // For frontend compatibility:
+        certificateId: certificate ? certificate.certificateId : null,
+        issueDate: certificate ? certificate.issueDate : null
+      };
+    }));
 
     res.status(200).json({
       success: true,
-      data: { interns: completed }
+      data: { interns: internsWithCertificates }
     });
   } catch (error) {
     console.error('Error in getCompletedInterns:', error);
@@ -1089,7 +1192,7 @@ exports.getInternProgress = async (req, res) => {
 
     const application = await Application.findOne({
       studentId,
-      status: 'accepted'
+      status: { $in: ['accepted', 'completed'] }
     }).populate({
       path: 'internshipId',
       populate: {
@@ -1234,6 +1337,7 @@ exports.getEligibleStudents = async (req, res) => {
 
 exports.issueCertificate = async (req, res) => {
   try {
+    const mongoose = require('mongoose');
     const {
       applicationId,
       studentId,
@@ -1248,15 +1352,33 @@ exports.issueCertificate = async (req, res) => {
     } = req.body;
 
     const hrId = req.user.id;
+    console.log('🔍 [DEBUG] HR Issuing Certificate:', {
+      studentId,
+      internshipId,
+      applicationId,
+      hrId
+    });
+
+    // Explicitly cast IDs to protect against front-end string mismatches
+    let queryStudentId, queryInternshipId, queryApplicationId, queryHrId;
+    try {
+      queryStudentId = new mongoose.Types.ObjectId(studentId);
+      queryInternshipId = new mongoose.Types.ObjectId(internshipId);
+      queryApplicationId = new mongoose.Types.ObjectId(applicationId);
+      queryHrId = new mongoose.Types.ObjectId(hrId);
+    } catch (e) {
+      console.error('❌ [DEBUG] Cast failed for certificate issuance:', e.message);
+      return res.status(400).json({ success: false, message: "Invalid ID format provided." });
+    }
 
     // Generate unique certificate ID
     const certificateId = `CERT-ZOY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newCertificate = new Certificate({
       certificateId,
-      studentId,
-      internshipId,
-      applicationId,
+      studentId: queryStudentId,
+      internshipId: queryInternshipId,
+      applicationId: queryApplicationId,
       issueDate: issueDate || new Date(),
       template: template || 'professional',
       projectTitle,
@@ -1265,7 +1387,7 @@ exports.issueCertificate = async (req, res) => {
       grade,
       comments,
       status: 'issued',
-      issuedBy: hrId
+      issuedBy: queryHrId
     });
 
     await newCertificate.save();
@@ -1290,7 +1412,12 @@ exports.revokeCertificate = async (req, res) => {
     const { reason } = req.body;
     const hrId = req.user.id;
 
-    const certificate = await Certificate.findById(id);
+    const mongoose = require('mongoose');
+    const query = mongoose.Types.ObjectId.isValid(id) 
+      ? { $or: [{ _id: id }, { certificateId: id }] }
+      : { certificateId: id };
+
+    const certificate = await Certificate.findOne(query);
     if (!certificate) {
       return res.status(404).json({
         success: false,
@@ -1323,12 +1450,12 @@ exports.verifyCertificate = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const certificate = await Certificate.findOne({
-      $or: [
-        { _id: id },
-        { certificateId: id }
-      ]
-    })
+    const mongoose = require('mongoose');
+    const query = mongoose.Types.ObjectId.isValid(id) 
+      ? { $or: [{ _id: id }, { certificateId: id }] }
+      : { certificateId: id };
+
+    const certificate = await Certificate.findOne(query)
       .populate('studentId', 'fullName email')
       .populate('internshipId', 'title department')
       .populate('issuedBy', 'fullName designation');
@@ -1367,7 +1494,7 @@ exports.getReportsStats = async (req, res) => {
     const totalInternships = await Internship.countDocuments({});
     const activeInternships = await Internship.countDocuments({ status: 'active' });
     const totalApplications = await Application.countDocuments({});
-    const acceptedApplications = await Application.countDocuments({ status: 'accepted' });
+    const acceptedApplications = await Application.countDocuments({ status: { $in: ['accepted', 'completed'] } });
     const rejectedApplications = await Application.countDocuments({ status: 'rejected' });
     const totalStudents = await Student.countDocuments({});
     const totalRecruiters = await Recruiter.countDocuments({ role: 'recruiter', invitationStatus: { $in: ['accepted', 'pending'] } });
@@ -1417,7 +1544,7 @@ exports.getReportsTrends = async (req, res) => {
     ]);
 
     const hiresTrend = await Application.aggregate([
-      { $match: { status: 'accepted', updatedAt: { $gte: dateLimit } } },
+      { $match: { status: { $in: ['accepted', 'completed'] }, updatedAt: { $gte: dateLimit } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$updatedAt" } }, count: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]);
@@ -1441,7 +1568,7 @@ exports.getReportsTrends = async (req, res) => {
 exports.getReportsConversion = async (req, res) => {
   try {
     const totalApps = await Application.countDocuments();
-    const totalHired = await Application.countDocuments({ status: 'accepted' });
+    const totalHired = await Application.countDocuments({ status: { $in: ['accepted', 'completed'] } });
     const interviewOffers = await Application.countDocuments({ status: 'shortlisted' });
 
     const applicationToHire = totalApps > 0 ? ((totalHired / totalApps) * 100).toFixed(1) : 0;
@@ -1470,7 +1597,7 @@ exports.getReportsConversion = async (req, res) => {
           totalApps: { $sum: 1 },
           totalHired: {
             $sum: {
-              $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0]
+              $cond: [{ $in: ['$status', ['accepted', 'completed']] }, 1, 0]
             }
           }
         }
@@ -1526,12 +1653,12 @@ exports.verifyCertificatePublic = async (req, res) => {
     const { id } = req.params;
 
     // Find certificate by ID or certificateId
-    const certificate = await Certificate.findOne({
-      $or: [
-        { _id: id },
-        { certificateId: id }
-      ]
-    })
+    const mongoose = require('mongoose');
+    const query = mongoose.Types.ObjectId.isValid(id) 
+      ? { $or: [{ _id: id }, { certificateId: id }] }
+      : { certificateId: id };
+
+    const certificate = await Certificate.findOne(query)
       .populate('studentId', 'fullName email')
       .populate('internshipId', 'title department')
       .populate('issuedBy', 'fullName designation');

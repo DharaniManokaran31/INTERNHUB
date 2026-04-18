@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/StudentProfile.css';
+import StudentSidebar from '../../components/layout/StudentSidebar';
+import NotificationBell from '../../components/common/NotificationBell';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -242,8 +245,53 @@ const ProfilePage = () => {
     );
   }
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const userData = {
+    name: profileData.fullName,
+    initials: getInitials(profileData.fullName),
+    role: 'student'
+  };
+
   return (
-    <div className="profile-page">
+    <div className="app-container">
+      {/* Unified Sidebar */}
+      <StudentSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
+
+      <main className="main-content">
+        {/* Top Bar - Matching other pages */}
+        <div className="top-bar" style={{ padding: '0.75rem 1.5rem', background: 'white', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="top-bar-left">
+            <button
+              className="menu-toggle"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle menu"
+              style={{ padding: '0.5rem', marginRight: '1rem' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <h2 className="page-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>Profile Settings</h2>
+          </div>
+          <div className="top-bar-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NotificationBell />
+            <button className="logout-btn" onClick={handleLogout}>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="profile-page" style={{ padding: '2rem' }}>
+    
       {/* Header Section with Gradient */}
       <div className="profile-header-gradient">
         <div className="profile-header-content">
@@ -635,6 +683,8 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -42,7 +42,7 @@ const FeedbackModal = ({ interview, round, onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
-  const isLastRound = round.roundNumber === interview.rounds.length;
+  const isLastRound = interview && interview.rounds ? round.roundNumber === interview.rounds.length : false;
 
   return (
     <div style={{
@@ -101,7 +101,7 @@ const FeedbackModal = ({ interview, round, onClose, onSubmit }) => {
           </div>
 
           {/* Score (if applicable) */}
-          {round.roundType.includes('Test') && (
+          {(round.roundType.includes('Test') || round.roundType.includes('Interview') || round.roundType.includes('Assignment')) && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                 Score (0-100)

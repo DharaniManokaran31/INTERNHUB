@@ -98,23 +98,11 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      let response;
-      let data;
+      let data = { success: false, from: 'Initial' };
 
       // 1. Try student login
-      response = await fetch('http://localhost:5000/api/students/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
-      });
-      data = await response.json();
-
-      // 2. If student fails, try recruiter/HR login
-      if (!data.success) {
-        response = await fetch('http://localhost:5000/api/recruiters/login', {
+      try {
+        const studentResponse = await fetch('http://localhost:5000/api/students/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -122,55 +110,90 @@ const LoginPage = () => {
             password: formData.password
           })
         });
-        data = await response.json();
+        const studentData = await studentResponse.json();
+        if (studentData.success) {
+          data = { ...studentData, from: 'Student' };
+        } else {
+           data = { ...studentData, from: 'Student' };
+        }
+      } catch (err) {
+        console.log('Student login attempt failed, trying recruiter...');
+      }
+
+      // 2. If student fails, try recruiter/HR login
+      if (!data.success) {
+        try {
+          const recruiterResponse = await fetch('http://localhost:5000/api/recruiters/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password
+            })
+          });
+          const recruiterData = await recruiterResponse.json();
+          if (recruiterData.success) {
+            data = { ...recruiterData, from: 'Recruiter' };
+          } else {
+            data = { ...recruiterData, from: 'Recruiter' };
+          }
+        } catch (err) {
+          console.log('Recruiter login attempt failed, trying admin...');
+        }
       }
 
       // 3. If recruiter fails, try admin login
       if (!data.success) {
-        response = await fetch('http://localhost:5000/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password
-          })
-        });
-        data = await response.json();
-      }
-
-      if (data.success) {
-        // Save auth data to localStorage
-        localStorage.setItem('authToken', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-
-        // Clear any registration data
-        localStorage.removeItem('registeredEmail');
-        localStorage.removeItem('registeredRole');
-
-        // Show success notification
-        showNotification(`Welcome back, ${data.data.user.fullName}! You have been signed in successfully.`);
-
-        // Redirect based on user role
-        setTimeout(() => {
-          const role = data.data.user.role;
-          if (role === 'student') {
-            navigate('/student/dashboard');
-          } else if (role === 'recruiter') {
-            navigate('/recruiter/dashboard');
-          } else if (role === 'admin') {
-            navigate('/admin/dashboard');
-          } else if (role === 'hr') {
-            navigate('/hr/dashboard');
+        try {
+          const adminResponse = await fetch('http://localhost:5000/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password
+            })
+          });
+          const adminData = await adminResponse.json();
+          if (adminData.success) {
+             data = { ...adminData, from: 'Admin' };
           } else {
-            navigate('/dashboard');
+             data = { ...adminData, from: 'Admin' };
           }
-        }, 2000);
-      } else {
-        showNotification('Invalid email or password. Please try again.', 'error');
+        } catch (err) {
+          console.error('CRITICAL: Admin login fetch FAILED:', err);
+        }
       }
+
+      if (!data.success) {
+        let msg = data.message || 'Invalid email or password';
+        let prefix = data.from || 'Initial';
+        if (data.version) prefix += ` v${data.version}`;
+        msg = `[${prefix}] ${msg}`;
+        showNotification(msg, 'error');
+        setIsLoading(false);
+        return;
+      }
+
+      // SUCCESS PATH
+      localStorage.setItem('authToken', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+      localStorage.removeItem('registeredEmail');
+      localStorage.removeItem('registeredRole');
+
+      showNotification(`Welcome back, ${data.data.user.fullName}!`);
+
+      setTimeout(() => {
+        const role = data.data.user.role;
+        if (role === 'student') navigate('/student/dashboard');
+        else if (role === 'recruiter') navigate('/recruiter/dashboard');
+        else if (role === 'admin') navigate('/admin/dashboard');
+        else if (role === 'hr') navigate('/hr/dashboard');
+        else navigate('/dashboard');
+      }, 1000);
+
     } catch (error) {
-      console.error('Login error:', error);
-      showNotification('Network error. Please check your connection and try again.', 'error');
+      console.error('Login block error:', error);
+      showNotification('Network error. Please check your connection.', 'error');
     } finally {
       setIsLoading(false);
     }

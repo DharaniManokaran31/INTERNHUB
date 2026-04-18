@@ -384,7 +384,6 @@ const StudentSchema = new mongoose.Schema(
 );
 
 // ===== INDEXES =====
-StudentSchema.index({ email: 1 });
 StudentSchema.index({ skills: 1 });
 StudentSchema.index({ 'currentEducation.yearOfStudy': 1 });
 StudentSchema.index({ createdAt: -1 });

@@ -426,10 +426,10 @@ interviewSchema.pre('save', async function() {
   try {
     // Auto-calculate current round based on rounds array
     if (this.rounds && this.rounds.length > 0) {
-      // Find the highest round number with status 'scheduled' or 'pending'
+      // Find the lowest round number with status 'scheduled' or 'pending'
       const activeRound = this.rounds
         .filter(r => r.status === 'scheduled' || r.status === 'pending')
-        .sort((a, b) => b.roundNumber - a.roundNumber)[0];
+        .sort((a, b) => a.roundNumber - b.roundNumber)[0];
       
       if (activeRound) {
         this.currentRound = activeRound.roundNumber;

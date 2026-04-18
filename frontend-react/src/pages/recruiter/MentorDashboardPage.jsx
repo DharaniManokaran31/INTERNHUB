@@ -1,11 +1,13 @@
 // src/pages/recruiter/MentorDashboardPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import NotificationBell from '../../components/common/NotificationBell';
+import RecruiterSidebar from '../../components/layout/RecruiterSidebar';
 import '../../styles/StudentDashboard.css';
 
 const MentorDashboardPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [loading, setLoading] = useState({
         profile: true,
@@ -110,55 +112,35 @@ const MentorDashboardPage = () => {
             setLoading(prev => ({ ...prev, mentees: true, stats: true }));
             const token = localStorage.getItem('authToken');
 
-            // Fetch mentees list
-            const menteesResponse = await fetch('http://localhost:5000/api/recruiters/mentees', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const menteesData = await menteesResponse.json();
-            console.log('📊 Mentees API Response:', menteesData);
+            // Fetch mentor stats & mentees (all-in-one)
 
-            // Fetch mentor stats
-            const statsResponse = await fetch('http://localhost:5000/api/progress/mentor/stats', {
+            // Fetch mentor stats & mentees
+            const statsResponse = await fetch('http://localhost:5000/api/progress/mentor/dashboard', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const statsData = await statsResponse.json();
             console.log('📊 Stats API Response:', statsData);
 
-            if (menteesData.success) {
-                const menteesList = menteesData.data.mentees || [];
-                
-                // Fetch progress for each mentee to get accurate percentages
-                const menteesWithProgress = await Promise.all(
-                    menteesList.map(async (mentee) => {
-                        try {
-                            const progressResponse = await fetch(
-                                `http://localhost:5000/api/progress/intern/${mentee._id}`,
-                                { headers: { 'Authorization': `Bearer ${token}` } }
-                            );
-                            const progressData = await progressResponse.json();
-                            
-                            return {
-                                ...mentee,
-                                progressStats: progressData.success ? progressData.progress : null
-                            };
-                        } catch (err) {
-                            console.error(`Error fetching progress for ${mentee._id}:`, err);
-                            return mentee;
-                        }
-                    })
-                );
-                
-                setMentees(menteesWithProgress);
-                setTotalPages(Math.ceil(menteesWithProgress.length / itemsPerPage));
-            }
-
             if (statsData.success) {
+                const fetchedMentees = statsData.data?.mentees || [];
+                
+                // Map the mentees from the stats response directly
+                setMentees(fetchedMentees.map(m => ({
+                    ...m.student,
+                    internship: m.internship,
+                    stats: m.stats,
+                    progressPercentage: m.stats.progress
+                })));
+
                 setStats({
                     totalMentees: statsData.data?.totalMentees || 0,
                     pendingReviews: statsData.data?.pendingReviews || 0,
+                    pendingInterviews: statsData.data?.pendingInterviews || 0,
                     approvedToday: statsData.data?.approvedToday || 0,
                     avgHoursPerDay: statsData.data?.avgHoursPerDay || 0
                 });
+
+                setTotalPages(Math.ceil(fetchedMentees.length / itemsPerPage));
             }
 
         } catch (error) {
@@ -229,6 +211,11 @@ const MentorDashboardPage = () => {
 
     // Calculate progress percentage from multiple sources
     const getProgressPercentage = (mentee) => {
+        // Source 0: From current mapping
+        if (mentee.progressPercentage !== undefined) {
+            return mentee.progressPercentage;
+        }
+
         // Source 1: From progressStats API
         if (mentee.progressStats?.percentage) {
             return mentee.progressStats.percentage;
@@ -282,146 +269,11 @@ const MentorDashboardPage = () => {
 
     return (
         <div className="app-container">
-            {/* Sidebar Overlay */}
-            <div
-                className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-            ></div>
-
-            {/* Sidebar */}
-            <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-                <div className="sidebar-header">
-                    <div className="sidebar-logo">
-                        <div className="sidebar-logo-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-                            </svg>
-                        </div>
-                        <span className="sidebar-logo-text">Zoyaraa</span>
-                    </div>
-                    {userData.department && (
-                        <div className="department-badge" style={{
-                            marginTop: '0.5rem',
-                            padding: '0.25rem 0.5rem',
-                            background: 'rgba(255,255,255,0.2)',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            textAlign: 'center'
-                        }}>
-                            {userData.department}
-                        </div>
-                    )}
-                </div>
-
-                <nav className="sidebar-nav">
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/dashboard')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <span className="nav-item-text">Dashboard</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/internships')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                        <span className="nav-item-text">Manage Internships</span>
-                    </button>
-
-                    <button
-                        className={`nav-item active`}
-                        onClick={() => navigate('/recruiter/mentor-dashboard')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span className="nav-item-text">Mentor Dashboard</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/review-logs')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        <span className="nav-item-text">Review Logs</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/post-internship')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span className="nav-item-text">Post Internship</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/applicants')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                        </svg>
-                        <span className="nav-item-text">View Applicants</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/interviews')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span className="nav-item-text">Interviews</span>
-                    </button>
-
-                    <button
-                        className="nav-item"
-                        onClick={() => navigate('/recruiter/mentees')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span className="nav-item-text">My Mentees</span>
-                    </button>
-                </nav>
-
-                <div className="sidebar-footer">
-                    <button
-                        className="user-profile-sidebar"
-                        onClick={() => navigate('/recruiter/profile')}
-                    >
-                        <div className="user-avatar-sidebar">{userData.initials || 'M'}</div>
-                        <div className="user-info-sidebar">
-                            <div className="user-name-sidebar">{userData.name || 'Mentor'}</div>
-                            <div className="user-role-sidebar">
-                                {userData.department || 'Mentor'} • {userData.company}
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </aside>
+            <RecruiterSidebar 
+                isOpen={isMobileMenuOpen} 
+                setIsOpen={setIsMobileMenuOpen} 
+                userData={userData} 
+            />
 
             {/* Main Content */}
             <main className="main-content">
@@ -491,7 +343,7 @@ const MentorDashboardPage = () => {
                                 <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#4b5563', marginBottom: '1rem' }}>
                                     Mentor Overview
                                 </h3>
-                                <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                                <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                                     <div className="stat-card">
                                         <div className="stat-info">
                                             <div className="stat-label">Total Mentees</div>
@@ -532,10 +384,23 @@ const MentorDashboardPage = () => {
 
                                     <div className="stat-card">
                                         <div className="stat-info">
+                                            <div className="stat-label">Pending Interviews</div>
+                                            <div className="stat-value">{stats.pendingInterviews || 0}</div>
+                                        </div>
+                                        <div className="stat-icon purple">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <polyline points="12 6 12 12 16 14"></polyline>
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div className="stat-card">
+                                        <div className="stat-info">
                                             <div className="stat-label">Avg Daily Hours</div>
                                             <div className="stat-value">{stats.avgHoursPerDay}h</div>
                                         </div>
-                                        <div className="stat-icon purple">
+                                        <div className="stat-icon teal">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <circle cx="12" cy="12" r="10"></circle>
                                                 <path d="M12 6v6l4 2"></path>
@@ -614,8 +479,8 @@ const MentorDashboardPage = () => {
                                         <div className="mentees-list">
                                             {currentMentees.map((mentee) => {
                                                 const progressPercentage = getProgressPercentage(mentee);
-                                                const displayProgress = mentee.internship?.progress || 
-                                                                      (progressPercentage > 0 ? `${progressPercentage}% Complete` : 'Active');
+                                                const displayProgress = mentee.internship?.status === 'completed' ? 'Completed' : 
+                                                                      (progressPercentage >= 100 ? '100% Complete' : `${Number(progressPercentage).toFixed(2)}% Active`);
                                                 
                                                 return (
                                                     <div 
@@ -654,8 +519,8 @@ const MentorDashboardPage = () => {
                                                                 borderRadius: '20px',
                                                                 fontSize: '0.75rem',
                                                                 fontWeight: '600',
-                                                                background: progressPercentage >= 100 ? '#E6F7E6' : '#EEF2FF',
-                                                                color: progressPercentage >= 100 ? '#10b981' : '#2440F0'
+                                                                background: (progressPercentage >= 100 || mentee.internship?.status === 'completed') ? '#E6F7E6' : '#EEF2FF',
+                                                                color: (progressPercentage >= 100 || mentee.internship?.status === 'completed') ? '#10b981' : '#2440F0'
                                                             }}>
                                                                 {displayProgress}
                                                             </span>
@@ -673,7 +538,7 @@ const MentorDashboardPage = () => {
                                                                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                                                                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                                                             </svg>
-                                                            {mentee.internship?.title || 'Internship'} • {mentee.education?.department || 'Department'}
+                                                            {mentee.internship?.title || 'Internship'} • {mentee.currentEducation?.department || 'N/A'}
                                                         </div>
                                                         
                                                         {/* Progress Bar */}

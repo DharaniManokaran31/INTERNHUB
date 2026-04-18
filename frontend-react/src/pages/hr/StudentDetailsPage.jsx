@@ -442,6 +442,29 @@ const StudentDetailsPage = () => {
                           <span style={{ opacity: 0.9 }}>{student.location}</span>
                         </div>
                       )}
+                      {/* Social Links */}
+                      {(student.linkedin || student.github || student.portfolio) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                          {student.linkedin && (
+                            <a href={student.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.15)', borderRadius: '4px' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                              LinkedIn
+                            </a>
+                          )}
+                          {student.github && (
+                            <a href={student.github} target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.15)', borderRadius: '4px' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                              GitHub
+                            </a>
+                          )}
+                          {student.portfolio && (
+                            <a href={student.portfolio} target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.15)', borderRadius: '4px' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                              Portfolio
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div style={{ 
@@ -548,7 +571,8 @@ const StudentDetailsPage = () => {
                                 background: '#f8fafc',
                                 borderRadius: '8px',
                                 fontSize: '0.85rem',
-                                color: '#475569'
+                                color: '#475569',
+                                whiteSpace: 'pre-wrap'
                               }}>
                                 {edu.description}
                               </div>
@@ -664,7 +688,8 @@ const StudentDetailsPage = () => {
                               borderRadius: '8px',
                               fontSize: '0.9rem',
                               color: '#475569',
-                              lineHeight: '1.6'
+                              lineHeight: '1.6',
+                              whiteSpace: 'pre-wrap'
                             }}>
                               {exp.description}
                             </p>
@@ -709,7 +734,9 @@ const StudentDetailsPage = () => {
                                 </div>
                                 <div className="app-details">
                                   <h3 className="app-title">{project.title}</h3>
-                                  <p className="app-company-name">{project.technologies}</p>
+                                  <p className="app-company-name">
+                                    {Array.isArray(project.technologies) ? project.technologies.join(', ') : project.technologies}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -720,7 +747,8 @@ const StudentDetailsPage = () => {
                               borderRadius: '8px',
                               fontSize: '0.9rem',
                               color: '#475569',
-                              lineHeight: '1.6'
+                              lineHeight: '1.6',
+                              whiteSpace: 'pre-wrap'
                             }}>
                               {project.description}
                             </p>
@@ -778,34 +806,29 @@ const StudentDetailsPage = () => {
                 <div className="two-column-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                   {/* Skills Section */}
                   <section className="section">
-                    <h2 className="section-title">Skills</h2>
+                    <h2 className="section-title">Skills & Expertise</h2>
                     <div className="title-underline"></div>
-                    {student.resume?.skills && student.resume.skills.length > 0 ? (
-                      <div className="applications-grid">
+                    
+                    {/* Categorized Skills */}
+                    {student.resume?.skills && student.resume.skills.length > 0 && (
+                      <div className="applications-grid" style={{ gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                         {student.resume.skills.map((category, idx) => (
-                          <div key={idx} className="application-card">
+                          <div key={idx} className="application-card" style={{ padding: '1rem' }}>
                             <h3 style={{ 
-                              margin: '0 0 1rem', 
-                              fontSize: '1rem', 
+                              margin: '0 0 0.75rem', 
+                              fontSize: '0.9rem', 
                               color: '#1e293b',
-                              paddingBottom: '0.5rem',
-                              borderBottom: '1px solid #e2e8f0'
+                              fontWeight: '600'
                             }}>
                               {category.category}
                             </h3>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                               {category.items?.map((skill, i) => (
-                                <span 
-                                  key={i} 
-                                  className="badge badge-info" 
-                                  style={{ 
-                                    padding: '0.4rem 1rem',
-                                    fontSize: '0.85rem',
-                                    background: '#f1f5f9',
-                                    color: '#1e293b',
-                                    borderRadius: '20px'
-                                  }}
-                                >
+                                <span key={i} className="badge badge-info" style={{ 
+                                  fontSize: '0.75rem', 
+                                  padding: '0.3rem 0.75rem',
+                                  borderRadius: '12px' 
+                                }}>
                                   {skill}
                                 </span>
                               ))}
@@ -813,13 +836,40 @@ const StudentDetailsPage = () => {
                           </div>
                         ))}
                       </div>
-                    ) : (
+                    )}
+
+                    {/* General Skills / Top-level Skills */}
+                    {student.skills && student.skills.length > 0 && (
+                      <div className="application-card" style={{ padding: '1rem' }}>
+                        <h3 style={{ 
+                          margin: '0 0 0.75rem', 
+                          fontSize: '0.9rem', 
+                          color: '#1e293b',
+                          fontWeight: '600'
+                        }}>
+                          Other Skills
+                        </h3>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {student.skills.map((skill, i) => (
+                            <span key={i} className="badge badge-info" style={{ 
+                              fontSize: '0.75rem', 
+                              padding: '0.3rem 0.75rem',
+                              borderRadius: '12px',
+                              background: '#f1f5f9',
+                              color: '#475569'
+                            }}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(!student.resume?.skills || student.resume.skills.length === 0) && (!student.skills || student.skills.length === 0) && (
                       <div className="empty-state">
                         <div className="empty-state-icon">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4"></path>
-                            <circle cx="12" cy="8" r="0.5" fill="currentColor"></circle>
                           </svg>
                         </div>
                         <h3>No skills listed</h3>
@@ -1010,7 +1060,8 @@ const StudentDetailsPage = () => {
                                 borderRadius: '8px',
                                 fontSize: '0.85rem',
                                 color: '#475569',
-                                lineHeight: '1.6'
+                                lineHeight: '1.6',
+                                whiteSpace: 'pre-wrap'
                               }}>
                                 <span style={{ fontWeight: '600' }}>Cover Letter: </span>
                                 {app.coverLetter.length > 150

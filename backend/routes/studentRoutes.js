@@ -14,27 +14,7 @@ router.post("/reset-password/:token", studentController.resetPassword);
 router.get("/profile", authMiddleware, studentController.getStudentProfile);
 router.put("/profile", authMiddleware, studentController.updateStudentProfile);
 
-// ===== GET STUDENT BY ID (for recruiters) =====
-router.get("/:studentId", authMiddleware, studentController.getStudentById);
-
-// ===== RESUME TEXT DATA ROUTES =====
-router.put("/resume", authMiddleware, studentController.updateResume);
-
-// ===== RESUME FILE UPLOAD ROUTES =====
-router.post(
-  "/resume/upload",
-  authMiddleware,
-  upload.single("resume"),
-  studentController.uploadResumeFile
-);
-
-router.delete(
-  "/resume/remove",
-  authMiddleware,
-  studentController.removeResumeFile
-);
-
-// ===== CERTIFICATE ROUTES =====
+// ===== CERTIFICATE ROUTES (MUST BE BEFORE /:studentId) =====
 // Get official issued certificates
 router.get(
   "/issued-certificates",
@@ -54,6 +34,26 @@ router.get(
   "/certificates",
   authMiddleware,
   studentController.getCertificates
+);
+
+// ===== APPLICATIONS ROUTES =====
+router.get("/applications", authMiddleware, studentController.getStudentApplications);
+
+// ===== RESUME TEXT DATA ROUTES =====
+router.put("/resume", authMiddleware, studentController.updateResume);
+
+// ===== RESUME FILE UPLOAD ROUTES =====
+router.post(
+  "/resume/upload",
+  authMiddleware,
+  upload.single("resume"),
+  studentController.uploadResumeFile
+);
+
+router.delete(
+  "/resume/remove",
+  authMiddleware,
+  studentController.removeResumeFile
 );
 
 // Upload new certificate (with file)
@@ -78,8 +78,10 @@ router.delete(
   studentController.removeCertificate
 );
 
-// ===== PASSWORD & APPLICATIONS ROUTES =====
+// ===== PASSWORD ROUTES =====
 router.put("/change-password", authMiddleware, studentController.changePassword);
-router.get("/applications", authMiddleware, studentController.getStudentApplications);
+
+// ===== GET STUDENT BY ID (at the end for safety) =====
+router.get("/:studentId", authMiddleware, studentController.getStudentById);
 
 module.exports = router;

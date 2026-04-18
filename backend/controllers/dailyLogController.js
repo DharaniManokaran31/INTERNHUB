@@ -140,29 +140,49 @@ exports.submitDailyLog = async (req, res) => {
 // Get My Logs (Student)
 exports.getMyLogs = async (req, res) => {
     try {
-        const studentId = req.user.id;
-        const { internshipId } = req.query;
+        console.log('🔍 Fetching logs for student:', req.user?.id);
+        const studentId = String(req.user.id);
+        const { internshipId, page = 1, limit = 3, status } = req.query;
 
         let filter = { studentId };
         if (internshipId) filter.internshipId = internshipId;
+        if (status && status !== 'all') filter.status = status;
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Get total count for pagination
+        const total = await DailyLog.countDocuments(filter);
 
         const logs = await DailyLog.find(filter)
             .populate('internshipId', 'title department')
             .populate('mentorId', 'fullName email')
-            .sort({ date: -1 });
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
 
-        // Calculate stats
+        // Calculate stats (on all logs for this filter/student, not just paged)
+        // Note: For stats, we usually want totals across all logs, so we run a separate stats query or use aggregation
+        const allLogs = await DailyLog.find({ studentId });
         const stats = {
-            total: logs.length,
-            approved: logs.filter(l => l.status === 'approved').length,
-            pending: logs.filter(l => l.status === 'pending').length,
-            rejected: logs.filter(l => l.status === 'rejected').length,
-            totalHours: logs.reduce((sum, l) => sum + (l.totalHours || 0), 0)
+            total: allLogs.length,
+            approved: allLogs.filter(l => l.status === 'approved').length,
+            pending: allLogs.filter(l => l.status === 'pending').length,
+            rejected: allLogs.filter(l => l.status === 'rejected').length,
+            totalHours: allLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0)
         };
 
         res.status(200).json({
             success: true,
-            data: { logs, stats }
+            data: { 
+                logs, 
+                stats,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(total / parseInt(limit))
+                }
+            }
         });
     } catch (error) {
         console.error('Error fetching logs:', error);

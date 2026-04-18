@@ -8,6 +8,7 @@ import ProgressChart from '../../components/logs/ProgressChart';
 import api from '../../services/api';
 import progressService from '../../services/progressService';
 import dailyLogService from '../../services/dailyLogService';
+import RecruiterSidebar from '../../components/layout/RecruiterSidebar';
 import '../../styles/StudentDashboard.css';
 
 const InternProgressPage = () => {
@@ -132,8 +133,9 @@ const InternProgressPage = () => {
 
             // Handle progress response
             if (progressRes.status === 'fulfilled' && progressRes.value) {
-                const progressData = progressRes.value;
-                setProgress(progressData.progress || progressData.data?.progress || null);
+                // Store the whole data object so we can access .progress AND .stats
+                const progressData = progressRes.value.data || progressRes.value;
+                setProgress(progressData);
             } else {
                 console.error('Failed to fetch progress:', progressRes.reason);
             }
@@ -141,8 +143,8 @@ const InternProgressPage = () => {
 
             // Handle weekly data response
             if (weeklyRes.status === 'fulfilled' && weeklyRes.value) {
-                const weeklyData = weeklyRes.value;
-                setWeeklyData(weeklyData.breakdown || weeklyData.data?.breakdown || null);
+                const weeklyResult = weeklyRes.value.data || weeklyRes.value;
+                setWeeklyData(weeklyResult);
             } else {
                 console.error('Failed to fetch weekly data:', weeklyRes.reason);
             }
@@ -259,145 +261,11 @@ const InternProgressPage = () => {
 
     return (
         <div className="app-container">
-            {/* Sidebar Overlay */}
-            <div
-                className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-            ></div>
-
-            {/* Sidebar */}
-            <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-                <div className="sidebar-header">
-                    <div className="sidebar-logo">
-                        <div className="sidebar-logo-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-                            </svg>
-                        </div>
-                        <span className="sidebar-logo-text">Zoyaraa</span>
-                    </div>
-                    {userData.department && (
-                        <div className="department-badge" style={{
-                            marginTop: '0.5rem',
-                            padding: '0.25rem 0.5rem',
-                            background: 'rgba(255,255,255,0.2)',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            textAlign: 'center'
-                        }}>
-                            {userData.department}
-                        </div>
-                    )}
-                </div>
-
-                <nav className="sidebar-nav">
-                    <button
-                        className={`nav-item ${location.pathname === '/recruiter/dashboard' ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/dashboard')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <span className="nav-item-text">Dashboard</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/internships') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/internships')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                        <span className="nav-item-text">Manage Internships</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/mentor-dashboard')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span className="nav-item-text">Mentor Dashboard</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/review-logs') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/review-logs')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                        </svg>
-                        <span className="nav-item-text">Review Logs</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/mentees') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/mentees')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
-                        <span className="nav-item-text">My Mentees</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/post-internship')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        <span className="nav-item-text">Post Internship</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/applicants') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/applicants')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                        </svg>
-                        <span className="nav-item-text">View Applicants</span>
-                    </button>
-
-                    <button
-                        className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
-                        onClick={() => navigate('/recruiter/interviews')}
-                    >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span className="nav-item-text">Interviews</span>
-                    </button>
-                </nav>
-
-                <div className="sidebar-footer">
-                    <button
-                        className="user-profile-sidebar"
-                        onClick={() => navigate('/recruiter/profile')}
-                    >
-                        <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
-                        <div className="user-info-sidebar">
-                            <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
-                            <div className="user-role-sidebar">
-                                {userData.department || 'Mentor'} • {userData.company}
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </aside>
+            <RecruiterSidebar 
+                isOpen={isMobileMenuOpen} 
+                setIsOpen={setIsMobileMenuOpen} 
+                userData={userData} 
+            />
 
             {/* Main Content */}
             <main className="main-content">
@@ -406,7 +274,7 @@ const InternProgressPage = () => {
                     <div className="top-bar-left">
                         <button
                             className="menu-toggle"
-                            onClick={toggleMobileMenu}
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             aria-label="Toggle menu"
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -663,49 +531,59 @@ const InternProgressPage = () => {
                             <div>
                                 {/* Student Info Card */}
                                 <div className="section" style={{
-                                    textAlign: 'center',
+                                    textAlign: 'left',
                                     padding: '2rem',
                                     background: 'white',
                                     borderRadius: '16px',
                                     boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
                                     border: '1px solid #e5e7eb',
-                                    marginBottom: '20px'
+                                    marginBottom: '20px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start'
                                 }}>
                                     <div style={{
-                                        width: '100px',
-                                        height: '100px',
+                                        width: '80px',
+                                        height: '80px',
                                         borderRadius: '50%',
                                         background: '#EEF2FF',
                                         color: '#2440F0',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '2.5rem',
+                                        fontSize: '2rem',
                                         fontWeight: 'bold',
-                                        margin: '0 auto 20px auto'
+                                        marginBottom: '1rem'
                                     }}>
                                         {getInitials(studentInfo.fullName)}
                                     </div>
-                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.4rem', color: '#1e293b' }}>
+                                    <h3 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: '700', color: '#1e293b' }}>
                                         {studentInfo.fullName || 'Unknown Student'}
                                     </h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{studentInfo.email || 'No email'}</p>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1rem' }}>{studentInfo.email || 'No email'}</p>
                                     
                                     {studentInfo.education && (
                                         <div style={{
-                                            marginTop: '15px',
-                                            padding: '10px',
+                                            width: '100%',
+                                            padding: '12px',
                                             background: '#f8fafc',
                                             borderRadius: '8px',
-                                            fontSize: '0.875rem',
-                                            color: '#4b5563'
+                                            fontSize: '0.85rem',
+                                            color: '#4b5563',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.5rem'
                                         }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                <span>🎓 {studentInfo.education.college || 'College not specified'}</span>
-                                                {studentInfo.education.department && (
-                                                    <span>• {studentInfo.education.department}</span>
-                                                )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span style={{ fontSize: '1rem' }}>🎓</span>
+                                                <span style={{ fontWeight: '500' }}>{studentInfo.education.college || 'College not specified'}</span>
                                             </div>
+                                            {studentInfo.education.department && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span style={{ fontSize: '1rem' }}>🏢</span>
+                                                    <span>{studentInfo.education.department}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -719,75 +597,56 @@ const InternProgressPage = () => {
                                         boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
                                         border: '1px solid #e5e7eb'
                                     }}>
-                                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '20px' }}>
+                                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1e293b', marginBottom: '20px', textAlign: 'left' }}>
                                             Internship Progress
                                         </h3>
 
-                                        <div style={{ marginBottom: '20px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#64748b' }}>
-                                                <span>Overall</span>
-                                                <span style={{ fontWeight: '600', color: '#8b5cf6' }}>{progress.percentage || 0}%</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', color: '#64748b' }}>
+                                                    <span>Overall Completion</span>
+                                                    <span style={{ fontWeight: '600', color: '#2440F0' }}>{(progress.progress?.percentage || 0).toFixed(2)}%</span>
+                                                </div>
+                                                <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '50px', overflow: 'hidden' }}>
+                                                    <div style={{ 
+                                                        height: '100%', 
+                                                        width: `${progress.progress?.percentage || 0}%`, 
+                                                        background: 'linear-gradient(90deg, #2440F0, #60a5fa)', 
+                                                        borderRadius: '50px',
+                                                        transition: 'width 0.5s ease'
+                                                    }}></div>
+                                                </div>
                                             </div>
-                                            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '50px', overflow: 'hidden' }}>
-                                                <div style={{ 
-                                                    height: '100%', 
-                                                    width: `${progress.percentage || 0}%`, 
-                                                    background: 'linear-gradient(90deg, #8b5cf6, #c084fc)', 
-                                                    borderRadius: '50px',
-                                                    transition: 'width 0.3s ease'
-                                                }}></div>
+
+                                            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                                                <div style={{ color: '#64748b', fontSize: '0.85rem' }}>Days Completed</div>
+                                                <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '1.25rem', marginTop: '4px' }}>
+                                                    {progress.progress?.daysPassed || 0} / {progress.progress?.totalDays || progress.internship?.totalDays || 60}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid #f1f5f9'
-                                        }}>
-                                            <span style={{ color: '#64748b' }}>Days Completed</span>
-                                            <span style={{ fontWeight: '600', color: '#1e293b' }}>
-                                                {progress.completedDays || 0} / {progress.totalDays || 60}
-                                            </span>
-                                        </div>
+                                            <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                                                <div style={{ color: '#64748b', fontSize: '0.85rem' }}>Total Hours Logged</div>
+                                                <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '1.25rem', marginTop: '4px' }}>
+                                                    {Number(progress.stats?.totalHours || 0).toFixed(2)}h
+                                                </div>
+                                            </div>
 
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid #f1f5f9'
-                                        }}>
-                                            <span style={{ color: '#64748b' }}>Total Hours Logged</span>
-                                            <span style={{ fontWeight: '600', color: '#1e293b' }}>{progress.totalHours || 0}h</span>
-                                        </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '12px' }}>
+                                                    <div style={{ color: '#92400e', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Pending Logs</div>
+                                                    <div style={{ fontWeight: '700', color: '#92400e', fontSize: '1.1rem' }}>{progress.stats?.pendingLogs || 0}</div>
+                                                </div>
+                                                <div style={{ padding: '12px', background: '#d1fae5', borderRadius: '12px' }}>
+                                                    <div style={{ color: '#065f46', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Approved Logs</div>
+                                                    <div style={{ fontWeight: '700', color: '#065f46', fontSize: '1.1rem' }}>{progress.stats?.approvedLogs || 0}</div>
+                                                </div>
+                                            </div>
 
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid #f1f5f9'
-                                        }}>
-                                            <span style={{ color: '#64748b' }}>Pending Logs</span>
-                                            <span style={{ fontWeight: '600', color: '#d97706' }}>{progress.pendingDays || 0}</span>
-                                        </div>
-
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 0',
-                                            borderBottom: '1px solid #f1f5f9'
-                                        }}>
-                                            <span style={{ color: '#64748b' }}>Approved Logs</span>
-                                            <span style={{ fontWeight: '600', color: '#10b981' }}>{progress.approvedDays || 0}</span>
-                                        </div>
-
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            padding: '12px 0'
-                                        }}>
-                                            <span style={{ color: '#64748b' }}>Rejected Logs</span>
-                                            <span style={{ fontWeight: '600', color: '#dc2626' }}>{progress.rejectedDays || 0}</span>
+                                            <div style={{ padding: '12px', background: '#fee2e2', borderRadius: '12px' }}>
+                                                <div style={{ color: '#991b1b', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Rejected Logs</div>
+                                                <div style={{ fontWeight: '700', color: '#991b1b', fontSize: '1.1rem' }}>{progress.stats?.rejectedLogs || 0}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (

@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/StudentDashboard.css';
 import NotificationBell from '../../components/common/NotificationBell';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
+import FeedbackModal from '../../components/modals/FeedbackModal';
 
 const ApplicationDetailsPage = () => {
     const { id } = useParams();
@@ -20,6 +21,9 @@ const ApplicationDetailsPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
+    const [interview, setInterview] = useState(null);
+    const [selectedRound, setSelectedRound] = useState(null);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -70,6 +74,20 @@ const ApplicationDetailsPage = () => {
             if (data.success) {
                 console.log('Application data:', data.data.application);
                 setApplication(data.data.application);
+                
+                // Fetch interview if shortlised/interview stage
+                try {
+                    const token = localStorage.getItem('authToken');
+                    const interviewRes = await fetch(`http://localhost:5000/api/interviews/application/${id}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const interviewData = await interviewRes.json();
+                    if (interviewData.success) {
+                        setInterview(interviewData.data.interview);
+                    }
+                } catch (intErr) {
+                    console.log('No interview found or error fetching interview');
+                }
             } else {
                 setError('Application not found.');
             }
@@ -117,25 +135,78 @@ const ApplicationDetailsPage = () => {
             setSubmitting(true);
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`http://localhost:5000/api/hr/applications/${id}/schedule-interview`, {
-                method: 'POST',
+            // If interview exists, we are scheduling a round in existing interview document
+            if (interview) {
+                const response = await fetch(`http://localhost:5000/api/interviews/hr/${interview._id}/schedule`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(interviewData)
+                });
+                const res = await response.json();
+    
+                if (res.success) {
+                    setShowScheduleModal(false);
+                    showNotification('Interview scheduled successfully!', 'success');
+                    await fetchApplicationDetails();
+                } else {
+                    showNotification(res.message || 'Failed to schedule interview', 'error');
+                }
+            } else {
+                // Legacy fallback if interview document doesn't exist (should not happen with new flow)
+                const response = await fetch(`http://localhost:5000/api/hr/applications/${id}/schedule-interview`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(interviewData)
+                });
+                const res = await response.json();
+    
+                if (res.success) {
+                    setShowScheduleModal(false);
+                    showNotification('Interview scheduled successfully!', 'success');
+                    await fetchApplicationDetails();
+                } else {
+                    showNotification(res.message || 'Failed to schedule interview', 'error');
+                }
+            }
+        } catch (err) {
+            console.error('Error scheduling:', err);
+            showNotification('Network error. Please try again.', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleFeedbackSubmit = async (feedbackData) => {
+        try {
+            setSubmitting(true);
+            const token = localStorage.getItem('authToken');
+
+            const response = await fetch(`http://localhost:5000/api/interviews/hr/${interview._id}/result`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(interviewData)
+                body: JSON.stringify(feedbackData)
             });
+
             const res = await response.json();
 
             if (res.success) {
-                setShowScheduleModal(false);
-                showNotification('Interview scheduled successfully!', 'success');
+                setShowFeedbackModal(false);
+                showNotification('Feedback submitted successfully!', 'success');
                 await fetchApplicationDetails();
             } else {
-                showNotification(res.message || 'Failed to schedule interview', 'error');
+                showNotification(res.message || 'Failed to submit feedback', 'error');
             }
         } catch (err) {
-            console.error('Error scheduling:', err);
+            console.error('Error submitting feedback:', err);
             showNotification('Network error. Please try again.', 'error');
         } finally {
             setSubmitting(false);
@@ -206,6 +277,30 @@ const ApplicationDetailsPage = () => {
         setTimeout(() => ripple.remove(), 600);
     };
 
+    const cleanUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('/uploads')) {
+            return `http://localhost:5000${url}`;
+        }
+        return url;
+    };
+
+    const handleViewResume = (url) => {
+        if (!url) {
+            showNotification('No resume available', 'error');
+            return;
+        }
+        window.open(cleanUrl(url), '_blank');
+    };
+
+    const handleViewCertificate = (url) => {
+        if (!url) {
+            showNotification('No certificate file available', 'error');
+            return;
+        }
+        window.open(cleanUrl(url), '_blank');
+    };
+
     const getStatusBadge = (status) => {
         switch (status?.toLowerCase()) {
             case 'pending':
@@ -246,6 +341,7 @@ const ApplicationDetailsPage = () => {
     // Safely access student data
     const student = application?.studentId || application?.student || {};
     const internship = application?.internshipId || application?.internship || {};
+    const recruiter = application?.recruiterId || {};
 
     const studentName = student.fullName || student.name || 'Unknown Student';
     const studentEmail = student.email || 'Email not available';
@@ -254,7 +350,22 @@ const ApplicationDetailsPage = () => {
     const studentCollege = student.currentEducation?.college || student.education?.college || 'Not specified';
     const studentCourse = student.currentEducation?.course || student.education?.course || 'Not specified';
     const studentYear = student.currentEducation?.yearOfStudy || 'Not specified';
-    const studentSkills = student.skills || [];
+    
+    // Use categorized skills if available, otherwise fallback to top-level skills
+    const resumeSkills = student.resume?.skills || [];
+    const topLevelSkills = student.skills || [];
+    const studentSkills = topLevelSkills;
+
+    const timeline = application?.timeline
+        ? [...application.timeline]
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+            // Deduplicate: same status and similar time (within 1 min)
+            .filter((item, index, self) => 
+                index === 0 || 
+                item.status !== self[index-1].status || 
+                Math.abs(new Date(item.updatedAt) - new Date(self[index-1].updatedAt)) > 60000
+            )
+        : [];
 
     const status = application ? getStatusBadge(application.status) : null;
 
@@ -587,6 +698,18 @@ const ApplicationDetailsPage = () => {
                                 >
                                     Timeline & Notes
                                 </button>
+                                <button
+                                    className={`secondary-btn ${activeTab === 'interviews' ? 'active' : ''}`}
+                                    style={{
+                                        borderBottom: activeTab === 'interviews' ? '3px solid #2440F0' : 'none',
+                                        borderRadius: '0',
+                                        color: activeTab === 'interviews' ? '#2440F0' : '#64748b',
+                                        fontWeight: activeTab === 'interviews' ? '600' : '500'
+                                    }}
+                                    onClick={() => setActiveTab('interviews')}
+                                >
+                                    Interview Rounds
+                                </button>
                             </div>
 
                             {/* Tab Content */}
@@ -632,15 +755,13 @@ const ApplicationDetailsPage = () => {
                                                         Uploaded {formatDate(application.submittedResume.uploadedAt)}
                                                     </div>
                                                 </div>
-                                                <a
-                                                    href={application.submittedResume.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                                <button
+                                                    onClick={() => handleViewResume(application.submittedResume?.url || student.resume?.resumeFile)}
                                                     className="secondary-btn"
                                                     style={{ padding: '0.5rem 1rem' }}
                                                 >
                                                     View Resume
-                                                </a>
+                                                </button>
                                             </div>
                                         ) : (
                                             <p style={{ color: '#64748b', fontStyle: 'italic' }}>No resume submitted</p>
@@ -655,68 +776,64 @@ const ApplicationDetailsPage = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
 
                                             {/* Accept Button */}
-                                            <button
-                                                className="primary-btn"
-                                                style={{
-                                                    width: '100%',
-                                                    justifyContent: 'center',
-                                                    opacity: (submitting || application.status === 'accepted' || application.status === 'rejected') ? 0.5 : 1,
-                                                    cursor: (submitting || application.status === 'accepted' || application.status === 'rejected') ? 'not-allowed' : 'pointer',
-                                                    backgroundColor: (application.status === 'accepted' || application.status === 'rejected') ? '#9ca3af' : '#2440F0',
-                                                }}
-                                                disabled={submitting || application.status === 'accepted' || application.status === 'rejected'}
-                                                onClick={() => handleStatusUpdate('accepted')}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
-                                                    <path d="M20 6L9 17l-5-5"></path>
-                                                </svg>
-                                                Accept Candidate
-                                            </button>
+                                            {/* Context-aware Actions */}
+                                            {application.status !== 'accepted' && application.status !== 'rejected' ? (
+                                                <>
+                                                    <button 
+                                                        className="primary-btn" 
+                                                        style={{ width: '100%', marginBottom: '1rem', background: '#10b981', justifyContent: 'center' }}
+                                                        onClick={() => handleStatusUpdate('accepted')}
+                                                        disabled={submitting}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
+                                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                                        </svg>
+                                                        Final Selection
+                                                    </button>
 
-                                            {/* Schedule Button */}
-                                            <button
-                                                className="secondary-btn"
-                                                style={{
-                                                    width: '100%',
-                                                    justifyContent: 'center',
-                                                    opacity: (submitting || application.status === 'rejected') ? 0.5 : 1,
-                                                    cursor: (submitting || application.status === 'rejected') ? 'not-allowed' : 'pointer',
-                                                }}
-                                                onClick={() => setShowScheduleModal(true)}
-                                                disabled={submitting || application.status === 'rejected'}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                                </svg>
-                                                Schedule Interview
-                                            </button>
+                                                    <button 
+                                                        className="secondary-btn" 
+                                                        style={{ width: '100%', marginBottom: '1rem', justifyContent: 'center' }}
+                                                        onClick={() => setShowScheduleModal(true)}
+                                                        disabled={submitting}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
+                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                        </svg>
+                                                        Schedule Interview
+                                                    </button>
 
-                                            {/* Reject Button */}
-                                            <button
-                                                className="secondary-btn"
-                                                style={{
-                                                    width: '100%',
-                                                    justifyContent: 'center',
-                                                    color: (application.status === 'rejected' || application.status === 'accepted') ? '#9ca3af' : '#dc2626',
-                                                    borderColor: (application.status === 'rejected' || application.status === 'accepted') ? '#e5e7eb' : '#fee2e2',
-                                                    opacity: (submitting || application.status === 'accepted' || application.status === 'rejected') ? 0.5 : 1,
-                                                    cursor: (submitting || application.status === 'accepted' || application.status === 'rejected') ? 'not-allowed' : 'pointer',
-                                                }}
-                                                disabled={submitting || application.status === 'accepted' || application.status === 'rejected'}
-                                                onClick={() => handleStatusUpdate('rejected')}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
-                                                    <circle cx="12" cy="12" r="10"></circle>
-                                                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                                                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                                                </svg>
-                                                Reject Application
-                                            </button>
+                                                    <button 
+                                                        className="secondary-btn" 
+                                                        style={{ width: '100%', marginBottom: '1rem', color: '#dc2626', borderColor: '#fee2e2', justifyContent: 'center' }}
+                                                        onClick={() => handleStatusUpdate('rejected')}
+                                                        disabled={submitting}
+                                                    >
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '18px', marginRight: '0.5rem' }}>
+                                                            <circle cx="12" cy="12" r="10"></circle>
+                                                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                                                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                                                        </svg>
+                                                        Reject Application
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <div style={{ 
+                                                    padding: '1rem', 
+                                                    background: application.status === 'accepted' ? '#d1fae5' : '#fee2e2', 
+                                                    color: application.status === 'accepted' ? '#065f46' : '#991b1b',
+                                                    borderRadius: '8px',
+                                                    marginBottom: '1rem',
+                                                    textAlign: 'center',
+                                                    fontWeight: '600'
+                                                }}>
+                                                    Process Completed: {application.status.toUpperCase()}
+                                                </div>
+                                            )}
 
-                                            {/* Add Note Button - Always Active */}
                                             <button
                                                 className="secondary-btn"
                                                 style={{ width: '100%', justifyContent: 'center' }}
@@ -753,86 +870,129 @@ const ApplicationDetailsPage = () => {
                             )}
 
                             {activeTab === 'resume' && (
-                                <div className="two-column-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                                    {/* Left Column - Skills */}
-                                    <section className="section">
-                                        <h2 className="section-title">Skills</h2>
-                                        <div className="title-underline"></div>
-                                        {studentSkills.length > 0 ? (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
-                                                {studentSkills.map((skill, index) => (
-                                                    <span
-                                                        key={index}
-                                                        style={{
-                                                            padding: '0.3rem 0.8rem',
-                                                            background: '#f1f5f9',
-                                                            color: '#1e293b',
-                                                            borderRadius: '20px',
-                                                            fontSize: '0.85rem'
-                                                        }}
-                                                    >
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No skills listed</p>
-                                        )}
-
-                                        <h2 className="section-title" style={{ marginTop: '2rem' }}>Education</h2>
-                                        <div className="title-underline"></div>
-                                        {student.currentEducation ? (
-                                            <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
-                                                <div style={{ fontWeight: '600' }}>{student.currentEducation.college}</div>
-                                                <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '0.25rem' }}>
-                                                    {student.currentEducation.course} - {student.currentEducation.department}
+                                <div className="two-column-grid" style={{ gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+                                    {/* Left Column - Detailed Skills & Education */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                        <section className="section">
+                                            {/* Processed Skills from Resume Categories */}
+                                            {resumeSkills.length > 0 && (
+                                                <div style={{ marginBottom: '1.5rem' }}>
+                                                    <h3 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#1e293b', fontWeight: '600' }}>Skill Categories</h3>
+                                                    <div className="applications-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                                                        {resumeSkills.map((category, idx) => (
+                                                            <div key={idx} className="application-card" style={{ padding: '1rem' }}>
+                                                                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: '#475569', fontWeight: '600' }}>
+                                                                    {category.category}
+                                                                </h4>
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                                    {category.items?.map((skill, i) => (
+                                                                        <span key={i} className="badge badge-info" style={{ fontSize: '0.7rem' }}>{skill}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                                    {student.currentEducation.yearOfStudy} • {student.currentEducation.specialization}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No education details</p>
-                                        )}
-                                    </section>
+                                            )}
 
-                                    {/* Right Column - Experience & Projects */}
-                                    <section className="section">
-                                        <h2 className="section-title">Projects</h2>
-                                        <div className="title-underline"></div>
-                                        {student.resume?.projects && student.resume.projects.length > 0 ? (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                                                {student.resume.projects.map((project, index) => (
-                                                    <div key={index} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
-                                                        <div style={{ fontWeight: '600' }}>{project.title}</div>
-                                                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                                            {project.technologies}
+                                            {/* General Skills / All Skills */}
+                                            {(topLevelSkills.length > 0 || (resumeSkills.length === 0 && studentSkills.length > 0)) && (
+                                                <div>
+                                                    <h3 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#1e293b', fontWeight: '600' }}>
+                                                        {resumeSkills.length > 0 ? "Additional Skills" : "Technical Skills"}
+                                                    </h3>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                        {[...new Set([...topLevelSkills, ...studentSkills])].map((skill, index) => (
+                                                            <span key={index} className="badge badge-info" style={{ padding: '0.4rem 0.8rem' }}>
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {resumeSkills.length === 0 && topLevelSkills.length === 0 && studentSkills.length === 0 && (
+                                                <p style={{ color: '#64748b', fontStyle: 'italic' }}>No skills listed</p>
+                                            )}
+                                        </section>
+
+                                        <section className="section">
+                                            <h2 className="section-title">Academic Background</h2>
+                                            <div className="title-underline"></div>
+                                            {student.resume?.education && student.resume.education.length > 0 ? (
+                                                <div style={{ marginTop: '1rem' }}>
+                                                    {student.resume.education.map((edu, idx) => (
+                                                        <div key={idx} style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '12px', marginBottom: '1rem', borderLeft: '4px solid #2440F0' }}>
+                                                            <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#1e293b' }}>{edu.degree} in {edu.field}</div>
+                                                            <div style={{ color: '#475569', marginTop: '0.25rem', fontWeight: '500' }}>{edu.institution}</div>
+                                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem', display: 'flex', gap: '1rem' }}>
+                                                                <span>📅 {new Date(edu.startDate).getFullYear()} - {edu.endDate ? new Date(edu.endDate).getFullYear() : 'Present'}</span>
+                                                                {edu.gpa && <span>🎯 GPA: {edu.gpa}</span>}
+                                                            </div>
                                                         </div>
-                                                        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#475569' }}>
-                                                            {project.description}
-                                                        </p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No projects listed</p>
-                                        )}
+                                                    ))}
+                                                </div>
+                                            ) : student.currentEducation ? (
+                                                <div style={{ marginTop: '1rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #2440F0' }}>
+                                                    <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#1e293b' }}>{student.currentEducation.college}</div>
+                                                    <div style={{ color: '#475569', marginTop: '0.25rem' }}>{student.currentEducation.course} - {student.currentEducation.department}</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem' }}>{student.currentEducation.yearOfStudy}</div>
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: '#64748b', fontStyle: 'italic', marginTop: '1rem' }}>No education details available</p>
+                                            )}
+                                        </section>
+                                    </div>
 
-                                        <h2 className="section-title" style={{ marginTop: '2rem' }}>Certifications</h2>
-                                        <div className="title-underline"></div>
-                                        {student.resume?.certifications && student.resume.certifications.length > 0 ? (
-                                            <div style={{ marginTop: '1rem' }}>
-                                                {student.resume.certifications.map((cert, index) => (
-                                                    <div key={index} style={{ padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                                        <div style={{ fontWeight: '500' }}>{cert.name}</div>
-                                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{cert.issuer}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No certifications</p>
-                                        )}
-                                    </section>
+                                    {/* Right Column - Certifications & Experience Summary */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                        <section className="section">
+                                            <h2 className="section-title">Certifications</h2>
+                                            <div className="title-underline"></div>
+                                            {student.resume?.certifications && student.resume.certifications.length > 0 ? (
+                                                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    {student.resume.certifications.map((cert, index) => (
+                                                        <div key={index} className="application-card" style={{ padding: '0.75rem' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                <div>
+                                                                    <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{cert.name}</div>
+                                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{cert.issuer}</div>
+                                                                </div>
+                                                                {cert.certificateUrl && (
+                                                                    <button 
+                                                                        onClick={() => handleViewCertificate(cert.certificateUrl)}
+                                                                        className="secondary-btn"
+                                                                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                                                                    >
+                                                                        View
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: '#64748b', fontStyle: 'italic', marginTop: '1rem' }}>No certifications</p>
+                                            )}
+                                        </section>
+
+                                        <section className="section">
+                                            <h2 className="section-title">Projects</h2>
+                                            <div className="title-underline"></div>
+                                            {student.resume?.projects && student.resume.projects.length > 0 ? (
+                                                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    {student.resume.projects.map((project, index) => (
+                                                        <div key={index} style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                                                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{project.title}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>{project.technologies}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: '#64748b', fontStyle: 'italic', marginTop: '1rem' }}>No projects listed</p>
+                                            )}
+                                        </section>
+                                    </div>
                                 </div>
                             )}
 
@@ -840,37 +1000,54 @@ const ApplicationDetailsPage = () => {
                                 <section className="section">
                                     <h2 className="section-title">Application Timeline</h2>
                                     <div className="title-underline"></div>
-                                    <div className="recent-applications-list" style={{ marginTop: '1rem' }}>
-                                        {application.timeline && application.timeline.length > 0 ? (
-                                            application.timeline.map((event, index) => (
+                                    <div className="recent-applications-list" style={{ marginTop: '1.5rem' }}>
+                                        {timeline.length > 0 ? (
+                                            timeline.map((event, index) => (
                                                 <div key={index} className="recent-application-card" style={{
                                                     borderLeft: `4px solid ${event.status === 'accepted' ? '#10b981' :
                                                             event.status === 'rejected' ? '#ef4444' :
                                                                 event.status === 'shortlisted' ? '#3b82f6' :
                                                                     '#f59e0b'
-                                                        }`
+                                                        }`,
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                                    marginBottom: '1rem',
+                                                    padding: '1.25rem'
                                                 }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                         <div>
                                                             <span className={`badge ${event.status === 'accepted' ? 'badge-success' :
                                                                     event.status === 'rejected' ? 'badge-error' :
                                                                         event.status === 'shortlisted' ? 'badge-info' :
                                                                             'badge-warning'
-                                                                }`} style={{ marginBottom: '0.5rem' }}>
+                                                                }`} style={{ marginBottom: '0.75rem', padding: '0.25rem 0.75rem' }}>
                                                                 {event.status.toUpperCase()}
                                                             </span>
+                                                            <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.25rem' }}>
+                                                                {event.status === 'accepted' ? 'Candidate Hired' : 
+                                                                 event.status === 'rejected' ? 'Application Rejected' :
+                                                                 event.status === 'shortlisted' ? 'Candidate Shortlisted' :
+                                                                 'Application Submitted'}
+                                                            </div>
                                                             {event.comment && (
-                                                                <p style={{ margin: '0.25rem 0', color: '#475569' }}>{event.comment}</p>
+                                                                <p style={{ margin: '0.25rem 0', color: '#475569', fontSize: '0.95rem' }}>{event.comment}</p>
                                                             )}
-                                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                                {formatDate(event.updatedAt)}
-                                                            </span>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+                                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                                                </svg>
+                                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                                                    {formatDate(event.updatedAt)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ))
                                         ) : (
-                                            <p style={{ color: '#64748b', fontStyle: 'italic' }}>No timeline events</p>
+                                            <div className="empty-state">
+                                                <p style={{ color: '#64748b', fontStyle: 'italic' }}>No timeline events recorded yet.</p>
+                                            </div>
                                         )}
                                     </div>
 
@@ -888,6 +1065,93 @@ const ApplicationDetailsPage = () => {
                                             ))
                                         ) : (
                                             <p style={{ color: '#64748b', fontStyle: 'italic' }}>No notes yet</p>
+                                        )}
+                                    </div>
+                                </section>
+                            )}
+
+                            {activeTab === 'interviews' && (
+                                <section className="section">
+                                    <h2 className="section-title">Interview Rounds</h2>
+                                    <div className="title-underline"></div>
+                                    <div style={{ marginTop: '1rem' }}>
+                                        {interview ? (
+                                            interview.rounds && interview.rounds.length > 0 ? (
+                                                <div className="applications-grid">
+                                                    {interview.rounds.map((round) => (
+                                                        <div key={round._id} className="application-card" style={{ borderLeft: `4px solid ${round.status === 'completed' ? (round.result === 'pass' ? '#10b981' : '#ef4444') : round.status === 'scheduled' ? '#3b82f6' : '#f59e0b'}` }}>
+                                                            <div className="app-card-header">
+                                                                <div className="app-details">
+                                                                    <h3 className="app-title">Round {round.roundNumber}: {round.roundType}</h3>
+                                                                    <div className="app-meta">
+                                                                        <span className="app-meta-item">Status: {round.status.toUpperCase()}</span>
+                                                                        {round.status === 'scheduled' && (
+                                                                            <span className="app-meta-item">
+                                                                                📅 {formatDate(round.scheduledDate)} at {round.scheduledTime}
+                                                                            </span>
+                                                                        )}
+                                                                        {round.status === 'completed' && (
+                                                                            <span className="app-meta-item">
+                                                                                Result: {round.result?.toUpperCase()}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {round.status === 'completed' && round.feedback && (
+                                                                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
+                                                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Feedback Summary</h4>
+                                                                    <p style={{ fontSize: '0.85rem', color: '#475569' }}>{round.feedback.overallImpression}</p>
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                                        <span className="badge badge-info" style={{ background: '#e0e7ff', color: '#4338ca' }}>Score: {round.score}/100</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="app-card-footer" style={{ marginTop: '1rem' }}>
+                                                                {round.roundType === 'HR Interview' && round.status === 'pending' && round.roundNumber === interview.currentRound && (
+                                                                    <button
+                                                                        className="primary-btn"
+                                                                        onClick={() => {
+                                                                            setSelectedRound(round);
+                                                                            setShowScheduleModal(true);
+                                                                        }}
+                                                                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                                                                    >
+                                                                        Schedule HR Interview
+                                                                    </button>
+                                                                )}
+                                                                
+                                                                {round.roundType === 'HR Interview' && round.status === 'scheduled' && (
+                                                                    <button
+                                                                        className="secondary-btn"
+                                                                        onClick={() => {
+                                                                            setSelectedRound(round);
+                                                                            setShowFeedbackModal(true);
+                                                                        }}
+                                                                        style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+                                                                    >
+                                                                        Submit Feedback / Result
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: '#64748b', fontStyle: 'italic' }}>No interview rounds generated yet.</p>
+                                            )
+                                        ) : (
+                                            <div className="empty-state">
+                                                <div className="empty-state-icon">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                    </svg>
+                                                </div>
+                                                <h3>No Interviews Scheduled</h3>
+                                                <p>This candidate has not started the interview process yet.</p>
+                                            </div>
                                         )}
                                     </div>
                                 </section>
@@ -918,12 +1182,28 @@ const ApplicationDetailsPage = () => {
             {/* Schedule Interview Modal */}
             {showScheduleModal && (
                 <ScheduleInterviewModal
-                    round={{
+                    round={selectedRound || {
                         roundNumber: (application?.interviews?.length || 0) + 1,
-                        roundType: 'Technical Interview'
+                        roundType: 'HR Interview'
                     }}
-                    onClose={() => setShowScheduleModal(false)}
+                    onClose={() => {
+                        setShowScheduleModal(false);
+                        setSelectedRound(null);
+                    }}
                     onSubmit={handleScheduleSubmit}
+                />
+            )}
+
+            {/* Feedback Modal */}
+            {showFeedbackModal && (
+                <FeedbackModal
+                    interview={interview}
+                    round={selectedRound}
+                    onClose={() => {
+                        setShowFeedbackModal(false);
+                        setSelectedRound(null);
+                    }}
+                    onSubmit={handleFeedbackSubmit}
                 />
             )}
         </div>

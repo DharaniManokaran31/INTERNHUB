@@ -61,12 +61,17 @@ const adminSchema = new mongoose.Schema(
     resetPasswordExpires: { type: Date, select: false }
   },
   { 
-    timestamps: true // This automatically adds createdAt and updatedAt
+    timestamps: true 
   }
 );
 
-// ===== NO PRE-SAVE HOOK - We'll handle permissions in the controller =====
-// Instead of using a pre-save hook that's causing errors, 
-// we'll set super admin permissions in the controller
+// Method to remove sensitive data
+adminSchema.methods.toSafeObject = function() {
+  const admin = this.toObject();
+  delete admin.password;
+  delete admin.resetPasswordToken;
+  delete admin.resetPasswordExpires;
+  return admin;
+};
 
 module.exports = mongoose.model('Admin', adminSchema);

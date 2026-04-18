@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NotificationBell from '../../components/common/NotificationBell';
+import RecruiterSidebar from '../../components/layout/RecruiterSidebar';
 import '../../styles/StudentDashboard.css';
 
 const MyMenteesPage = () => {
@@ -155,20 +156,16 @@ const MyMenteesPage = () => {
           });
           const data = await response.json();
           
-          if (data.success && data.progress) {
-            const progress = data.progress;
-            progressMap[mentee._id] = progress;
+          if (data.success && data.data) {
+            const progress = data.data.progress;
+            const stats = data.data.stats;
+            progressMap[mentee._id] = { ...progress, ...stats };
 
             // Calculate percentage
-            let percentage = 0;
-            if (progress.percentage) {
-              percentage = progress.percentage;
-            } else if (progress.completedDays && progress.totalDays) {
-              percentage = Math.round((progress.completedDays / progress.totalDays) * 100);
-            }
+            let percentage = progress.percentage || 0;
 
-            // Count active interns (those with progress > 0)
-            if (progress.completedDays > 0) {
+            // Count active interns (those with progress > 0 or any logs)
+            if (progress.daysPassed > 0 || (stats && stats.totalLogs > 0)) {
               activeCount++;
             }
 
@@ -191,16 +188,16 @@ const MyMenteesPage = () => {
       setMenteeProgress(progressMap);
 
       // Calculate average progress
-      const avgProgress = progressCount > 0 ? Math.round(totalProgressSum / progressCount) : 0;
+      const avgProgressValue = progressCount > 0 ? (totalProgressSum / progressCount) : 0;
 
       setStats(prev => ({
         ...prev,
         active: activeCount,
         completed: completedCount,
-        avgProgress: avgProgress
+        avgProgress: Number(avgProgressValue).toFixed(2)
       }));
 
-      console.log('📊 Stats updated:', { activeCount, completedCount, avgProgress });
+      console.log('📊 Stats updated:', { activeCount, completedCount, avgProgress: avgProgressValue });
     } catch (error) {
       console.error('❌ Error fetching progress:', error);
     } finally {
@@ -318,7 +315,7 @@ const MyMenteesPage = () => {
   };
 
   const viewMenteeLogs = (menteeId) => {
-    navigate(`/recruiter/review-logs?studentId=${menteeId}`);
+    navigate(`/recruiter/intern-progress/${menteeId}`);
   };
 
   const viewMenteeInterviews = (menteeId) => {
@@ -341,18 +338,14 @@ const MyMenteesPage = () => {
     if (percentage < 75) return '#8b5cf6';
     return '#10b981';
   };
-
+ 
   const getProgressPercentage = (mentee) => {
     // First check if we have progress data
     if (menteeProgress[mentee._id]) {
-      const progress = menteeProgress[mentee._id];
-      
-      if (progress.percentage) {
-        return progress.percentage;
-      }
-      
-      if (progress.completedDays && progress.totalDays) {
-        return Math.round((progress.completedDays / progress.totalDays) * 100);
+      const p = menteeProgress[mentee._id];
+      if (typeof p.percentage === 'number') return p.percentage;
+      if (p.daysPassed && p.totalDays) {
+        return Math.round((p.daysPassed / p.totalDays) * 100);
       }
     }
     
@@ -366,11 +359,11 @@ const MyMenteesPage = () => {
     
     return 0;
   };
-
+ 
   const getProgressText = (mentee) => {
     if (menteeProgress[mentee._id]) {
       const p = menteeProgress[mentee._id];
-      return `${p.completedDays || 0}/${p.totalDays || 60} Days`;
+      return `${p.daysPassed || 0}/${p.totalDays || 60} Days`;
     }
     
     if (mentee.internship?.progress) {
@@ -469,145 +462,11 @@ const MyMenteesPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-          {userData.department && (
-            <div className="department-badge" style={{
-              marginTop: '0.5rem',
-              padding: '0.25rem 0.5rem',
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '4px',
-              fontSize: '0.75rem',
-              textAlign: 'center'
-            }}>
-              {userData.department}
-            </div>
-          )}
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${location.pathname === '/recruiter/dashboard' ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/internships') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <span className="nav-item-text">Manage Internships</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/mentor-dashboard') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/mentor-dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            <span className="nav-item-text">Mentor Dashboard</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/review-logs') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/review-logs')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">Review Logs</span>
-          </button>
-
-          <button
-            className={`nav-item active`}
-            onClick={() => navigate('/recruiter/mentees')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            <span className="nav-item-text">My Mentees</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/post-internship') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/post-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span className="nav-item-text">Post Internship</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/applicants') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/applicants')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-            </svg>
-            <span className="nav-item-text">View Applicants</span>
-          </button>
-
-          <button
-            className={`nav-item ${location.pathname.includes('/recruiter/interviews') ? 'active' : ''}`}
-            onClick={() => navigate('/recruiter/interviews')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span className="nav-item-text">Interviews</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/recruiter/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials || 'R'}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name || 'Recruiter'}</div>
-              <div className="user-role-sidebar">
-                {userData.department || 'Mentor'} • {userData.company}
-              </div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      <RecruiterSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -981,8 +840,8 @@ const MyMenteesPage = () => {
                         </div>
                       )}
 
-                      {/* Interview History Preview */}
-                      {interviewData && (
+                      {/* Interview History Preview - Only show if there's something upcoming */}
+                      {interviewData && interviewData.upcoming > 0 && (
                         <div style={{
                           marginTop: '1rem',
                           padding: '0.75rem',
@@ -1044,15 +903,19 @@ const MyMenteesPage = () => {
                             padding: '0.5rem 1rem', 
                             fontSize: '0.8rem', 
                             flex: 1,
-                            minWidth: '80px',
+                            minWidth: '100px',
                             background: '#f3e8ff', 
                             color: '#8b5cf6', 
-                            borderColor: '#8b5cf6'
+                            borderColor: '#8b5cf6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.25rem'
                           }}
                           onClick={(e) => { e.stopPropagation(); viewMenteeInterviews(mentee._id); }}
                           onClickCapture={(e) => createRippleEffect(e)}
                         >
-                          Interviews
+                          Interviews {interviewData?.total > 0 && `(${interviewData.total})`}
                         </button>
                         <button
                           className="primary-btn"

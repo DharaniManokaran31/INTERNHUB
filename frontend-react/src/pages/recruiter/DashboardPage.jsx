@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../../styles/StudentDashboard.css';
 import NotificationBell from '../../components/common/NotificationBell';
+import RecruiterSidebar from '../../components/layout/RecruiterSidebar';
 
 const RecruiterDashboardPage = () => {
   const navigate = useNavigate();
@@ -159,7 +160,11 @@ const RecruiterDashboardPage = () => {
             hired: data.data.acceptedApplications || 0,
             pending: data.data.pendingApplications || 0,
             rejected: data.data.rejectedApplications || 0,
-            conversionRate
+            conversionRate,
+            activeInterns: data.data.activeInterns || 0,
+            completedInterns: data.data.completedInterns || 0,
+            avgProgress: data.data.avgProgress || 0,
+            myMentees: data.data.totalMentees || 0
           }));
         }
       } catch (error) {
@@ -210,16 +215,20 @@ const RecruiterDashboardPage = () => {
         const data = await response.json();
 
         if (data.success) {
-          setInterviews(data.data.interviews?.slice(0, 3) || []);
+          const allInterviews = data.data.interviews || [];
           
-          const pendingCount = data.data.interviews?.filter(i => 
-            i.rounds?.some(r => r.status === 'pending')
-          ).length || 0;
-
+          // Only show truly pending interviews (in progress and has pending/scheduled rounds)
+          const pendingInterviewsList = allInterviews.filter(i => 
+            (i.overallStatus === 'in_progress' || i.overallStatus === 'pending') && 
+            i.rounds?.some(r => r.status === 'pending' || r.status === 'scheduled')
+          );
+          
+          setInterviews(pendingInterviewsList.slice(0, 3));
+          
           setStats(prev => ({
             ...prev,
-            pendingInterviews: pendingCount,
-            totalInterviews: data.data.interviews?.length || 0
+            pendingInterviews: pendingInterviewsList.length,
+            totalInterviews: allInterviews.length
           }));
         }
       } catch (error) {
@@ -398,135 +407,11 @@ const RecruiterDashboardPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={toggleMobileMenu}
-      ></div>
-
-      {/* Sidebar - Recruiter Specific */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`nav-item active`}
-            onClick={() => navigate('/recruiter/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <span className="nav-item-text">Manage Internships</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/post-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span className="nav-item-text">Post Internship</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/applicants')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            <span className="nav-item-text">View Applicants</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/interviews')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span className="nav-item-text">Interviews</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/mentees')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            <span className="nav-item-text">My Mentees</span>
-            {stats.myMentees > 0 && (
-              <span className="nav-badge">{stats.myMentees}</span>
-            )}
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/mentor-dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              <path d="M12 22s-8-4-8-10V5l8-3 8 3v7c0 6-8 10-8 10z"></path>
-            </svg>
-            <span className="nav-item-text">Mentor Dashboard</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/recruiter/profile')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <span className="nav-item-text">Profile</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/recruiter/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">
-                {userData.department || 'Recruiter'} • Zoyaraa
-              </div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      <RecruiterSidebar 
+        isOpen={isMobileMenuOpen} 
+        setIsOpen={setIsMobileMenuOpen} 
+        userData={userData} 
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -758,12 +643,12 @@ const RecruiterDashboardPage = () => {
             <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Mentoring Overview
             </h3>
-            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
               <div className="stat-card">
                 <div className="stat-info">
-                  <div className="stat-label">My Mentees</div>
+                  <div className="stat-label">Total Mentees</div>
                   <div className="stat-value">
-                    {loading.mentees ? (
+                    {loading.stats ? (
                       <div className="skeleton-text" style={{ width: '60px', height: '32px' }}></div>
                     ) : (
                       stats.myMentees
@@ -779,19 +664,56 @@ const RecruiterDashboardPage = () => {
 
               <div className="stat-card">
                 <div className="stat-info">
-                  <div className="stat-label">Pending Interviews</div>
+                  <div className="stat-label">Active Interns</div>
                   <div className="stat-value">
-                    {loading.interviews ? (
+                    {loading.stats ? (
                       <div className="skeleton-text" style={{ width: '60px', height: '32px' }}></div>
                     ) : (
-                      stats.pendingInterviews
+                      stats.activeInterns
                     )}
                   </div>
                 </div>
-                <div className="stat-icon orange">
+                <div className="stat-icon blue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-info">
+                  <div className="stat-label">Completed</div>
+                  <div className="stat-value">
+                    {loading.stats ? (
+                      <div className="skeleton-text" style={{ width: '60px', height: '32px' }}></div>
+                    ) : (
+                      stats.completedInterns
+                    )}
+                  </div>
+                </div>
+                <div className="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-info">
+                  <div className="stat-label">Avg Progress</div>
+                  <div className="stat-value">
+                    {loading.stats ? (
+                      <div className="skeleton-text" style={{ width: '60px', height: '32px' }}></div>
+                    ) : (
+                      stats.avgProgress
+                    )}%
+                  </div>
+                </div>
+                <div className="stat-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
                   </svg>
                 </div>
               </div>

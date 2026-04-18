@@ -3,20 +3,27 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/StudentDashboard.css'; // Reuse existing styles
 import NotificationBell from '../../components/common/NotificationBell';
+import StudentSidebar from '../../components/layout/StudentSidebar';
 
 const MyLogsPage = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [logs, setLogs] = useState([]);
-  const [filteredLogs, setFilteredLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 3,
+    pages: 1
+  });
   const [stats, setStats] = useState({
     totalLogs: 0,
     approvedLogs: 0,
     pendingLogs: 0,
     rejectedLogs: 0
   });
-  const [filter, setFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({
     name: 'Loading...',
     initials: 'ST',
@@ -58,36 +65,35 @@ const MyLogsPage = () => {
     fetchUserProfile();
   }, []);
 
-  // Fetch logs data
+  // Fetch logs data (Whenever page or filter changes)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('authToken');
 
-        // Fetch logs
-        const logsResponse = await fetch('http://localhost:5000/api/daily-logs/my-logs', {
+        // Fetch logs with pagination and status filter
+        const logsResponse = await fetch(`http://localhost:5000/api/daily-logs/my-logs?page=${page}&limit=3&status=${filter}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const logsData = await logsResponse.json();
 
         if (logsData.success) {
-          const logsList = logsData.data.logs || [];
-          setLogs(logsList);
-          setFilteredLogs(logsList);
+          setLogs(logsData.data.logs || []);
+          if (logsData.data.pagination) {
+            setPagination(logsData.data.pagination);
+          }
 
-          // Calculate stats
-          const total = logsList.length;
-          const approved = logsList.filter(l => l.status === 'approved').length;
-          const pending = logsList.filter(l => l.status === 'pending').length;
-          const rejected = logsList.filter(l => l.status === 'rejected').length;
-
-          setStats({
-            totalLogs: total,
-            approvedLogs: approved,
-            pendingLogs: pending,
-            rejectedLogs: rejected
-          });
+          // Update stats (These are totals for all logs of the student)
+          const s = logsData.data.stats;
+          if (s) {
+            setStats({
+              totalLogs: s.total,
+              approvedLogs: s.approved,
+              pendingLogs: s.pending,
+              rejectedLogs: s.rejected
+            });
+          }
         }
       } catch (error) {
         console.error('Error fetching logs:', error);
@@ -97,16 +103,19 @@ const MyLogsPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [page, filter]);
 
-  // Filter logs when filter changes
-  useEffect(() => {
-    if (filter === 'all') {
-      setFilteredLogs(logs);
-    } else {
-      setFilteredLogs(logs.filter(log => log.status === filter));
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      setPage(newPage);
+      window.scrollTo(0, 0); // Scroll to top for new results
     }
-  }, [filter, logs]);
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setPage(1); // Always reset to page 1 for new filter
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -180,101 +189,12 @@ const MyLogsPage = () => {
 
   return (
     <div className="app-container">
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setIsMobileMenuOpen(false)}
-      ></div>
-
-      {/* Sidebar */}
-      <aside className={`sidebar ${isMobileMenuOpen ? 'active' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-            </div>
-            <span className="sidebar-logo-text">Zoyaraa</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span className="nav-item-text">Dashboard</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/internships')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <span className="nav-item-text">Browse Internships</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/applications')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span className="nav-item-text">My Applications</span>
-          </button>
-
-          <button
-            className="nav-item"
-            onClick={() => navigate('/student/resume')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span className="nav-item-text">My Resume</span>
-          </button>
-
-          <button
-            className="nav-item active"
-            onClick={() => navigate('/student/active-internship')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-            <span className="nav-item-text">My Internship</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            className="user-profile-sidebar"
-            onClick={() => navigate('/student/profile')}
-          >
-            <div className="user-avatar-sidebar">{userData.initials}</div>
-            <div className="user-info-sidebar">
-              <div className="user-name-sidebar">{userData.name}</div>
-              <div className="user-role-sidebar">Student • Zoyaraa</div>
-            </div>
-          </button>
-        </div>
-      </aside>
+      {/* Unified Sidebar */}
+      <StudentSidebar
+        isOpen={isMobileMenuOpen}
+        setIsOpen={setIsMobileMenuOpen}
+        userData={userData}
+      />
 
       {/* Main Content */}
       <main className="main-content">
@@ -371,28 +291,28 @@ const MyLogsPage = () => {
           <div className="status-tabs" style={{ marginBottom: '2rem' }}>
             <button
               className={`status-tab ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
+              onClick={() => handleFilterChange('all')}
             >
               All
-              <span className="tab-badge">{logs.length}</span>
+              <span className="tab-badge">{stats.totalLogs}</span>
             </button>
             <button
               className={`status-tab ${filter === 'pending' ? 'active' : ''}`}
-              onClick={() => setFilter('pending')}
+              onClick={() => handleFilterChange('pending')}
             >
               Pending
               <span className="tab-badge">{stats.pendingLogs}</span>
             </button>
             <button
               className={`status-tab ${filter === 'approved' ? 'active' : ''}`}
-              onClick={() => setFilter('approved')}
+              onClick={() => handleFilterChange('approved')}
             >
               Approved
               <span className="tab-badge">{stats.approvedLogs}</span>
             </button>
             <button
               className={`status-tab ${filter === 'rejected' ? 'active' : ''}`}
-              onClick={() => setFilter('rejected')}
+              onClick={() => handleFilterChange('rejected')}
             >
               Rejected
               <span className="tab-badge">{stats.rejectedLogs}</span>
@@ -406,99 +326,182 @@ const MyLogsPage = () => {
                 <div key={i} className="skeleton-card"></div>
               ))}
             </div>
-          ) : filteredLogs.length > 0 ? (
-            <div className="applications-grid">
-              {filteredLogs.map((log) => (
-                <div key={log._id} className="application-card" style={{ cursor: 'default' }}>
-                  <div className="app-card-header">
-                    <div className="app-company-info">
-                      <div className="app-company-logo">
-                        {log.dayNumber || 'D'}
-                      </div>
-                      <div className="app-details">
-                        <h3 className="app-title">Day {log.dayNumber || '?'}</h3>
-                        <p className="app-company-name">
-                          {formatDate(log.date)}
-                        </p>
-                        <div className="app-meta">
-                          <span className="app-meta-item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            {log.totalHours || 0} hours
-                          </span>
-                          <span className="app-meta-item">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-                              <path d="M3 9h18"></path>
-                            </svg>
-                            {log.tasksCompleted?.length || 0} tasks
-                          </span>
+          ) : logs.length > 0 ? (
+            <>
+              <div className="applications-grid">
+                {logs.map((log) => (
+                  <div key={log._id} className="application-card" style={{ cursor: 'default' }}>
+                    <div className="app-card-header">
+                      <div className="app-company-info">
+                        <div className="app-company-logo">
+                          {log.dayNumber || 'D'}
+                        </div>
+                        <div className="app-details">
+                          <h3 className="app-title">Day {log.dayNumber || '?'}</h3>
+                          <p className="app-company-name">
+                            {formatDate(log.date)}
+                          </p>
+                          <div className="app-meta">
+                            <span className="app-meta-item">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                              </svg>
+                              {log.totalHours || 0} hours
+                            </span>
+                            <span className="app-meta-item">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                <path d="M3 9h18"></path>
+                              </svg>
+                              {log.tasksCompleted?.length || 0} tasks
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                      {getStatusBadge(log.status)}
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        Submitted: {formatDate(log.submittedAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Log Content Preview */}
-                  <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
-                    {log.tasksCompleted && log.tasksCompleted.length > 0 && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
-                          Tasks:
-                        </div>
-                        {log.tasksCompleted.slice(0, 2).map((task, idx) => (
-                          <div key={idx} style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.25rem' }}>
-                            • {task.description} ({task.hoursSpent} hrs)
-                          </div>
-                        ))}
-                        {log.tasksCompleted.length > 2 && (
-                          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
-                            +{log.tasksCompleted.length - 2} more tasks
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {log.learnings && (
-                      <div style={{ fontSize: '0.85rem', color: '#475569' }}>
-                        <span style={{ fontWeight: '600' }}>Learning:</span> {log.learnings.substring(0, 100)}
-                        {log.learnings.length > 100 && '...'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Mentor Feedback if exists */}
-                  {log.mentorFeedback && (
-                    <div style={{
-                      marginTop: '1rem',
-                      padding: '0.75rem',
-                      background: '#f0f4fe',
-                      borderRadius: '8px',
-                      borderLeft: '4px solid #2440F0'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        <span style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem' }}>
-                          Mentor Feedback
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                        {getStatusBadge(log.status)}
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          Submitted: {formatDate(log.submittedAt)}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}>
-                        {log.mentorFeedback.comment || 'No feedback provided'}
-                      </p>
                     </div>
-                  )}
+
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
+                      {log.tasksCompleted && log.tasksCompleted.length > 0 && (
+                        <div style={{ marginBottom: '1rem' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+                            Tasks:
+                          </div>
+                          {log.tasksCompleted.slice(0, 2).map((task, idx) => (
+                            <div key={idx} style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.25rem' }}>
+                              • {task.description} ({task.hoursSpent} hrs)
+                            </div>
+                          ))}
+                          {log.tasksCompleted.length > 2 && (
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                              +{log.tasksCompleted.length - 2} more tasks
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {log.learnings && (
+                        <div style={{ fontSize: '0.85rem', color: '#475569' }}>
+                          <span style={{ fontWeight: '600' }}>Learning:</span> {log.learnings.substring(0, 100)}
+                          {log.learnings.length > 100 && '...'}
+                        </div>
+                      )}
+                    </div>
+
+                    {log.mentorFeedback && (
+                      <div style={{
+                        marginTop: '1rem',
+                        padding: '0.75rem',
+                        background: '#f0f4fe',
+                        borderRadius: '8px',
+                        borderLeft: '4px solid #2440F0'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2440F0" strokeWidth="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                          </svg>
+                          <span style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem' }}>
+                            Mentor Feedback
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0 }}>
+                          {log.mentorFeedback.comment || 'No feedback provided'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination UI */}
+              {pagination.pages > 1 && (
+                <div className="pagination" style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  marginTop: '3rem',
+                  paddingBottom: '2rem'
+                }}>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: 'white',
+                      cursor: page === 1 ? 'not-allowed' : 'pointer',
+                      opacity: page === 1 ? 0.5 : 1
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    {[...Array(pagination.pages)].map((_, i) => {
+                      const pageNum = i + 1;
+                      // Only show current, first, last, and pages around current
+                      if (
+                        pageNum === 1 ||
+                        pageNum === pagination.pages ||
+                        Math.abs(pageNum - page) <= 1
+                      ) {
+                        return (
+                          <button
+                            key={pageNum}
+                            className={`pagination-num ${page === pageNum ? 'active' : ''}`}
+                            onClick={() => handlePageChange(pageNum)}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              border: '1px solid #e2e8f0',
+                              background: page === pageNum ? '#2440F0' : 'white',
+                              color: page === pageNum ? 'white' : '#1e293b',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      } else if (
+                        (pageNum === 2 && page > 3) ||
+                        (pageNum === pagination.pages - 1 && page < pagination.pages - 2)
+                      ) {
+                        return <span key={pageNum} style={{ padding: '0 0.5rem' }}>...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === pagination.pages}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: 'white',
+                      cursor: page === pagination.pages ? 'not-allowed' : 'pointer',
+                      opacity: page === pagination.pages ? 0.5 : 1
+                    }}
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -516,7 +519,7 @@ const MyLogsPage = () => {
               {filter !== 'all' && (
                 <button
                   className="secondary-btn"
-                  onClick={() => setFilter('all')}
+                  onClick={() => handleFilterChange('all')}
                 >
                   View All Logs
                 </button>

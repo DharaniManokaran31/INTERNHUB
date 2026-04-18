@@ -4,16 +4,29 @@ const Notification = require('../models/Notification');
 // USER NOTIFICATIONS
 // ============================================
 
+// ----------------------
 // Get My Notifications
+// ----------------------
 exports.getMyNotifications = async (req, res) => {
     try {
+        const mongoose = require('mongoose');
         const userId = req.user.id;
         const userRole = req.user.role;
         
+        console.log(`🔍 [DEBUG] Fetching notifications for ${userRole} ID: ${userId}`);
+        
+        let queryId;
+        try {
+            queryId = new mongoose.Types.ObjectId(userId);
+        } catch (e) {
+            console.error(`❌ [DEBUG] Invalid User ID for notifications: ${userId}`);
+            return res.status(400).json({ success: false, message: "Invalid user identity." });
+        }
+
         const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
 
         const notifications = await Notification.find({
-            recipientId: userId,
+            recipientId: queryId,
             recipientModel: recipientModel
         })
         .sort({ createdAt: -1 })
@@ -204,13 +217,21 @@ exports.clearAllNotifications = async (req, res) => {
 // Get Unread Count
 exports.getUnreadCount = async (req, res) => {
     try {
+        const mongoose = require('mongoose');
         const userId = req.user.id;
         const userRole = req.user.role;
         
+        let queryId;
+        try {
+            queryId = new mongoose.Types.ObjectId(userId);
+        } catch (e) {
+            return res.status(400).json({ success: false, message: "Invalid user identity." });
+        }
+
         const recipientModel = userRole === 'student' ? 'Student' : 'Recruiter';
 
         const count = await Notification.countDocuments({
-            recipientId: userId,
+            recipientId: queryId,
             recipientModel: recipientModel,
             isRead: false
         });

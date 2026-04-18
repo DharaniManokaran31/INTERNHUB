@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const path = require('path');
 const Student = require("../models/Student");
 const Application = require("../models/Application");
@@ -370,8 +371,17 @@ exports.updateResume = async (req, res) => {
 exports.getStudentApplications = async (req, res) => {
   try {
     const studentId = req.user.id;
+    console.log(`🔍 [DEBUG] Student fetching applications. ID: ${studentId}`);
 
-    const applications = await Application.find({ studentId })
+    let queryId;
+    try {
+      queryId = new mongoose.Types.ObjectId(studentId);
+    } catch (e) {
+      console.error(`❌ [DEBUG] Invalid Student ID in JWT for applications: ${studentId}`);
+      return res.status(400).json({ success: false, message: "Invalid student identity." });
+    }
+
+    const applications = await Application.find({ studentId: queryId })
       .populate({
         path: 'internshipId',
         select: 'title companyName department workMode location stipend duration startDate endDate'
@@ -416,14 +426,27 @@ exports.getStudentApplications = async (req, res) => {
 exports.getIssuedCertificates = async (req, res) => {
   try {
     const studentId = req.user.id;
+    const studentEmail = req.user.email;
+    console.log(`🔍 [DEBUG] Student accessing certificates: ID=${studentId}, Email=${studentEmail}`);
+    
+    // Explicitly cast to ensure no cast errors occur during query if ID string is malformed
+    let queryId;
+    try {
+      queryId = new mongoose.Types.ObjectId(studentId);
+    } catch (e) {
+      console.error(`❌ [DEBUG] Invalid Student ID in JWT: ${studentId}`);
+      return res.status(400).json({ success: false, message: "Invalid student identity." });
+    }
 
     const certificates = await Certificate.find({ 
-      studentId, 
+      studentId: queryId, 
       status: 'issued' 
     })
       .populate('internshipId', 'title department')
       .populate('issuedBy', 'fullName designation')
       .sort({ issueDate: -1 });
+
+    console.log(`✅ [DEBUG] Found ${certificates.length} certificates for ${studentEmail}`);
 
     res.status(200).json({
       success: true,

@@ -12,7 +12,7 @@ const progressService = {
     },
 
     getWeeklyBreakdown: async (studentId) => {
-        const response = await api.get(`/progress/weekly/${studentId}`);
+        const response = await api.get(`/progress/intern/${studentId}/weekly`);
         return response.data;
     }
 };

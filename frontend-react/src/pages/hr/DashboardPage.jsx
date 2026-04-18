@@ -98,7 +98,7 @@ const HRDashboardPage = () => {
                     type: act.type,
                     title: getActivityTitle(act),
                     description: getActivityDescription(act),
-                    time: formatTime(act.createdAt),
+                    time: formatTime(act.timestamp || act.createdAt),
                     status: act.isRead ? 'read' : 'new',
                     link: getActivityLink(act),
                     icon: getActivityIcon(act.type),
@@ -212,17 +212,31 @@ const HRDashboardPage = () => {
     const formatTime = (dateString) => {
         if (!dateString) return 'Just now';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Just now';
+        
         const now = new Date();
         const diffMs = now - date;
+        
+        // Handle future dates (from slightly unsynced clocks) or very recent ones
+        if (diffMs < 60000) return 'Just now';
+        
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
         if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-        return date.toLocaleDateString();
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        }) + ' • ' + date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const handleLogout = () => {
@@ -788,16 +802,6 @@ const HRDashboardPage = () => {
                                 )}
                             </div>
 
-                            <button
-                                className="secondary-btn"
-                                style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}
-                                onClick={(e) => {
-                                    createRippleEffect(e);
-                                    navigate('/hr/notifications');
-                                }}
-                            >
-                                View All Notifications
-                            </button>
                         </section>
                     </div>
                 </div>

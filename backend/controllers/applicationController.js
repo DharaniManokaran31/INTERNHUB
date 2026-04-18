@@ -64,6 +64,19 @@ exports.applyToInternship = async (req, res) => {
       });
     }
 
+    // Check if already accepted to an internship (Collision Prevention)
+    const acceptedApplication = await Application.findOne({
+      studentId,
+      status: 'accepted'
+    });
+
+    if (acceptedApplication) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot apply to new internships because you have already been accepted into one."
+      });
+    }
+
     // Prevent duplicate
     const existingApplication = await Application.findOne({
       studentId,
@@ -374,15 +387,18 @@ exports.updateApplicationStatus = async (req, res) => {
     }
 
     const oldStatus = application.status;
-    application.status = status;
-
-    // Add timeline entry
-    application.timeline.push({
-      status,
-      comment: comment || `Application status changed to ${status}`,
-      updatedAt: new Date(),
-      updatedBy: userId
-    });
+    
+    // Only update and push to timeline if status changed
+    if (oldStatus !== status) {
+      application.status = status;
+      // Add timeline entry
+      application.timeline.push({
+        status,
+        comment: comment || `Application status changed to ${status}`,
+        updatedAt: new Date(),
+        updatedBy: userId
+      });
+    }
 
     await application.save();
 
@@ -408,6 +424,38 @@ exports.updateApplicationStatus = async (req, res) => {
         await Student.findByIdAndUpdate(application.studentId._id, {
           currentInternship: internship._id
         });
+
+        // 🚀 COLLISION PREVENTION: Auto-withdraw all other pending/shortlisted applications
+        const otherApplications = await Application.find({
+          studentId: application.studentId._id,
+          _id: { $ne: application._id },
+          status: { $in: ['pending', 'shortlisted'] }
+        }).populate('internshipId');
+
+        for (const otherApp of otherApplications) {
+          otherApp.status = 'rejected';
+          otherApp.timeline.push({
+            status: 'rejected',
+            comment: 'Auto-withdrawn: Student was accepted into another internship role.',
+            updatedAt: new Date(),
+            updatedBy: userId
+          });
+          await otherApp.save();
+
+          await Notification.create({
+            recipientId: application.studentId._id,
+            recipientModel: 'Student',
+            type: 'application_status_change',
+            title: `Application Auto-Withdrawn`,
+            message: `Your application for ${otherApp.internshipId.title} was removed because you were accepted into another role.`,
+            data: {
+              applicationId: otherApp._id,
+              internshipId: otherApp.internshipId._id,
+              internshipTitle: otherApp.internshipId.title,
+              status: 'rejected'
+            }
+          });
+        }
       }
     }
 
@@ -418,7 +466,8 @@ exports.updateApplicationStatus = async (req, res) => {
         application.studentId.fullName,
         application.internshipId.title,
         status,
-        comment
+        comment,
+        application._id
       );
     } catch (emailError) {
       console.error('Email sending failed:', emailError);
@@ -689,41 +738,21 @@ exports.getRecruiterRecentApplications = async (req, res) => {
       });
     }
 
-    // Create a map of internship titles for quick lookup
-    const internshipMap = {};
-    internships.forEach(internship => {
-      internshipMap[internship._id.toString()] = {
-        title: internship.title
-      };
-    });
-
-    // Get recent applications with student details
+    // Get recent applications with student details and internship details
     const applications = await Application.find({
       internshipId: { $in: internshipIds }
     })
       .populate('studentId', 'fullName email profilePicture')
+      .populate('internshipId', 'title department location')
       .sort({ appliedAt: -1 })
       .limit(limit);
 
-    // Format the response
-    const formattedApplications = applications.map(app => ({
-      id: app._id,
-      studentName: app.studentId?.fullName || 'Unknown Student',
-      studentEmail: app.studentId?.email,
-      studentId: app.studentId?._id,
-      internshipId: app.internshipId,
-      internshipTitle: internshipMap[app.internshipId.toString()]?.title || 'Unknown Internship',
-      status: app.status,
-      appliedDate: app.appliedAt,
-      appliedAt: app.appliedAt
-    }));
-
-    console.log(`✅ Found ${formattedApplications.length} recent applications`);
+    console.log(`✅ Found ${applications.length} recent applications`);
 
     res.status(200).json({
       success: true,
       data: {
-        applications: formattedApplications
+        applications: applications
       }
     });
   } catch (error) {
