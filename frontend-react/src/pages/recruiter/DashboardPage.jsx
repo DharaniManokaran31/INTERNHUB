@@ -53,7 +53,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -113,7 +113,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/internships/recruiter/mine', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/internships/recruiter/mine', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -142,7 +142,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/department-stats', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/department-stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -184,7 +184,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/recruiter/recent?limit=3', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/applications/recruiter/recent?limit=3', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -209,7 +209,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/interviews/recruiter', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/interviews/recruiter', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -248,7 +248,7 @@ const RecruiterDashboardPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/mentees', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/mentees', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();

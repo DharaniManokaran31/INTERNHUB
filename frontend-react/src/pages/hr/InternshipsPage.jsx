@@ -42,7 +42,7 @@ const InternshipsPage = () => {
     const fetchUserProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -73,7 +73,7 @@ const InternshipsPage = () => {
             setError(null);
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/hr/internships', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/hr/internships', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

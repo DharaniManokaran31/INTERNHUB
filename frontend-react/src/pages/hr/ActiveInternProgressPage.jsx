@@ -28,7 +28,7 @@ const ActiveInternProgressPage = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -61,7 +61,7 @@ const ActiveInternProgressPage = () => {
         
         console.log('📡 Fetching progress for ID:', id); // ADD THIS LOG
         
-        const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/active-interns/${id}/progress`, {
+        const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/active-interns/${id}/progress`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         

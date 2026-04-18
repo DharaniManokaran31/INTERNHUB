@@ -82,7 +82,7 @@ const AdminDashboardPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -112,7 +112,7 @@ const AdminDashboardPage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/dashboard/stats', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/dashboard/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

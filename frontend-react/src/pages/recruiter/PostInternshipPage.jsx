@@ -96,7 +96,7 @@ const PostInternshipPage = () => {
         return;
       }
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -147,7 +147,7 @@ const PostInternshipPage = () => {
       setFetchingData(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/internships/${internshipId}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/internships/${internshipId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -503,11 +503,11 @@ const PostInternshipPage = () => {
 
       console.log('📤 Sending internship data:', internshipData);
 
-      let url = 'https://internhub-backend-d870.onrender.com/api/internships';
+      let url = 'https://internhub-backend-d879.onrender.com/api/internships';
       let method = 'POST';
 
       if (isEditMode && internshipId) {
-        url = `https://internhub-backend-d870.onrender.com/api/internships/${internshipId}`;
+        url = `https://internhub-backend-d879.onrender.com/api/internships/${internshipId}`;
         method = 'PUT';
       }
 

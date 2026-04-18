@@ -56,7 +56,7 @@ const ManageUsersPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -84,7 +84,7 @@ const ManageUsersPage = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/dashboard/stats', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/dashboard/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -105,7 +105,7 @@ const ManageUsersPage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
-      const url = `https://internhub-backend-d870.onrender.com/api/admin/${userType}?page=${pagination.page}&limit=${pagination.limit}&search=${encodeURIComponent(debouncedSearch)}`;
+      const url = `https://internhub-backend-d879.onrender.com/api/admin/${userType}?page=${pagination.page}&limit=${pagination.limit}&search=${encodeURIComponent(debouncedSearch)}`;
 
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -141,7 +141,7 @@ const ManageUsersPage = () => {
       setDeleting(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/admin/user/${userType === 'students' ? 'student' : 'recruiter'}/${selectedUser._id}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/admin/user/${userType === 'students' ? 'student' : 'recruiter'}/${selectedUser._id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

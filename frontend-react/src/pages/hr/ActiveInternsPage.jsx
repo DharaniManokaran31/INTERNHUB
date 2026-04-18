@@ -51,7 +51,7 @@ const ActiveInternsPage = () => {
     const fetchUserProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -106,10 +106,10 @@ const ActiveInternsPage = () => {
             const token = localStorage.getItem('authToken');
 
             const [internsRes, statsRes] = await Promise.all([
-                fetch('https://internhub-backend-d870.onrender.com/api/hr/active-interns', {
+                fetch('https://internhub-backend-d879.onrender.com/api/hr/active-interns', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch('https://internhub-backend-d870.onrender.com/api/hr/active-interns/stats', {
+                fetch('https://internhub-backend-d879.onrender.com/api/hr/active-interns/stats', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json())
             ]);
@@ -165,7 +165,7 @@ const ActiveInternsPage = () => {
         try {
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/active-interns/${internId}/complete`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/active-interns/${internId}/complete`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

@@ -67,7 +67,7 @@ const ManageInternshipsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -97,7 +97,7 @@ const ManageInternshipsPage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
-      let url = `https://internhub-backend-d870.onrender.com/api/admin/internships?page=${pagination.page}&limit=${pagination.limit}`;
+      let url = `https://internhub-backend-d879.onrender.com/api/admin/internships?page=${pagination.page}&limit=${pagination.limit}`;
       
       if (debouncedSearch) {
         url += `&search=${encodeURIComponent(debouncedSearch)}`;
@@ -151,7 +151,7 @@ const ManageInternshipsPage = () => {
       setDeleting(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/admin/internships/${selectedInternship._id}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/admin/internships/${selectedInternship._id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -91,7 +91,7 @@ const ViewApplicantsPage = () => {
         return;
       }
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -124,7 +124,7 @@ const ViewApplicantsPage = () => {
       setLoading(prev => ({ ...prev, internships: true }));
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/internships/recruiter/mine', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/internships/recruiter/mine', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -138,7 +138,7 @@ const ViewApplicantsPage = () => {
       } else {
         console.log('❌ API Error, trying fallback...');
 
-        const profileRes = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+        const profileRes = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const profileData = await profileRes.json();
@@ -146,7 +146,7 @@ const ViewApplicantsPage = () => {
         if (profileData.success) {
           const recruiterId = profileData.data.user._id;
 
-          const allRes = await fetch('https://internhub-backend-d870.onrender.com/api/internships', {
+          const allRes = await fetch('https://internhub-backend-d879.onrender.com/api/internships', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const allData = await allRes.json();
@@ -183,7 +183,7 @@ const ViewApplicantsPage = () => {
 
       console.log(`🔍 Fetching applications for internship: ${internshipId}`);
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/applications/internship/${internshipId}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/applications/internship/${internshipId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -242,7 +242,7 @@ const ViewApplicantsPage = () => {
         return;
       }
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/interviews/recruiter?limit=1000', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/interviews/recruiter?limit=1000', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -302,7 +302,7 @@ const ViewApplicantsPage = () => {
 
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/applications/${applicationId}/status`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/applications/${applicationId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -375,7 +375,7 @@ const ViewApplicantsPage = () => {
 
       showNotification('Starting interview process...', 'info');
 
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/application/${applicationId}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/interviews/application/${applicationId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

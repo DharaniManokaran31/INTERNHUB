@@ -65,7 +65,7 @@ const ResetPasswordPage = () => {
     setMessage('');
 
     try {
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/students/reset-password/${token}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/students/reset-password/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -22,7 +22,7 @@ const IssueCertificateModal = ({ onClose, onSuccess }) => {
     const fetchEligible = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const res = await fetch('https://internhub-backend-d870.onrender.com/api/hr/certificates/eligible', {
+            const res = await fetch('https://internhub-backend-d879.onrender.com/api/hr/certificates/eligible', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -52,7 +52,7 @@ const IssueCertificateModal = ({ onClose, onSuccess }) => {
         setLoading(true);
         try {
             const token = localStorage.getItem('authToken');
-            const res = await fetch('https://internhub-backend-d870.onrender.com/api/hr/certificates/issue', {
+            const res = await fetch('https://internhub-backend-d879.onrender.com/api/hr/certificates/issue', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

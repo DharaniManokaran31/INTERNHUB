@@ -34,7 +34,7 @@ const EditRecruiterModal = ({ onClose, recruiter, onSuccess }) => {
         try {
             const token = localStorage.getItem('authToken');
             
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/recruiters/${recruiter._id}`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/recruiters/${recruiter._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

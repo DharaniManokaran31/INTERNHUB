@@ -35,7 +35,7 @@ const ApplicationDetailsPage = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -66,7 +66,7 @@ const ApplicationDetailsPage = () => {
             setError(null);
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/applications/${id}`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/applications/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -78,7 +78,7 @@ const ApplicationDetailsPage = () => {
                 // Fetch interview if shortlised/interview stage
                 try {
                     const token = localStorage.getItem('authToken');
-                    const interviewRes = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/application/${id}`, {
+                    const interviewRes = await fetch(`https://internhub-backend-d879.onrender.com/api/interviews/application/${id}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const interviewData = await interviewRes.json();
@@ -106,7 +106,7 @@ const ApplicationDetailsPage = () => {
             setSubmitting(true);
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/applications/${id}/status`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/applications/${id}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ const ApplicationDetailsPage = () => {
 
             // If interview exists, we are scheduling a round in existing interview document
             if (interview) {
-                const response = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/hr/${interview._id}/schedule`, {
+                const response = await fetch(`https://internhub-backend-d879.onrender.com/api/interviews/hr/${interview._id}/schedule`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ const ApplicationDetailsPage = () => {
                 }
             } else {
                 // Legacy fallback if interview document doesn't exist (should not happen with new flow)
-                const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/applications/${id}/schedule-interview`, {
+                const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/applications/${id}/schedule-interview`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ const ApplicationDetailsPage = () => {
             setSubmitting(true);
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/hr/${interview._id}/result`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/interviews/hr/${interview._id}/result`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -220,7 +220,7 @@ const ApplicationDetailsPage = () => {
         try {
             const token = localStorage.getItem('authToken');
 
-            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/applications/${id}/notes`, {
+            const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/applications/${id}/notes`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ const ApplicationDetailsPage = () => {
     const cleanUrl = (url) => {
         if (!url) return '';
         if (url.startsWith('/uploads')) {
-            return `https://internhub-backend-d870.onrender.com${url}`;
+            return `https://internhub-backend-d879.onrender.com${url}`;
         }
         return url;
     };

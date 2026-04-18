@@ -46,7 +46,7 @@ const MyApplicationsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -85,7 +85,7 @@ const MyApplicationsPage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -138,7 +138,7 @@ const MyApplicationsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -318,7 +318,7 @@ const MyApplicationsPage = () => {
     // Ensure URL is absolute
     const fullUrl = url.startsWith('http')
       ? url
-      : `https://internhub-backend-d870.onrender.com${url}`;
+      : `https://internhub-backend-d879.onrender.com${url}`;
 
     // Open directly (since localhost cannot be accessed remotely by Google Docs Viewer)
     window.open(fullUrl, '_blank');

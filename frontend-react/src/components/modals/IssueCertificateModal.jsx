@@ -54,7 +54,7 @@ const IssueCertificateModal = ({ onClose, studentData, onSuccess }) => {
                 issueDate: new Date()
             };
 
-            const response = await fetch('https://internhub-backend-d870.onrender.com/api/hr/certificates/issue', {
+            const response = await fetch('https://internhub-backend-d879.onrender.com/api/hr/certificates/issue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

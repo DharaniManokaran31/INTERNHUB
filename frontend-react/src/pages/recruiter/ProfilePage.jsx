@@ -52,7 +52,7 @@ const RecruiterProfilePage = () => {
         return;
       }
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -89,7 +89,7 @@ const RecruiterProfilePage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/mentees', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/mentees', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -142,7 +142,7 @@ const RecruiterProfilePage = () => {
     try {
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/change-password', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/change-password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ const RecruiterProfilePage = () => {
     try {
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/recruiters/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

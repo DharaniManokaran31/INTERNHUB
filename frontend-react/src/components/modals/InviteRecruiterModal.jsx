@@ -20,7 +20,7 @@ const InviteRecruiterModal = ({ onClose, onSuccess }) => {
     const fetchAvailableRecruiters = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/hr/recruiters/available', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/hr/recruiters/available', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -94,7 +94,7 @@ const InviteRecruiterModal = ({ onClose, onSuccess }) => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/recruiters/${formData.recruiterId}/invite`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/hr/recruiters/${formData.recruiterId}/invite`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 

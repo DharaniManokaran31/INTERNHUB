@@ -37,7 +37,7 @@ const MyLogsPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -73,7 +73,7 @@ const MyLogsPage = () => {
         const token = localStorage.getItem('authToken');
 
         // Fetch logs with pagination and status filter
-        const logsResponse = await fetch(`https://internhub-backend-d870.onrender.com/api/daily-logs/my-logs?page=${page}&limit=3&status=${filter}`, {
+        const logsResponse = await fetch(`https://internhub-backend-d879.onrender.com/api/daily-logs/my-logs?page=${page}&limit=3&status=${filter}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const logsData = await logsResponse.json();

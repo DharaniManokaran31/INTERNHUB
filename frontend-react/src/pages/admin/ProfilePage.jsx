@@ -35,7 +35,7 @@ const AdminProfilePage = () => {
           return;
         }
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -103,7 +103,7 @@ const AdminProfilePage = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/change-password', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/change-password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ const AdminProfilePage = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/admin/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

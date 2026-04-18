@@ -13,7 +13,7 @@ const StudentSidebar = ({ isOpen, setIsOpen, userData }) => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/applications/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();

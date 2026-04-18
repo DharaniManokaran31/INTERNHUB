@@ -26,10 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Global Request Logger
 app.use((req, res, next) => {
-  const logEntry = `[REQUEST] ${req.method} ${req.originalUrl} - ${new Date().toISOString()}\n`;
-  console.log(logEntry.trim());
-  const logPath = 'E:\\InternHub\\backend\\server.log';
-  fs.appendFileSync(logPath, logEntry);
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl} - ${new Date().toISOString()}`);
   next();
 });
 

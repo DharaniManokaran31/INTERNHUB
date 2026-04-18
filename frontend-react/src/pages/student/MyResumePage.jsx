@@ -49,14 +49,14 @@ const MyResumePage = () => {
 
     // Remove any duplicate base URLs
     let cleaned = url
-      .replace('https://internhub-backend-d870.onrender.comhttp://', 'http://')
-      .replace('https://internhub-backend-d870.onrender.comhttp//', 'http://')
+      .replace('https://internhub-backend-d879.onrender.comhttp://', 'http://')
+      .replace('https://internhub-backend-d879.onrender.comhttp//', 'http://')
       .replace('https://localhost:5000https://', 'https://')
       .replace('https://localhost:5000https//', 'https://');
 
     // If it's a relative path, make it absolute
     if (cleaned.startsWith('/uploads')) {
-      cleaned = `https://internhub-backend-d870.onrender.com${cleaned}`;
+      cleaned = `https://internhub-backend-d879.onrender.com${cleaned}`;
     }
 
     return cleaned;
@@ -68,7 +68,7 @@ const MyResumePage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -94,7 +94,7 @@ const MyResumePage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -125,7 +125,7 @@ const MyResumePage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -147,11 +147,11 @@ const MyResumePage = () => {
           }
           // If it's a path starting with /uploads
           else if (resume.resumeFile.startsWith('/uploads')) {
-            resumeUrl = `https://internhub-backend-d870.onrender.com${resume.resumeFile}`;
+            resumeUrl = `https://internhub-backend-d879.onrender.com${resume.resumeFile}`;
           }
           // If it's just a filename
           else {
-            resumeUrl = `https://internhub-backend-d870.onrender.com/uploads/resumes/${resume.resumeFile}`;
+            resumeUrl = `https://internhub-backend-d879.onrender.com/uploads/resumes/${resume.resumeFile}`;
           }
         }
 
@@ -187,7 +187,7 @@ const MyResumePage = () => {
       setSaving(true);
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/resume', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/resume', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ const MyResumePage = () => {
       const formData = new FormData();
       formData.append('resume', file);
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/resume/upload', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/resume/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -286,7 +286,7 @@ const MyResumePage = () => {
       formData.append('issuer', formData.issuer || 'Pending');
       formData.append('date', formData.date || new Date().toISOString().split('T')[0]);
 
-      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/certificates/upload', {
+      const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/certificates/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -330,7 +330,7 @@ const MyResumePage = () => {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/students/certificates/${certificateId}`, {
+      const response = await fetch(`https://internhub-backend-d879.onrender.com/api/students/certificates/${certificateId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -356,7 +356,7 @@ const MyResumePage = () => {
       try {
         const token = localStorage.getItem('authToken');
 
-        const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/resume/remove', {
+        const response = await fetch('https://internhub-backend-d879.onrender.com/api/students/resume/remove', {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
