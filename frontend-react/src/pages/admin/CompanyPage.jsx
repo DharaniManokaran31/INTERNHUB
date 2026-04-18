@@ -45,7 +45,7 @@ const CompanyPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -67,7 +67,7 @@ const CompanyPage = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('http://localhost:5000/api/admin/company', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/company', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -105,7 +105,7 @@ const CompanyPage = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('http://localhost:5000/api/admin/company', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/company', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

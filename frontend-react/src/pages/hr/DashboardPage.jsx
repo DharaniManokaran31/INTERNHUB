@@ -40,16 +40,16 @@ const HRDashboardPage = () => {
 
             // Fetch all data in parallel
             const [profileRes, statsRes, recruitersRes, activityRes] = await Promise.all([
-                fetch('http://localhost:5000/api/recruiters/profile', {
+                fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch('http://localhost:5000/api/hr/dashboard', {
+                fetch('https://internhub-backend-d870.onrender.com/api/hr/dashboard', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch('http://localhost:5000/api/hr/recruiters', {
+                fetch('https://internhub-backend-d870.onrender.com/api/hr/recruiters', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch('http://localhost:5000/api/hr/activity/recent', {
+                fetch('https://internhub-backend-d870.onrender.com/api/hr/activity/recent', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json())
             ]);

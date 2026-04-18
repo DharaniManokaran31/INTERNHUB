@@ -38,7 +38,7 @@ const ProfilePage = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/students/profile', {
+        const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -97,7 +97,7 @@ const ProfilePage = () => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('http://localhost:5000/api/students/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

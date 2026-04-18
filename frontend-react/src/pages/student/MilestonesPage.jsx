@@ -30,7 +30,7 @@ const MilestonesPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5000/api/students/profile', {
+        const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -66,7 +66,7 @@ const MilestonesPage = () => {
         const token = localStorage.getItem('authToken');
 
         // First, check if student has an accepted application
-        const appsResponse = await fetch('http://localhost:5000/api/applications/me', {
+        const appsResponse = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const appsData = await appsResponse.json();
@@ -87,7 +87,7 @@ const MilestonesPage = () => {
         const internshipId = acceptedApp.internshipId || acceptedApp.internship?._id;
 
         // Fetch internship details with milestones
-        const internshipResponse = await fetch(`http://localhost:5000/api/progress/milestones/${internshipId}`, {
+        const internshipResponse = await fetch(`https://internhub-backend-d870.onrender.com/api/progress/milestones/${internshipId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const internshipData = await internshipResponse.json();

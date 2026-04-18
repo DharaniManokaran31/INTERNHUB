@@ -37,7 +37,7 @@ const ManageRecruitersPage = () => {
     const fetchUserProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -70,7 +70,7 @@ const ManageRecruitersPage = () => {
 
             console.log('🔄 Fetching recruiters...');
 
-            const response = await fetch('http://localhost:5000/api/hr/recruiters', {
+            const response = await fetch('https://internhub-backend-d870.onrender.com/api/hr/recruiters', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -114,7 +114,7 @@ const ManageRecruitersPage = () => {
 
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:5000/api/hr/recruiters/${id}/revoke`, {
+            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/recruiters/${id}/revoke`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -135,7 +135,7 @@ const ManageRecruitersPage = () => {
     const handleResendInvite = async (id) => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:5000/api/hr/recruiters/${id}/resend`, {
+            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/recruiters/${id}/resend`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -162,7 +162,7 @@ const ManageRecruitersPage = () => {
 
             console.log(`🔄 Attempting to ${action} recruiter:`, id);
 
-            const response = await fetch(`http://localhost:5000/api/hr/recruiters/${id}/${endpoint}`, {
+            const response = await fetch(`https://internhub-backend-d870.onrender.com/api/hr/recruiters/${id}/${endpoint}`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

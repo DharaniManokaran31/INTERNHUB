@@ -68,7 +68,7 @@ const InternProgressPage = () => {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

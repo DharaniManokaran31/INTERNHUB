@@ -27,7 +27,7 @@ const StudentDetailsPage = () => {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -59,10 +59,10 @@ const StudentDetailsPage = () => {
       const token = localStorage.getItem('authToken');
 
       const [studentResponse, appsResponse] = await Promise.all([
-        fetch(`http://localhost:5000/api/hr/students/${id}`, {
+        fetch(`https://internhub-backend-d870.onrender.com/api/hr/students/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()),
-        fetch(`http://localhost:5000/api/hr/students/${id}/applications`, {
+        fetch(`https://internhub-backend-d870.onrender.com/api/hr/students/${id}/applications`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json())
       ]);
@@ -152,7 +152,7 @@ const StudentDetailsPage = () => {
   const cleanUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      return `https://internhub-backend-d870.onrender.com${url}`;
     }
     return url;
   };

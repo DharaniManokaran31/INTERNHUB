@@ -29,7 +29,7 @@ const InternshipDetailsPage = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -62,10 +62,10 @@ const InternshipDetailsPage = () => {
 
             // Fetch both in parallel
             const [intResponse, appsResponse] = await Promise.all([
-                fetch(`http://localhost:5000/api/hr/internships/${id}`, {
+                fetch(`https://internhub-backend-d870.onrender.com/api/hr/internships/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch(`http://localhost:5000/api/hr/internships/${id}/applications`, {
+                fetch(`https://internhub-backend-d870.onrender.com/api/hr/internships/${id}/applications`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json())
             ]);

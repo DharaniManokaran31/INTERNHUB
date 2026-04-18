@@ -66,7 +66,7 @@ const ReportsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/admin/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/admin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -98,16 +98,16 @@ const ReportsPage = () => {
 
       // Fetch all data in parallel for better performance
       const [statsResponse, timelineResponse, internshipsResponse, trendsResponse] = await Promise.all([
-        fetch('http://localhost:5000/api/admin/dashboard/stats', {
+        fetch('https://internhub-backend-d870.onrender.com/api/admin/dashboard/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`http://localhost:5000/api/admin/reports/timeline?range=${dateRange}`, {
+        fetch(`https://internhub-backend-d870.onrender.com/api/admin/reports/timeline?range=${dateRange}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/admin/internships?limit=1000', {
+        fetch('https://internhub-backend-d870.onrender.com/api/admin/internships?limit=1000', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/admin/reports/trends', {
+        fetch('https://internhub-backend-d870.onrender.com/api/admin/reports/trends', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);

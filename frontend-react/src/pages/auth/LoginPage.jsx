@@ -102,7 +102,7 @@ const LoginPage = () => {
 
       // 1. Try student login
       try {
-        const studentResponse = await fetch('http://localhost:5000/api/students/login', {
+        const studentResponse = await fetch('https://internhub-backend-d870.onrender.com/api/students/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -123,7 +123,7 @@ const LoginPage = () => {
       // 2. If student fails, try recruiter/HR login
       if (!data.success) {
         try {
-          const recruiterResponse = await fetch('http://localhost:5000/api/recruiters/login', {
+          const recruiterResponse = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -145,7 +145,7 @@ const LoginPage = () => {
       // 3. If recruiter fails, try admin login
       if (!data.success) {
         try {
-          const adminResponse = await fetch('http://localhost:5000/api/admin/login', {
+          const adminResponse = await fetch('https://internhub-backend-d870.onrender.com/api/admin/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -58,7 +58,7 @@ const CertificatesPage = () => {
     const fetchUserProfile = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+            const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -90,10 +90,10 @@ const CertificatesPage = () => {
             const token = localStorage.getItem('authToken');
 
             const [eligibleRes, statsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/hr/certificates/eligible', {
+                fetch('https://internhub-backend-d870.onrender.com/api/hr/certificates/eligible', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json()),
-                fetch('http://localhost:5000/api/hr/certificates/stats', {
+                fetch('https://internhub-backend-d870.onrender.com/api/hr/certificates/stats', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }).then(res => res.json())
             ]);

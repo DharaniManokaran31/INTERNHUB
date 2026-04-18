@@ -81,7 +81,7 @@ const AcceptInvitePage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/recruiters/accept-invite/${token}`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/recruiters/accept-invite/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })

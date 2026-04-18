@@ -64,7 +64,7 @@ const ManageInternshipsPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -102,10 +102,10 @@ const ManageInternshipsPage = () => {
 
       // Try multiple possible endpoints
       const endpoints = [
-        'http://localhost:5000/api/internships/recruiter',
-        'http://localhost:5000/api/internships/recruiter/mine',
-        'http://localhost:5000/api/internships/my-internships',
-        'http://localhost:5000/api/recruiters/my-internships'
+        'https://internhub-backend-d870.onrender.com/api/internships/recruiter',
+        'https://internhub-backend-d870.onrender.com/api/internships/recruiter/mine',
+        'https://internhub-backend-d870.onrender.com/api/internships/my-internships',
+        'https://internhub-backend-d870.onrender.com/api/recruiters/my-internships'
       ];
 
       let internshipsList = [];
@@ -137,7 +137,7 @@ const ManageInternshipsPage = () => {
         console.log('⚠️ No dedicated endpoint worked, falling back to filter');
 
         // Get profile first
-        const profileRes = await fetch('http://localhost:5000/api/recruiters/profile', {
+        const profileRes = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const profileData = await profileRes.json();
@@ -147,7 +147,7 @@ const ManageInternshipsPage = () => {
           const recruiterId = recruiter._id;
 
           // Fetch all internships
-          const allRes = await fetch('http://localhost:5000/api/internships', {
+          const allRes = await fetch('https://internhub-backend-d870.onrender.com/api/internships', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const allData = await allRes.json();
@@ -209,7 +209,7 @@ const ManageInternshipsPage = () => {
       const counts = {};
 
       // Fetch all interviews for this recruiter
-      const response = await fetch('http://localhost:5000/api/interviews/recruiter', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/interviews/recruiter', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -288,11 +288,11 @@ const ManageInternshipsPage = () => {
       let body;
 
       if (newStatus === 'closed') {
-        endpoint = `http://localhost:5000/api/internships/${internshipId}/close`;
+        endpoint = `https://internhub-backend-d870.onrender.com/api/internships/${internshipId}/close`;
         method = 'PATCH';
         body = undefined;
       } else {
-        endpoint = `http://localhost:5000/api/internships/${internshipId}`;
+        endpoint = `https://internhub-backend-d870.onrender.com/api/internships/${internshipId}`;
         method = 'PUT';
         body = JSON.stringify({ status: newStatus });
       }
@@ -352,7 +352,7 @@ const ManageInternshipsPage = () => {
 
       console.log(`🔍 Deleting internship: ${selectedInternship._id}`);
 
-      const response = await fetch(`http://localhost:5000/api/internships/${selectedInternship._id}`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/internships/${selectedInternship._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

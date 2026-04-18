@@ -139,7 +139,7 @@ const BrowseInternshipsPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/students/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -178,7 +178,7 @@ const BrowseInternshipsPage = () => {
       // Send token only if available (to get applied status)
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      const response = await fetch('http://localhost:5000/api/internships', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/internships', {
         headers: headers
       });
       const data = await response.json();
@@ -203,7 +203,7 @@ const BrowseInternshipsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/applications/me', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -227,7 +227,7 @@ const BrowseInternshipsPage = () => {
       const token = localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/applications/me', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -494,7 +494,7 @@ const BrowseInternshipsPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/applications', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/applications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1618,7 +1618,7 @@ const BrowseInternshipsPage = () => {
                         {profileData.resume.resumeFileName || 'resume.pdf'}
                       </span>
                       <a
-                        href={`http://localhost:5000${profileData.resume.resumeFile}`}
+                        href={`https://internhub-backend-d870.onrender.com${profileData.resume.resumeFile}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#2440F0', textDecoration: 'underline' }}

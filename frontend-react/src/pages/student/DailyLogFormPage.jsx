@@ -32,7 +32,7 @@ const DailyLogFormPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5000/api/students/profile', {
+        const response = await fetch('https://internhub-backend-d870.onrender.com/api/students/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -67,7 +67,7 @@ const DailyLogFormPage = () => {
         const token = localStorage.getItem('authToken');
 
         // First, check if student has an accepted application
-        const appsResponse = await fetch('http://localhost:5000/api/applications/me', {
+        const appsResponse = await fetch('https://internhub-backend-d870.onrender.com/api/applications/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const appsData = await appsResponse.json();
@@ -98,7 +98,7 @@ const DailyLogFormPage = () => {
         const internshipId = currentApp.internshipId || currentApp.internship?._id;
 
         // Fetch internship details
-        const internshipResponse = await fetch(`http://localhost:5000/api/internships/${internshipId}`, {
+        const internshipResponse = await fetch(`https://internhub-backend-d870.onrender.com/api/internships/${internshipId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const internshipData = await internshipResponse.json();
@@ -108,7 +108,7 @@ const DailyLogFormPage = () => {
         }
 
         // Check if already submitted for today
-        const logsResponse = await fetch('http://localhost:5000/api/daily-logs/my-logs', {
+        const logsResponse = await fetch('https://internhub-backend-d870.onrender.com/api/daily-logs/my-logs', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const logsData = await logsResponse.json();
@@ -220,7 +220,7 @@ const DailyLogFormPage = () => {
         tomorrowPlan
       };
 
-      const response = await fetch('http://localhost:5000/api/daily-logs', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/daily-logs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

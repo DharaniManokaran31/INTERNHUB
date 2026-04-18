@@ -36,7 +36,7 @@ const NotificationBell = () => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) return;
-      const response = await fetch('http://localhost:5000/api/notifications', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/notifications', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -90,7 +90,7 @@ const NotificationBell = () => {
   const markAsRead = async (notificationId) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -115,7 +115,7 @@ const NotificationBell = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/notifications/mark-all-read', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/notifications/mark-all-read', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -138,7 +138,7 @@ const NotificationBell = () => {
     e.stopPropagation();
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

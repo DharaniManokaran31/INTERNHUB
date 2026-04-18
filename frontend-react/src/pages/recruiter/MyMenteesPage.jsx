@@ -71,7 +71,7 @@ const MyMenteesPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -105,7 +105,7 @@ const MyMenteesPage = () => {
       const token = localStorage.getItem('authToken');
 
       console.log('🔍 Fetching mentees...');
-      const response = await fetch('http://localhost:5000/api/recruiters/mentees', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/mentees', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -151,7 +151,7 @@ const MyMenteesPage = () => {
 
       for (const mentee of menteesList) {
         try {
-          const response = await fetch(`http://localhost:5000/api/progress/intern/${mentee._id}`, {
+          const response = await fetch(`https://internhub-backend-d870.onrender.com/api/progress/intern/${mentee._id}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -213,7 +213,7 @@ const MyMenteesPage = () => {
       let totalInterviews = 0;
 
       // Fetch all interviews for recruiter
-      const response = await fetch('http://localhost:5000/api/interviews/recruiter', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/interviews/recruiter', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -279,7 +279,7 @@ const MyMenteesPage = () => {
     try {
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`http://localhost:5000/api/mentees/${selectedMentee._id}/feedback`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/mentees/${selectedMentee._id}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

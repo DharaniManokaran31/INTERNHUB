@@ -68,7 +68,7 @@ const InterviewsDashboardPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/recruiters/profile', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/recruiters/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -101,7 +101,7 @@ const InterviewsDashboardPage = () => {
       setLoading(prev => ({ ...prev, interviews: true }));
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch('http://localhost:5000/api/interviews/recruiter', {
+      const response = await fetch('https://internhub-backend-d870.onrender.com/api/interviews/recruiter', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -204,7 +204,7 @@ const InterviewsDashboardPage = () => {
 
       console.log('📤 Scheduling round:', scheduleData);
 
-      const response = await fetch(`http://localhost:5000/api/interviews/${selectedInterview._id}/schedule`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/${selectedInterview._id}/schedule`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ const InterviewsDashboardPage = () => {
 
       console.log('📤 Submitting feedback:', feedbackData);
 
-      const response = await fetch(`http://localhost:5000/api/interviews/${selectedInterview._id}/result`, {
+      const response = await fetch(`https://internhub-backend-d870.onrender.com/api/interviews/${selectedInterview._id}/result`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
