@@ -82,6 +82,41 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// TEMPORARY: Seed HR via browser on Render
+app.get("/api/health/seed-hr", async (req, res) => {
+  try {
+    const bcrypt = require("bcryptjs");
+    const Admin = require("./models/Admin");
+    const email = "dharani31082005@gmail.com";
+    let admin = await Admin.findOne({ email });
+    const hashedPassword = await bcrypt.hash("Dharu@2005", 10);
+    
+    if (admin) {
+      admin.password = hashedPassword;
+      admin.fullName = "Dharani M";
+      admin.isSuperAdmin = true;
+      admin.permissions.canManageRecruiters = true;
+      admin.permissions.canManageHR = true;
+      admin.role = "admin";
+      await admin.save();
+      return res.status(200).send("<h1>HR Admin Updated Successfully</h1><p>You can now log in.</p>");
+    } else {
+      admin = new Admin({
+        fullName: "Dharani M",
+        email: email,
+        password: hashedPassword,
+        role: "admin",
+        isSuperAdmin: true,
+        permissions: { canManageUsers: true, canManageInternships: true, canManageRecruiters: true, canManageHR: true, canViewReports: true, canManageCompany: true }
+      });
+      await admin.save();
+      return res.status(200).send("<h1>HR Admin Created Successfully</h1><p>You can now log in.</p>");
+    }
+  } catch (err) {
+    return res.status(500).send("Error: " + err.message);
+  }
+});
+
 // Public certificate verification - FIXED: Check if function exists
 try {
   const hrController = require("./controllers/hrController");
